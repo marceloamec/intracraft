@@ -1,0 +1,149 @@
+{
+  "id": "conveyor.roller",
+  "version": "0.1.0",
+  "category": "conveyors",
+  "name": { "en": "Roller conveyor", "es": "Mesa de rodillos", "de": "Rollenförderer" },
+  "description": {
+    "en": "Straight roller section; the pallet rides on its bottom boards in the direction of travel.",
+    "es": "Tramo recto de rodillos; el pallet apoya sus tablas inferiores en el sentido del avance.",
+    "de": "Gerader Rollenabschnitt; die Palette liegt mit ihren Bodenbrettern in Förderrichtung auf."
+  },
+  "parameters": [
+    {
+      "key": "length", "type": "number", "unit": "m", "displayUnit": "mm",
+      "default": 3.0, "min": 0.5, "max": 12.0, "group": "geometry", "affects": "both",
+      "label": { "en": "Length", "es": "Longitud", "de": "Länge" },
+      "description": { "en": "Length in the direction of travel", "es": "Longitud en el sentido de avance", "de": "Länge in Förderrichtung" }
+    },
+    {
+      "key": "usableWidth", "type": "number", "unit": "m", "displayUnit": "mm",
+      "default": 1.0, "min": 0.5, "max": 1.8, "group": "geometry", "affects": "both",
+      "label": { "en": "Usable width", "es": "Ancho útil", "de": "Nutzbreite" },
+      "description": { "en": "Clear width between frames or guides", "es": "Ancho libre entre bastidores o guías", "de": "Lichte Breite zwischen Rahmen oder Führungen" }
+    },
+    {
+      "key": "surfaceHeight", "type": "number", "unit": "m", "displayUnit": "mm",
+      "default": 0.6, "min": 0.2, "max": 1.5, "group": "geometry", "affects": "both",
+      "label": { "en": "Surface height", "es": "Altura de superficie", "de": "Förderhöhe" },
+      "description": { "en": "Height of the pallet support plane above the floor", "es": "Altura del plano de apoyo del pallet sobre el suelo", "de": "Höhe der Auflageebene der Palette über dem Boden" }
+    },
+    {
+      "key": "palletSideAlongTravel", "type": "enum", "options": ["long", "short"],
+      "default": "long", "group": "geometry", "affects": "both",
+      "label": { "en": "Pallet side along travel", "es": "Lado del pallet paralelo al avance", "de": "Palettenseite in Förderrichtung" },
+      "description": { "en": "Which pallet side is parallel to the direction of travel", "es": "Qué lado del pallet queda paralelo al avance", "de": "Welche Palettenseite parallel zur Förderrichtung liegt" }
+    },
+    {
+      "key": "nominalSpeed", "type": "number", "unit": "m/s", "displayUnit": "m/s",
+      "default": 0.25, "min": 0.05, "max": 0.6, "group": "motion", "affects": "both",
+      "label": { "en": "Nominal speed", "es": "Velocidad nominal", "de": "Nenngeschwindigkeit" },
+      "description": { "en": "Cruise speed", "es": "Velocidad de crucero", "de": "Fahrgeschwindigkeit" }
+    },
+    {
+      "key": "approachSpeed", "type": "number", "unit": "m/s", "displayUnit": "m/s",
+      "default": 0.1, "min": 0.02, "max": 0.3, "group": "motion", "affects": "both",
+      "label": { "en": "Approach speed", "es": "Velocidad de aproximación", "de": "Schleichgeschwindigkeit" },
+      "description": { "en": "Slow speed before a stop or end position", "es": "Velocidad lenta antes de un tope o parada", "de": "Langsame Geschwindigkeit vor einem Anschlag oder Halt" }
+    },
+    {
+      "key": "accel", "type": "number", "unit": "m/s²", "displayUnit": "m/s²",
+      "default": 0.5, "min": 0.05, "max": 2.0, "group": "motion", "affects": "both",
+      "label": { "en": "Acceleration", "es": "Aceleración", "de": "Beschleunigung" },
+      "description": { "en": "Start-up ramp", "es": "Rampa de arranque", "de": "Anfahrrampe" }
+    },
+    {
+      "key": "decel", "type": "number", "unit": "m/s²", "displayUnit": "m/s²",
+      "default": 0.5, "min": 0.05, "max": 2.0, "group": "motion", "affects": "both",
+      "label": { "en": "Deceleration", "es": "Deceleración", "de": "Verzögerung" },
+      "description": { "en": "Stopping ramp", "es": "Rampa de parada", "de": "Bremsrampe" }
+    },
+    {
+      "key": "direction", "type": "enum", "options": ["forward", "reverse", "reversible"],
+      "default": "forward", "group": "motion", "affects": "both",
+      "label": { "en": "Direction", "es": "Sentido", "de": "Richtung" },
+      "description": { "en": "Direction of travel", "es": "Sentido de marcha", "de": "Förderrichtung" }
+    },
+    {
+      "key": "maxPalletLoad", "type": "number", "unit": "kg", "displayUnit": "kg",
+      "default": 1000, "min": 100, "max": 2000, "group": "load", "affects": "both",
+      "label": { "en": "Max pallet load", "es": "Carga máx. por pallet", "de": "Max. Palettenlast" },
+      "description": { "en": "Warns when a pallet exceeds this mass", "es": "Avisa si un pallet supera esta masa", "de": "Warnt, wenn eine Palette diese Masse überschreitet" }
+    },
+    {
+      "key": "minGap", "type": "number", "unit": "m", "displayUnit": "mm",
+      "default": 0.15, "min": 0.05, "max": 0.5, "group": "accumulation", "affects": "both",
+      "label": { "en": "Minimum gap", "es": "Separación mínima", "de": "Mindestabstand" },
+      "description": { "en": "Minimum clearance between accumulated pallets", "es": "Holgura mínima entre pallets en acumulación", "de": "Mindestabstand zwischen gestauten Paletten" }
+    },
+    {
+      "key": "accumulationMode", "type": "enum", "options": ["none", "zpa", "pressure"],
+      "default": "none", "group": "accumulation", "affects": "both",
+      "label": { "en": "Accumulation mode", "es": "Modo de acumulación", "de": "Staumodus" },
+      "description": {
+        "en": "none: every pallet moves with the rollers and the conveyor starts and stops as one unit (receiving a pallet moves the ones already on it); zpa: independent zones; pressure: pallets close up",
+        "es": "none: cada pallet sigue el movimiento de los rodillos y el transportador arranca y para como una unidad (al recibir un pallet se mueven los que ya están); zpa: zonas independientes; pressure: los pallets se juntan",
+        "de": "none: jede Palette folgt den Rollen, der Förderer läuft und hält als Einheit (beim Aufnehmen bewegen sich die vorhandenen Paletten mit); zpa: unabhängige Zonen; pressure: Paletten schließen auf"
+      }
+    },
+    {
+      "key": "rollerDiameter", "type": "number", "unit": "m", "displayUnit": "mm",
+      "default": 0.089, "choices": [0.076, 0.089], "group": "rollers", "affects": "both",
+      "label": { "en": "Roller diameter", "es": "Diámetro de rodillo", "de": "Rollendurchmesser" },
+      "description": { "en": "Outer roller diameter, chosen from the standard list (provisional list, to confirm)", "es": "Diámetro exterior del rodillo, elegido de la lista estándar (lista provisional, a confirmar)", "de": "Außendurchmesser der Rolle, aus der Standardliste gewählt (vorläufige Liste, zu bestätigen)" }
+    },
+    {
+      "key": "rollerPitch", "type": "number", "unit": "m", "displayUnit": "mm",
+      "default": 0.2063, "choices": [0.133, 0.2063], "group": "rollers", "affects": "both",
+      "label": { "en": "Roller pitch", "es": "Paso de rodillos", "de": "Rollenteilung" },
+      "description": { "en": "Axis-to-axis distance, chosen from the standard list (provisional, to confirm); at least 3 rollers must stay under the pallet", "es": "Distancia entre ejes, elegida de la lista estándar (provisional, a confirmar); deben quedar al menos 3 rodillos bajo el pallet", "de": "Achsabstand, aus der Standardliste gewählt (vorläufig, zu bestätigen); mindestens 3 Rollen müssen unter der Palette liegen" }
+    },
+    {
+      "key": "rollerMu", "type": "number", "default": 0.35, "min": 0.1, "max": 0.8,
+      "group": "rollers", "affects": "3d",
+      "label": { "en": "Roller friction μ", "es": "Rozamiento rodillo μ", "de": "Reibwert Rolle μ" },
+      "description": { "en": "Pallet–roller friction coefficient", "es": "Coeficiente de rozamiento pallet–rodillo", "de": "Reibkoeffizient Palette–Rolle" }
+    },
+    {
+      "key": "rollingResistance", "type": "number", "default": 0.02, "min": 0, "max": 0.1,
+      "group": "rollers", "affects": "3d", "advanced": true,
+      "label": { "en": "Rolling resistance", "es": "Resistencia a la rodadura", "de": "Rollwiderstand" },
+      "description": { "en": "Rolling loss; relevant for idle (gravity) rollers", "es": "Pérdida por rodadura; relevante en rodillos libres", "de": "Rollverlust; relevant bei nicht angetriebenen Rollen" }
+    },
+    {
+      "key": "drive", "type": "enum", "options": ["gravity", "continuousChain", "zoned"],
+      "default": "continuousChain", "group": "drive", "affects": "both",
+      "label": { "en": "Drive", "es": "Accionamiento", "de": "Antrieb" },
+      "description": { "en": "Single chain-driven train, independent zones, or idle rollers", "es": "Tren único por cadena, zonas independientes o rodillos libres", "de": "Ein kettengetriebener Strang, unabhängige Zonen oder freie Rollen" }
+    },
+    {
+      "key": "zoneLength", "type": "number", "unit": "m", "displayUnit": "mm",
+      "default": 1.4, "min": 1.0, "max": 2.0, "group": "drive", "affects": "both", "dependsOn": "drive=zoned",
+      "label": { "en": "Zone length", "es": "Longitud de zona", "de": "Zonenlänge" },
+      "description": { "en": "Zoned drive only; ≥ pallet length + clearance", "es": "Solo por zonas; ≥ largo del pallet + holgura", "de": "Nur Zonenantrieb; ≥ Palettenlänge + Abstand" }
+    },
+    {
+      "key": "rollerCount", "type": "integer", "group": "rollers", "affects": "geometry",
+      "derived": true, "formula": "floor(length / rollerPitch)",
+      "label": { "en": "Number of rollers", "es": "Número de rodillos", "de": "Anzahl Rollen" },
+      "description": { "en": "Derived from length and pitch", "es": "Derivado de la longitud y el paso", "de": "Abgeleitet aus Länge und Teilung" }
+    }
+  ],
+  "ports": [
+    { "id": "A", "direction": "in", "facing": "-x", "local": { "x": 0, "y": "surfaceHeight", "z": 0 } },
+    { "id": "B", "direction": "out", "facing": "+x", "local": { "x": "length", "y": "surfaceHeight", "z": 0 } }
+  ],
+  "signals": {
+    "inputs": ["run", "reverse", "enable"],
+    "outputs": ["running", "occupied"]
+  },
+  "statistics": ["utilization", "blockedTime", "emptyTime", "palletsProcessed", "throughputPerHour", "meanTransitTime", "meanOccupancy"],
+  "geometry": "geom.roller_conveyor",
+  "behaviors": { "des": "des.roller_conveyor", "physics": "phys.roller_conveyor" },
+  "validationRules": ["min3RollersUnderPallet", "usableWidthFitsPallet"],
+  "presets": [
+    {
+      "name": { "en": "Heavy 1000 kg, 0.25 m/s", "es": "Pesado 1000 kg, 0,25 m/s", "de": "Schwer 1000 kg, 0,25 m/s" },
+      "values": { "nominalSpeed": 0.25, "maxPalletLoad": 1000 }
+    }
+  ]
+}

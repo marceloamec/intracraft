@@ -1,0 +1,405 @@
+:root {
+  color-scheme: dark;
+  font-family: system-ui, sans-serif;
+  --bg: #16191d;
+  --panel: #22262c;
+  --text: #e6e8eb;
+  --border: #353b44;
+}
+
+html,
+body,
+#root {
+  height: 100%;
+  margin: 0;
+  background: var(--bg);
+  color: var(--text);
+}
+
+.app {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+}
+
+.toolbar {
+  display: flex;
+  gap: 16px;
+  align-items: center;
+  padding: 8px 16px;
+  background: var(--panel);
+  border-bottom: 1px solid var(--border);
+}
+
+.viewport {
+  flex: 1;
+  min-height: 0;
+}
+
+.workspace {
+  display: flex;
+  flex: 1;
+  min-height: 0;
+}
+
+.catalog {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  width: 360px;
+  padding: 12px;
+  overflow-y: auto;
+  background: var(--panel);
+  border-left: 1px solid var(--border);
+}
+
+.catalog h2 {
+  margin: 0;
+  font-size: 1rem;
+}
+
+.catalog input[type='search'] {
+  padding: 6px 8px;
+}
+
+.catalog-categories {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px;
+}
+
+.catalog button[aria-pressed='true'],
+.toolbar button[aria-pressed='true'] {
+  background: #3b6ea8;
+  color: #fff;
+}
+
+.catalog-list {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.catalog-list button {
+  display: flex;
+  justify-content: space-between;
+  gap: 8px;
+  width: 100%;
+  text-align: left;
+}
+
+.catalog-list small,
+.catalog-detail small {
+  opacity: 0.7;
+}
+
+.catalog-detail {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  padding-top: 8px;
+  border-top: 1px solid var(--border);
+}
+
+.asset-preview {
+  position: relative;
+  height: 240px;
+  background: #1e2228;
+  border: 1px solid var(--border);
+}
+
+.asset-preview-status {
+  position: absolute;
+  inset: 0;
+  display: grid;
+  place-items: center;
+  padding: 12px;
+  text-align: center;
+  pointer-events: none;
+}
+
+/* ---- Editor: menu bar, toolbar, side panels, properties, status bar ---- */
+
+.menubar {
+  display: flex;
+  align-items: center;
+  gap: 2px;
+  padding: 2px 8px;
+  background: var(--bg);
+  border-bottom: 1px solid var(--border);
+  font-size: 0.875rem;
+}
+
+.app-title {
+  margin-right: 12px;
+}
+
+.menu {
+  position: relative;
+}
+
+.menu-button {
+  padding: 4px 10px;
+  border: 0;
+  border-radius: 4px;
+  background: transparent;
+  color: var(--text);
+}
+
+.menu-button:hover,
+.menu-button[aria-expanded='true'] {
+  background: var(--panel);
+}
+
+.menu-list {
+  position: absolute;
+  z-index: 10;
+  top: 100%;
+  left: 0;
+  min-width: 220px;
+  margin: 2px 0 0;
+  padding: 4px;
+  list-style: none;
+  background: var(--panel);
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  box-shadow: 0 6px 18px rgb(0 0 0 / 40%);
+}
+
+.menu-list button {
+  display: grid;
+  grid-template-columns: 16px 1fr auto;
+  gap: 8px;
+  width: 100%;
+  padding: 6px 8px;
+  border: 0;
+  border-radius: 4px;
+  background: transparent;
+  color: var(--text);
+  text-align: left;
+}
+
+.menu-list button:hover:not(:disabled) {
+  background: #3b6ea8;
+}
+
+.menu-list button:disabled {
+  opacity: 0.4;
+}
+
+.menu-list kbd {
+  font: inherit;
+  opacity: 0.6;
+}
+
+.menu-separator {
+  height: 1px;
+  margin: 4px 0;
+  background: var(--border);
+}
+
+.tool-group {
+  display: flex;
+  gap: 2px;
+  padding-right: 12px;
+  border-right: 1px solid var(--border);
+}
+
+.tool-button {
+  display: grid;
+  place-items: center;
+  width: 32px;
+  height: 32px;
+  padding: 0;
+  border: 1px solid transparent;
+  border-radius: 6px;
+  background: transparent;
+  color: var(--text);
+}
+
+.tool-button:hover:not(:disabled) {
+  border-color: var(--border);
+  background: var(--bg);
+}
+
+.tool-button:disabled {
+  opacity: 0.35;
+}
+
+.viewport-canvas {
+  width: 100%;
+  height: 100%;
+}
+
+.side-panel {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  width: 300px;
+  flex-shrink: 0;
+  padding: 12px;
+  overflow-y: auto;
+  background: var(--panel);
+  font-size: 0.875rem;
+}
+
+.library-panel {
+  width: 220px;
+  border-right: 1px solid var(--border);
+}
+
+.properties-panel {
+  border-left: 1px solid var(--border);
+}
+
+.side-panel h2 {
+  margin: 0;
+  font-size: 1rem;
+}
+
+.side-panel h3 {
+  margin: 8px 0 4px;
+  font-size: 0.8rem;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  opacity: 0.7;
+}
+
+.hint {
+  margin: 0;
+  opacity: 0.7;
+}
+
+.library-list {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.library-card {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 6px 8px;
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  background: var(--bg);
+  cursor: grab;
+  user-select: none;
+}
+
+.library-card:hover {
+  border-color: #3b6ea8;
+}
+
+.library-card svg {
+  flex-shrink: 0;
+  color: #8fb4e3;
+}
+
+.prop-section {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.prop-row {
+  display: grid;
+  grid-template-columns: 1fr 140px;
+  align-items: center;
+  gap: 8px;
+}
+
+.prop-input {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.prop-row input:not([type='checkbox']),
+.prop-row select {
+  width: 100%;
+  min-width: 0;
+  box-sizing: border-box;
+}
+
+.prop-row input[type='checkbox'] {
+  justify-self: start;
+}
+
+.prop-row small {
+  min-width: 2.5em;
+  opacity: 0.7;
+}
+
+.attribute-add {
+  display: grid;
+  grid-template-columns: 1fr 1fr auto;
+  gap: 4px;
+}
+
+.attribute-add input {
+  min-width: 0;
+}
+
+.icon-button {
+  padding: 0 6px;
+}
+
+.port-list,
+.issue-list {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.port-dot {
+  display: inline-block;
+  width: 8px;
+  height: 8px;
+  margin-right: 6px;
+  border-radius: 50%;
+}
+
+.port-dot.connected {
+  background: #3fb950;
+}
+
+.port-dot.free {
+  background: #d29922;
+}
+
+.issue-list li,
+.status-issue {
+  color: #e3b341;
+}
+
+.issue-list li.error,
+.status-issue.error {
+  color: #f0766a;
+}
+
+details summary {
+  cursor: pointer;
+  opacity: 0.8;
+}
+
+.statusbar {
+  display: flex;
+  gap: 16px;
+  padding: 4px 12px;
+  background: var(--panel);
+  border-top: 1px solid var(--border);
+  font-size: 0.8rem;
+}
+
+.status-counts {
+  margin-left: auto;
+  opacity: 0.7;
+}

@@ -1,0 +1,15 @@
+{
+  "name": "@intracraft/scenarios",
+  "version": "0.0.0",
+  "private": true,
+  "description": "Reference scenarios with expected results (analytic now, full layouts from phase 3).",
+  "type": "module",
+  "exports": {
+    ".": "./src/index.ts"
+  },
+  "dependencies": {
+    "@intracraft/core-model": "workspace:*",
+    "@intracraft/sim-des": "workspace:*",
+    "zod": "4.6.7"
+  }
+}

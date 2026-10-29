@@ -1,0 +1,17 @@
+{
+  "name": "@intracraft/cli",
+  "version": "0.0.0",
+  "private": true,
+  "description": "Run IntraCraft scenarios without a user interface.",
+  "type": "module",
+  "scripts": {
+    "scenario": "tsx src/index.ts"
+  },
+  "dependencies": {
+    "@intracraft/core-model": "workspace:*",
+    "@intracraft/scenarios": "workspace:*"
+  },
+  "devDependencies": {
+    "tsx": "4.23.15"
+  }
+}

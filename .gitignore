@@ -1,0 +1,10 @@
+node_modules/
+dist/
+coverage/
+*.log
+.DS_Store
+# Obsidian per-user workspace state
+docs/.obsidian/workspace*.json
+docs/.obsidian/cache
+# Third-party 3D models, downloaded by `pnpm assets:fetch` (manifest: packages/asset-catalog)
+library-assets/

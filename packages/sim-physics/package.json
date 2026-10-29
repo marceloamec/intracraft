@@ -1,0 +1,13 @@
+{
+  "name": "@intracraft/sim-physics",
+  "version": "0.0.0",
+  "private": true,
+  "description": "Physics-mode wrapper. Isolates the physics engine (chosen in spike S1) behind a backend interface.",
+  "type": "module",
+  "exports": {
+    ".": "./src/index.ts"
+  },
+  "dependencies": {
+    "@intracraft/core-model": "workspace:*"
+  }
+}

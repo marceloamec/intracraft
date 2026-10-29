@@ -1,0 +1,13 @@
+{
+  "name": "@intracraft/sim-des",
+  "version": "0.0.0",
+  "private": true,
+  "description": "Discrete-event simulation engine: event queue, analytic kinematics and statistics.",
+  "type": "module",
+  "exports": {
+    ".": "./src/index.ts"
+  },
+  "dependencies": {
+    "@intracraft/core-model": "workspace:*"
+  }
+}

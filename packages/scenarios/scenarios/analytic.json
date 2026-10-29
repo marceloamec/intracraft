@@ -1,0 +1,72 @@
+[
+  {
+    "id": "T1",
+    "title": {
+      "en": "Roller conveyor: 3 m from rest, 0.25 m/s, 0.5 m/s², no braking",
+      "es": "Mesa de rodillos: 3 m desde reposo, 0,25 m/s, 0,5 m/s², sin frenar",
+      "de": "Rollenförderer: 3 m aus dem Stand, 0,25 m/s, 0,5 m/s², ohne Bremsen"
+    },
+    "kind": "profileTime",
+    "inputs": { "distance": 3, "maxSpeed": 0.25, "accel": 0.5 },
+    "unit": "s",
+    "expected": 12.25,
+    "relativeTolerance": 0.01
+  },
+  {
+    "id": "T2",
+    "title": {
+      "en": "Saturated line: EUR long side (1.2 m) + 0.15 m gap at 0.25 m/s",
+      "es": "Línea saturada: EUR lado largo (1,2 m) + 0,15 m de separación a 0,25 m/s",
+      "de": "Gesättigte Linie: EUR Längsseite (1,2 m) + 0,15 m Abstand bei 0,25 m/s"
+    },
+    "kind": "throughput",
+    "inputs": { "speed": 0.25, "palletLength": 1.2, "gap": 0.15 },
+    "unit": "pallets/s",
+    "expected": 0.18518518518518517,
+    "relativeTolerance": 0.01
+  },
+  {
+    "id": "T3",
+    "title": {
+      "en": "Turntable: 90° at 15 °/s with 30 °/s²",
+      "es": "Giratoria: 90° a 15 °/s con 30 °/s²",
+      "de": "Drehtisch: 90° bei 15 °/s mit 30 °/s²"
+    },
+    "kind": "profileTime",
+    "inputs": {
+      "distance": 1.5707963267948966,
+      "maxSpeed": 0.2617993877991494,
+      "accel": 0.5235987755982988,
+      "decel": 0.5235987755982988
+    },
+    "unit": "s",
+    "expected": 6.5,
+    "relativeTolerance": 0.01
+  },
+  {
+    "id": "T4",
+    "title": {
+      "en": "Transfer cycle: 1 m, 0.2 m/s, 0.5 m/s², 1 s lift, 1 s lower",
+      "es": "Ciclo de transferencia: 1 m, 0,2 m/s, 0,5 m/s², 1 s subida, 1 s bajada",
+      "de": "Umsetzzyklus: 1 m, 0,2 m/s, 0,5 m/s², 1 s Heben, 1 s Senken"
+    },
+    "kind": "transferCycle",
+    "inputs": { "liftTime": 1, "lowerTime": 1, "distance": 1, "speed": 0.2, "accel": 0.5 },
+    "unit": "s",
+    "expected": 7.4,
+    "relativeTolerance": 0.01
+  },
+  {
+    "id": "T5",
+    "title": {
+      "en": "Impact energy: 1025 kg at 0.25 m/s",
+      "es": "Energía de impacto: 1025 kg a 0,25 m/s",
+      "de": "Aufprallenergie: 1025 kg bei 0,25 m/s"
+    },
+    "kind": "impactEnergy",
+    "inputs": { "mass": 1025, "speed": 0.25 },
+    "unit": "J",
+    "expected": 32,
+    "relativeTolerance": 0.01
+  }
+]

@@ -1,0 +1,576 @@
+{
+  "id": "conveyor.transfer_rc",
+  "version": "0.1.0",
+  "category": "conveyors",
+  "name": {
+    "en": "Roller-to-chain transfer"
+  },
+  "description": {
+    "en": "Roller section with liftable chains between the rollers; transfers pallets at 90° (interpretation to confirm)."
+  },
+  "parameters": [
+    {
+      "key": "length",
+      "type": "number",
+      "unit": "m",
+      "displayUnit": "mm",
+      "default": 1.4,
+      "min": 1.0,
+      "max": 2.0,
+      "group": "geometry",
+      "affects": "both",
+      "label": {
+        "en": "Length"
+      },
+      "description": {
+        "en": "Roller section length; ≈ pallet length + margins"
+      }
+    },
+    {
+      "key": "usableWidth",
+      "type": "number",
+      "unit": "m",
+      "displayUnit": "mm",
+      "default": 1.0,
+      "min": 0.5,
+      "max": 1.8,
+      "group": "geometry",
+      "affects": "both",
+      "label": {
+        "en": "Usable width"
+      },
+      "description": {
+        "en": "Clear width between frames"
+      }
+    },
+    {
+      "key": "surfaceHeight",
+      "type": "number",
+      "unit": "m",
+      "displayUnit": "mm",
+      "default": 0.6,
+      "min": 0.2,
+      "max": 1.5,
+      "group": "geometry",
+      "affects": "both",
+      "label": {
+        "en": "Surface height"
+      },
+      "description": {
+        "en": "Height of the pallet support plane above the floor"
+      }
+    },
+    {
+      "key": "palletSideAlongTravel",
+      "type": "enum",
+      "default": "long",
+      "options": [
+        "long",
+        "short"
+      ],
+      "group": "geometry",
+      "affects": "both",
+      "label": {
+        "en": "Pallet side along travel"
+      },
+      "description": {
+        "en": "Which pallet side is parallel to the direction of travel"
+      }
+    },
+    {
+      "key": "nominalSpeed",
+      "type": "number",
+      "unit": "m/s",
+      "displayUnit": "m/s",
+      "default": 0.25,
+      "min": 0.05,
+      "max": 0.6,
+      "group": "motion",
+      "affects": "both",
+      "label": {
+        "en": "Nominal speed"
+      },
+      "description": {
+        "en": "Cruise speed"
+      }
+    },
+    {
+      "key": "accel",
+      "type": "number",
+      "unit": "m/s²",
+      "displayUnit": "m/s²",
+      "default": 0.5,
+      "min": 0.05,
+      "max": 2.0,
+      "group": "motion",
+      "affects": "both",
+      "label": {
+        "en": "Acceleration"
+      },
+      "description": {
+        "en": "Start-up ramp"
+      }
+    },
+    {
+      "key": "decel",
+      "type": "number",
+      "unit": "m/s²",
+      "displayUnit": "m/s²",
+      "default": 0.5,
+      "min": 0.05,
+      "max": 2.0,
+      "group": "motion",
+      "affects": "both",
+      "label": {
+        "en": "Deceleration"
+      },
+      "description": {
+        "en": "Stopping ramp"
+      }
+    },
+    {
+      "key": "direction",
+      "type": "enum",
+      "default": "forward",
+      "options": [
+        "forward",
+        "reverse",
+        "reversible"
+      ],
+      "group": "motion",
+      "affects": "both",
+      "label": {
+        "en": "Direction"
+      },
+      "description": {
+        "en": "Direction of travel"
+      }
+    },
+    {
+      "key": "rollerDiameter",
+      "type": "number",
+      "unit": "m",
+      "displayUnit": "mm",
+      "default": 0.089,
+      "choices": [
+        0.076,
+        0.089
+      ],
+      "group": "rollers",
+      "affects": "both",
+      "label": {
+        "en": "Roller diameter"
+      },
+      "description": {
+        "en": "Outer roller diameter, chosen from the standard list (provisional, to confirm)"
+      }
+    },
+    {
+      "key": "rollerPitch",
+      "type": "number",
+      "unit": "m",
+      "displayUnit": "mm",
+      "default": 0.2063,
+      "choices": [
+        0.133,
+        0.2063
+      ],
+      "group": "rollers",
+      "affects": "both",
+      "label": {
+        "en": "Roller pitch"
+      },
+      "description": {
+        "en": "Axis-to-axis distance, chosen from the standard list (provisional, to confirm); at least 3 rollers must stay under the pallet"
+      }
+    },
+    {
+      "key": "rollerMu",
+      "type": "number",
+      "default": 0.35,
+      "min": 0.1,
+      "max": 0.8,
+      "group": "rollers",
+      "affects": "3d",
+      "label": {
+        "en": "Roller friction μ"
+      },
+      "description": {
+        "en": "Pallet–roller friction coefficient"
+      }
+    },
+    {
+      "key": "rollerCount",
+      "type": "integer",
+      "group": "rollers",
+      "affects": "geometry",
+      "derived": true,
+      "formula": "floor(length / rollerPitch)",
+      "label": {
+        "en": "Number of rollers"
+      },
+      "description": {
+        "en": "Derived from length and pitch"
+      }
+    },
+    {
+      "key": "transferChainCount",
+      "type": "integer",
+      "default": 3,
+      "min": 2,
+      "max": 5,
+      "group": "transfer",
+      "affects": "both",
+      "label": {
+        "en": "Number of transfer chains"
+      },
+      "description": {
+        "en": "Liftable chains placed in the gaps between rollers"
+      }
+    },
+    {
+      "key": "transferChainWidth",
+      "type": "number",
+      "unit": "m",
+      "displayUnit": "mm",
+      "default": 0.04,
+      "min": 0.02,
+      "max": 0.08,
+      "group": "transfer",
+      "affects": "both",
+      "label": {
+        "en": "Transfer chain width"
+      },
+      "description": {
+        "en": "Width of each chain"
+      }
+    },
+    {
+      "key": "liftStroke",
+      "type": "number",
+      "unit": "m",
+      "displayUnit": "mm",
+      "default": 0.04,
+      "min": 0.02,
+      "max": 0.1,
+      "group": "transfer",
+      "affects": "both",
+      "label": {
+        "en": "Lift stroke"
+      },
+      "description": {
+        "en": "Height of the chains above the rollers when lifted"
+      }
+    },
+    {
+      "key": "lowerClearance",
+      "type": "number",
+      "unit": "m",
+      "displayUnit": "mm",
+      "default": 0.01,
+      "min": 0,
+      "max": 0.03,
+      "group": "transfer",
+      "affects": "both",
+      "label": {
+        "en": "Lower clearance"
+      },
+      "description": {
+        "en": "Distance below the roller plane when lowered"
+      }
+    },
+    {
+      "key": "liftTime",
+      "type": "number",
+      "unit": "s",
+      "displayUnit": "s",
+      "default": 1.0,
+      "min": 0.3,
+      "max": 5,
+      "group": "transfer",
+      "affects": "both",
+      "label": {
+        "en": "Lift time"
+      },
+      "description": {
+        "en": "Lifting time"
+      }
+    },
+    {
+      "key": "lowerTime",
+      "type": "number",
+      "unit": "s",
+      "displayUnit": "s",
+      "default": 1.0,
+      "min": 0.3,
+      "max": 5,
+      "group": "transfer",
+      "affects": "both",
+      "label": {
+        "en": "Lower time"
+      },
+      "description": {
+        "en": "Lowering time"
+      }
+    },
+    {
+      "key": "actuator",
+      "type": "enum",
+      "default": "pneumatic",
+      "options": [
+        "pneumatic",
+        "electric"
+      ],
+      "group": "transfer",
+      "affects": "both",
+      "label": {
+        "en": "Actuator"
+      },
+      "description": {
+        "en": "Pneumatic: fast with end cushioning; electric: with ramps"
+      }
+    },
+    {
+      "key": "transferSpeed",
+      "type": "number",
+      "unit": "m/s",
+      "displayUnit": "m/s",
+      "default": 0.2,
+      "min": 0.05,
+      "max": 0.5,
+      "group": "transfer",
+      "affects": "both",
+      "label": {
+        "en": "Transfer speed"
+      },
+      "description": {
+        "en": "Chain speed during transfer"
+      }
+    },
+    {
+      "key": "transferAccel",
+      "type": "number",
+      "unit": "m/s²",
+      "displayUnit": "m/s²",
+      "default": 0.5,
+      "min": 0.1,
+      "max": 2.0,
+      "group": "transfer",
+      "affects": "both",
+      "label": {
+        "en": "Transfer acceleration"
+      },
+      "description": {
+        "en": "Chain ramp"
+      }
+    },
+    {
+      "key": "transferDirection",
+      "type": "enum",
+      "default": "right",
+      "options": [
+        "left",
+        "right",
+        "bidirectional"
+      ],
+      "group": "transfer",
+      "affects": "both",
+      "label": {
+        "en": "Transfer direction"
+      },
+      "description": {
+        "en": "Side to transfer to"
+      }
+    },
+    {
+      "key": "operationMode",
+      "type": "enum",
+      "default": "rollersToChains",
+      "options": [
+        "rollersToChains",
+        "chainsToRollers",
+        "bidirectional"
+      ],
+      "group": "transfer",
+      "affects": "both",
+      "label": {
+        "en": "Operation mode"
+      },
+      "description": {
+        "en": "Flow direction"
+      }
+    },
+    {
+      "key": "positionTolerance",
+      "type": "number",
+      "unit": "m",
+      "displayUnit": "mm",
+      "default": 0.02,
+      "min": 0.005,
+      "max": 0.05,
+      "group": "interlocks",
+      "affects": "both",
+      "label": {
+        "en": "Position tolerance"
+      },
+      "description": {
+        "en": "Allowed pallet deviation to allow lifting"
+      }
+    },
+    {
+      "key": "requiresStop",
+      "type": "boolean",
+      "default": true,
+      "group": "interlocks",
+      "affects": "both",
+      "label": {
+        "en": "Positioning stop"
+      },
+      "description": {
+        "en": "Includes a retractable positioning stop on the roller section"
+      }
+    },
+    {
+      "key": "transferChainMu",
+      "type": "number",
+      "default": 0.3,
+      "min": 0.1,
+      "max": 0.6,
+      "group": "transfer",
+      "affects": "3d",
+      "label": {
+        "en": "Transfer chain friction μ"
+      },
+      "description": {
+        "en": "Pallet–chain friction"
+      }
+    },
+    {
+      "key": "maxPalletLoad",
+      "type": "number",
+      "unit": "kg",
+      "displayUnit": "kg",
+      "default": 1000,
+      "min": 100,
+      "max": 2000,
+      "group": "load",
+      "affects": "both",
+      "label": {
+        "en": "Max pallet load"
+      },
+      "description": {
+        "en": "Warns when a pallet (with its load) exceeds this mass"
+      }
+    }
+  ],
+  "ports": [
+    {
+      "id": "A",
+      "direction": "in",
+      "facing": "-x",
+      "local": {
+        "x": 0,
+        "y": "surfaceHeight",
+        "z": 0
+      }
+    },
+    {
+      "id": "B",
+      "direction": "out",
+      "facing": "+x",
+      "local": {
+        "x": "length",
+        "y": "surfaceHeight",
+        "z": 0
+      }
+    },
+    {
+      "id": "C1",
+      "direction": "inout",
+      "facing": "-z",
+      "local": {
+        "x": [
+          {
+            "param": "length",
+            "factor": 0.5
+          }
+        ],
+        "y": [
+          {
+            "param": "surfaceHeight"
+          },
+          {
+            "param": "liftStroke"
+          }
+        ],
+        "z": [
+          {
+            "param": "usableWidth",
+            "factor": -0.5
+          }
+        ]
+      }
+    },
+    {
+      "id": "C2",
+      "direction": "inout",
+      "facing": "+z",
+      "local": {
+        "x": [
+          {
+            "param": "length",
+            "factor": 0.5
+          }
+        ],
+        "y": [
+          {
+            "param": "surfaceHeight"
+          },
+          {
+            "param": "liftStroke"
+          }
+        ],
+        "z": [
+          {
+            "param": "usableWidth",
+            "factor": 0.5
+          }
+        ]
+      }
+    }
+  ],
+  "signals": {
+    "inputs": [
+      "run",
+      "reverse",
+      "lift",
+      "lower",
+      "chainRun",
+      "chainReverse",
+      "enable"
+    ],
+    "outputs": [
+      "up",
+      "down",
+      "occupied",
+      "centred"
+    ]
+  },
+  "statistics": [
+    "utilization",
+    "transfers",
+    "meanCycleTime",
+    "palletsProcessed"
+  ],
+  "geometry": "geom.transfer_rc",
+  "behaviors": {
+    "des": "des.transfer_rc",
+    "physics": "phys.transfer_rc"
+  },
+  "validationRules": [
+    "min3RollersUnderPallet",
+    "usableWidthFitsPallet",
+    "chainFitsBetweenRollers"
+  ],
+  "presets": []
+}

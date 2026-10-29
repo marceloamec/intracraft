@@ -1,0 +1,292 @@
+{
+  "dataset": "codepawl/simready-glb",
+  "assets": [
+    {
+      "source": "pallet_a01",
+      "category": "pallets",
+      "en": "Wooden pallet A",
+      "es": "Pallet de madera A",
+      "tags": ["wood", "pallet"]
+    },
+    {
+      "source": "pallet_b01",
+      "category": "pallets",
+      "en": "Wooden pallet B",
+      "es": "Pallet de madera B",
+      "tags": ["wood", "pallet"]
+    },
+    {
+      "source": "pallet_block_a01",
+      "category": "pallets",
+      "en": "Block pallet",
+      "es": "Pallet de tacos",
+      "tags": ["wood", "block", "pallet"]
+    },
+    {
+      "source": "pallet_wood_recycled_a05",
+      "category": "pallets",
+      "en": "Recycled wooden pallet",
+      "es": "Pallet de madera reciclada",
+      "tags": ["wood", "recycled", "pallet"]
+    },
+    {
+      "source": "pallet_rackable_black_a01",
+      "category": "pallets",
+      "en": "Rackable plastic pallet, black",
+      "es": "Pallet plástico para rack, negro",
+      "tags": ["plastic", "rackable", "pallet"]
+    },
+    {
+      "source": "pallet_steel_galvanized_a01",
+      "category": "pallets",
+      "en": "Galvanized steel pallet",
+      "es": "Pallet de acero galvanizado",
+      "tags": ["steel", "pallet"]
+    },
+    {
+      "source": "pallet_assembly_a02",
+      "category": "pallets",
+      "en": "Pallet assembly A02",
+      "es": "Conjunto de pallet A02",
+      "tags": ["pallet", "assembly"]
+    },
+
+    {
+      "source": "box_cardboard_a01",
+      "category": "boxes",
+      "en": "Cardboard box A",
+      "es": "Caja de cartón A",
+      "tags": ["cardboard", "box"]
+    },
+    {
+      "source": "box_cardboard_c01",
+      "category": "boxes",
+      "en": "Cardboard box C",
+      "es": "Caja de cartón C",
+      "tags": ["cardboard", "box"]
+    },
+    {
+      "source": "box_cardboard_large_a02",
+      "category": "boxes",
+      "en": "Large cardboard box",
+      "es": "Caja de cartón grande",
+      "tags": ["cardboard", "box", "large"]
+    },
+    {
+      "source": "box_cube_a01",
+      "category": "boxes",
+      "en": "Small cube box",
+      "es": "Caja cúbica pequeña",
+      "tags": ["box", "cube"]
+    },
+    {
+      "source": "box_flat_a01",
+      "category": "boxes",
+      "en": "Small flat box",
+      "es": "Caja plana pequeña",
+      "tags": ["box", "flat"]
+    },
+    {
+      "source": "box_long_a01",
+      "category": "boxes",
+      "en": "Small long box",
+      "es": "Caja alargada pequeña",
+      "tags": ["box", "long"]
+    },
+    {
+      "source": "box_multiDepth_a01",
+      "category": "boxes",
+      "en": "Multi-depth box",
+      "es": "Caja de profundidad variable",
+      "tags": ["box"]
+    },
+
+    {
+      "source": "crate_blue_a01",
+      "category": "containers",
+      "en": "Plastic crate, blue",
+      "es": "Cajón plástico, azul",
+      "tags": ["crate", "plastic", "bin"]
+    },
+    {
+      "source": "crate_gray_a08",
+      "category": "containers",
+      "en": "Plastic crate, gray",
+      "es": "Cajón plástico, gris",
+      "tags": ["crate", "plastic", "bin"]
+    },
+    {
+      "source": "crate_green_a01",
+      "category": "containers",
+      "en": "Plastic crate, green",
+      "es": "Cajón plástico, verde",
+      "tags": ["crate", "plastic", "bin"]
+    },
+    {
+      "source": "crate_plywood_b02",
+      "category": "containers",
+      "en": "Plywood crate",
+      "es": "Cajón de contrachapado",
+      "tags": ["crate", "wood"]
+    },
+    {
+      "source": "container_recycle_blue_b02",
+      "category": "containers",
+      "en": "Recycling container, blue",
+      "es": "Contenedor de reciclaje, azul",
+      "tags": ["container", "bin"]
+    },
+    {
+      "source": "misc_basket_plastic_a01",
+      "category": "containers",
+      "en": "Plastic basket",
+      "es": "Cesta plástica",
+      "tags": ["basket", "plastic"]
+    },
+    {
+      "source": "ibcTank_a02",
+      "category": "containers",
+      "en": "IBC tank",
+      "es": "Depósito IBC",
+      "tags": ["ibc", "tank", "liquid"]
+    },
+
+    {
+      "source": "drum_steel_a01",
+      "category": "drums",
+      "en": "Steel drum",
+      "es": "Bidón de acero",
+      "tags": ["drum", "steel"]
+    },
+    {
+      "source": "drum_plastic_blue_a01",
+      "category": "drums",
+      "en": "Plastic drum, blue",
+      "es": "Bidón plástico, azul",
+      "tags": ["drum", "plastic"]
+    },
+    {
+      "source": "drum_fiber_a02",
+      "category": "drums",
+      "en": "Fiber drum",
+      "es": "Bidón de fibra",
+      "tags": ["drum", "fiber"]
+    },
+    {
+      "source": "warehouse_barrel_plastic_a01",
+      "category": "drums",
+      "en": "Plastic barrel",
+      "es": "Barril plástico",
+      "tags": ["barrel", "plastic"]
+    },
+
+    {
+      "source": "rack_large_empty_a01",
+      "category": "racks",
+      "en": "Large pallet rack",
+      "es": "Rack de pallets grande",
+      "tags": ["rack", "storage"]
+    },
+    {
+      "source": "rack_long_empty_a01",
+      "category": "racks",
+      "en": "Long pallet rack",
+      "es": "Rack de pallets largo",
+      "tags": ["rack", "storage"]
+    },
+    {
+      "source": "rack_bulk_storage_a03",
+      "category": "racks",
+      "en": "Bulk storage rack",
+      "es": "Rack de almacenamiento a granel",
+      "tags": ["rack", "storage", "bulk"]
+    },
+    {
+      "source": "storageSystem_rack_heavyDuty_f01",
+      "category": "racks",
+      "en": "Heavy-duty rack",
+      "es": "Rack de carga pesada",
+      "tags": ["rack", "storage", "heavy"]
+    },
+    {
+      "source": "shelve_steel_heavyDuty_a06",
+      "category": "racks",
+      "en": "Heavy-duty steel shelving",
+      "es": "Estantería de acero de carga pesada",
+      "tags": ["shelving", "steel"]
+    },
+
+    {
+      "source": "vehicle_forklift_blue_a01",
+      "category": "vehicles",
+      "en": "Forklift, blue",
+      "es": "Carretilla elevadora, azul",
+      "tags": ["forklift", "vehicle"]
+    },
+    {
+      "source": "vehicle_forklift_red_b01",
+      "category": "vehicles",
+      "en": "Forklift, red",
+      "es": "Carretilla elevadora, roja",
+      "tags": ["forklift", "vehicle"]
+    },
+    {
+      "source": "palletJack_heavyDuty_a01",
+      "category": "vehicles",
+      "en": "Heavy-duty pallet jack",
+      "es": "Transpaleta de carga pesada",
+      "tags": ["pallet jack", "manual"]
+    },
+    {
+      "source": "palletJack_lowProfile_a01",
+      "category": "vehicles",
+      "en": "Low-profile pallet jack",
+      "es": "Transpaleta de perfil bajo",
+      "tags": ["pallet jack", "manual"]
+    },
+
+    {
+      "source": "conveyor_belt_a02",
+      "category": "conveyors",
+      "en": "Belt conveyor A (decorative)",
+      "es": "Cinta transportadora A (decorativa)",
+      "tags": ["belt", "conveyor", "decorative"]
+    },
+    {
+      "source": "conveyor_belt_a05",
+      "category": "conveyors",
+      "en": "Belt conveyor B (decorative)",
+      "es": "Cinta transportadora B (decorativa)",
+      "tags": ["belt", "conveyor", "decorative"]
+    },
+
+    {
+      "source": "barrier_fence_metal_a02",
+      "category": "safety",
+      "en": "Metal safety fence",
+      "es": "Valla metálica de seguridad",
+      "tags": ["fence", "safety"]
+    },
+    {
+      "source": "barrier_gate_safetyDock_a02",
+      "category": "safety",
+      "en": "Dock safety gate",
+      "es": "Barrera de seguridad de muelle",
+      "tags": ["gate", "dock", "safety"]
+    },
+    {
+      "source": "barrier_wall_plastic_orange_a03",
+      "category": "safety",
+      "en": "Orange plastic barrier",
+      "es": "Barrera plástica naranja",
+      "tags": ["barrier", "safety"]
+    },
+    {
+      "source": "ramp_long_a01",
+      "category": "safety",
+      "en": "Long ramp",
+      "es": "Rampa larga",
+      "tags": ["ramp", "dock"]
+    }
+  ]
+}

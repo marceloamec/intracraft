@@ -1,0 +1,10 @@
+{
+  "name": "@intracraft/geometry",
+  "version": "0.0.0",
+  "private": true,
+  "description": "Parametric layout of conveyor parts (rollers, chains, frames) for 3D meshes and 2D symbols.",
+  "type": "module",
+  "exports": {
+    ".": "./src/index.ts"
+  }
+}

@@ -1,0 +1,601 @@
+{
+  "id": "conveyor.roller_turntable",
+  "version": "0.1.0",
+  "category": "conveyors",
+  "name": {
+    "en": "Roller turntable"
+  },
+  "description": {
+    "en": "Rotating platform with a roller section on top; the usual choice between roller lines."
+  },
+  "parameters": [
+    {
+      "key": "platformLength",
+      "type": "number",
+      "unit": "m",
+      "displayUnit": "mm",
+      "default": 1.4,
+      "min": 1.0,
+      "max": 1.8,
+      "group": "geometry",
+      "affects": "both",
+      "label": {
+        "en": "Platform length"
+      },
+      "description": {
+        "en": "Platform size along travel"
+      }
+    },
+    {
+      "key": "platformWidth",
+      "type": "number",
+      "unit": "m",
+      "displayUnit": "mm",
+      "default": 1.2,
+      "min": 0.8,
+      "max": 1.5,
+      "group": "geometry",
+      "affects": "both",
+      "label": {
+        "en": "Platform width"
+      },
+      "description": {
+        "en": "Platform size across travel"
+      }
+    },
+    {
+      "key": "surfaceHeight",
+      "type": "number",
+      "unit": "m",
+      "displayUnit": "mm",
+      "default": 0.6,
+      "min": 0.2,
+      "max": 1.5,
+      "group": "geometry",
+      "affects": "both",
+      "label": {
+        "en": "Surface height"
+      },
+      "description": {
+        "en": "Height of the pallet support plane above the floor"
+      }
+    },
+    {
+      "key": "pivotOffsetX",
+      "type": "number",
+      "unit": "m",
+      "displayUnit": "mm",
+      "default": 0,
+      "min": -0.3,
+      "max": 0.3,
+      "group": "geometry",
+      "affects": "both",
+      "advanced": true,
+      "label": {
+        "en": "Pivot offset X"
+      },
+      "description": {
+        "en": "Pivot offset from the platform centre along travel"
+      }
+    },
+    {
+      "key": "pivotOffsetZ",
+      "type": "number",
+      "unit": "m",
+      "displayUnit": "mm",
+      "default": 0,
+      "min": -0.3,
+      "max": 0.3,
+      "group": "geometry",
+      "affects": "both",
+      "advanced": true,
+      "label": {
+        "en": "Pivot offset Z"
+      },
+      "description": {
+        "en": "Pivot offset from the platform centre across travel"
+      }
+    },
+    {
+      "key": "turnMode",
+      "type": "enum",
+      "default": "stations",
+      "options": [
+        "stations",
+        "free"
+      ],
+      "group": "turn",
+      "affects": "both",
+      "label": {
+        "en": "Turn mode"
+      },
+      "description": {
+        "en": "stations: only stops at the listed angles; free: any angle"
+      }
+    },
+    {
+      "key": "stations",
+      "type": "text",
+      "default": "0, 90, 180, 270",
+      "group": "turn",
+      "affects": "both",
+      "label": {
+        "en": "Stations (°)"
+      },
+      "description": {
+        "en": "Stop angles in degrees, comma separated; each station publishes a port"
+      }
+    },
+    {
+      "key": "angularRange",
+      "type": "number",
+      "unit": "rad",
+      "displayUnit": "°",
+      "default": 0.0,
+      "min": 0.0,
+      "max": 12.566370614359172,
+      "group": "turn",
+      "affects": "both",
+      "advanced": true,
+      "label": {
+        "en": "Angular range"
+      },
+      "description": {
+        "en": "Mechanical turning limit (e.g. cables); 0 = unlimited"
+      }
+    },
+    {
+      "key": "shortestPath",
+      "type": "boolean",
+      "default": true,
+      "group": "turn",
+      "affects": "both",
+      "label": {
+        "en": "Shortest path"
+      },
+      "description": {
+        "en": "Turn in the direction of the smaller angle"
+      }
+    },
+    {
+      "key": "maxAngularSpeed",
+      "type": "number",
+      "unit": "rad/s",
+      "displayUnit": "°/s",
+      "default": 0.2617993877991494,
+      "min": 0.03490658503988659,
+      "max": 0.7853981633974483,
+      "group": "turn",
+      "affects": "both",
+      "label": {
+        "en": "Max angular speed"
+      },
+      "description": {
+        "en": "Cruise angular speed"
+      }
+    },
+    {
+      "key": "angularAccel",
+      "type": "number",
+      "unit": "rad/s²",
+      "displayUnit": "°/s²",
+      "default": 0.5235987755982988,
+      "min": 0.08726646259971647,
+      "max": 2.0943951023931953,
+      "group": "turn",
+      "affects": "both",
+      "label": {
+        "en": "Angular acceleration"
+      },
+      "description": {
+        "en": "Start ramp of the turn"
+      }
+    },
+    {
+      "key": "angularDecel",
+      "type": "number",
+      "unit": "rad/s²",
+      "displayUnit": "°/s²",
+      "default": 0.5235987755982988,
+      "min": 0.08726646259971647,
+      "max": 2.0943951023931953,
+      "group": "turn",
+      "affects": "both",
+      "label": {
+        "en": "Angular deceleration"
+      },
+      "description": {
+        "en": "Stop ramp of the turn"
+      }
+    },
+    {
+      "key": "settleTime",
+      "type": "number",
+      "unit": "s",
+      "displayUnit": "s",
+      "default": 0.3,
+      "min": 0,
+      "max": 2,
+      "group": "turn",
+      "affects": "both",
+      "label": {
+        "en": "Settle time"
+      },
+      "description": {
+        "en": "Pause after reaching the station before discharge"
+      }
+    },
+    {
+      "key": "angularPrecision",
+      "type": "number",
+      "unit": "rad",
+      "displayUnit": "°",
+      "default": 0.003490658503988659,
+      "min": 0.0008726646259971648,
+      "max": 0.03490658503988659,
+      "group": "turn",
+      "affects": "3d",
+      "advanced": true,
+      "label": {
+        "en": "Angular precision"
+      },
+      "description": {
+        "en": "Position error when stopping"
+      }
+    },
+    {
+      "key": "sweepClearance",
+      "type": "number",
+      "unit": "m",
+      "displayUnit": "mm",
+      "default": 0.05,
+      "min": 0,
+      "max": 0.3,
+      "group": "geometry",
+      "affects": "both",
+      "label": {
+        "en": "Sweep clearance"
+      },
+      "description": {
+        "en": "Margin between the swept circle and neighbours"
+      }
+    },
+    {
+      "key": "sweptRadius",
+      "type": "number",
+      "unit": "m",
+      "displayUnit": "mm",
+      "group": "geometry",
+      "affects": "geometry",
+      "derived": true,
+      "formula": "0.5 * hypot(platformLength, platformWidth) + sweepClearance",
+      "label": {
+        "en": "Swept radius"
+      },
+      "description": {
+        "en": "Derived: ½·√(L² + W²) + clearance"
+      }
+    },
+    {
+      "key": "maxLoad",
+      "type": "number",
+      "unit": "kg",
+      "displayUnit": "kg",
+      "default": 1500,
+      "min": 100,
+      "max": 3000,
+      "group": "load",
+      "affects": "both",
+      "label": {
+        "en": "Max load"
+      },
+      "description": {
+        "en": "Warns when a pallet (with its load) exceeds this mass"
+      }
+    },
+    {
+      "key": "requiresCenteredPallet",
+      "type": "boolean",
+      "default": true,
+      "group": "interlocks",
+      "affects": "both",
+      "label": {
+        "en": "Requires centred pallet"
+      },
+      "description": {
+        "en": "Interlock: no turn without a centred pallet"
+      }
+    },
+    {
+      "key": "centeringTolerance",
+      "type": "number",
+      "unit": "m",
+      "displayUnit": "mm",
+      "default": 0.02,
+      "min": 0.005,
+      "max": 0.05,
+      "group": "interlocks",
+      "affects": "both",
+      "label": {
+        "en": "Centring tolerance"
+      },
+      "description": {
+        "en": "Allowed deviation from centre"
+      }
+    },
+    {
+      "key": "motorTorque",
+      "type": "number",
+      "unit": "N·m",
+      "displayUnit": "N·m",
+      "default": 1500,
+      "min": 100,
+      "max": 10000,
+      "group": "drive",
+      "affects": "3d",
+      "advanced": true,
+      "label": {
+        "en": "Motor torque"
+      },
+      "description": {
+        "en": "Physics: maximum drive torque"
+      }
+    },
+    {
+      "key": "bearingFrictionTorque",
+      "type": "number",
+      "unit": "N·m",
+      "displayUnit": "N·m",
+      "default": 20,
+      "min": 0,
+      "max": 200,
+      "group": "drive",
+      "affects": "3d",
+      "advanced": true,
+      "label": {
+        "en": "Bearing friction torque"
+      },
+      "description": {
+        "en": "Physics: slewing-bearing friction"
+      }
+    },
+    {
+      "key": "palletSideAlongTravel",
+      "type": "enum",
+      "default": "long",
+      "options": [
+        "long",
+        "short"
+      ],
+      "group": "geometry",
+      "affects": "both",
+      "label": {
+        "en": "Pallet side along travel"
+      },
+      "description": {
+        "en": "Which pallet side is parallel to the direction of travel"
+      }
+    },
+    {
+      "key": "loadSpeed",
+      "type": "number",
+      "unit": "m/s",
+      "displayUnit": "m/s",
+      "default": 0.25,
+      "min": 0.05,
+      "max": 0.6,
+      "group": "rollers",
+      "affects": "both",
+      "label": {
+        "en": "Load speed"
+      },
+      "description": {
+        "en": "Roller speed while receiving and discharging"
+      }
+    },
+    {
+      "key": "accel",
+      "type": "number",
+      "unit": "m/s²",
+      "displayUnit": "m/s²",
+      "default": 0.5,
+      "min": 0.05,
+      "max": 2.0,
+      "group": "rollers",
+      "affects": "both",
+      "label": {
+        "en": "Roller acceleration"
+      },
+      "description": {
+        "en": "Roller start-up ramp"
+      }
+    },
+    {
+      "key": "rollerDiameter",
+      "type": "number",
+      "unit": "m",
+      "displayUnit": "mm",
+      "default": 0.089,
+      "choices": [
+        0.076,
+        0.089
+      ],
+      "group": "rollers",
+      "affects": "both",
+      "label": {
+        "en": "Roller diameter"
+      },
+      "description": {
+        "en": "Outer roller diameter, chosen from the standard list (provisional, to confirm)"
+      }
+    },
+    {
+      "key": "rollerPitch",
+      "type": "number",
+      "unit": "m",
+      "displayUnit": "mm",
+      "default": 0.2063,
+      "choices": [
+        0.133,
+        0.2063
+      ],
+      "group": "rollers",
+      "affects": "both",
+      "label": {
+        "en": "Roller pitch"
+      },
+      "description": {
+        "en": "Axis-to-axis distance, chosen from the standard list (provisional, to confirm); at least 3 rollers must stay under the pallet"
+      }
+    },
+    {
+      "key": "rollerMu",
+      "type": "number",
+      "default": 0.35,
+      "min": 0.1,
+      "max": 0.8,
+      "group": "rollers",
+      "affects": "3d",
+      "label": {
+        "en": "Roller friction μ"
+      },
+      "description": {
+        "en": "Pallet–roller friction coefficient"
+      }
+    },
+    {
+      "key": "rollerCount",
+      "type": "integer",
+      "group": "rollers",
+      "affects": "geometry",
+      "derived": true,
+      "formula": "floor(platformLength / rollerPitch)",
+      "label": {
+        "en": "Number of rollers"
+      },
+      "description": {
+        "en": "Derived from platformLength and pitch"
+      }
+    },
+    {
+      "key": "lockRollersDuringTurn",
+      "type": "boolean",
+      "default": true,
+      "group": "interlocks",
+      "affects": "both",
+      "label": {
+        "en": "Lock rollers during turn"
+      },
+      "description": {
+        "en": "Rollers braked during the turn so the pallet does not roll"
+      }
+    },
+    {
+      "key": "holdDuringTurn",
+      "type": "enum",
+      "default": "none",
+      "options": [
+        "none",
+        "platformStops"
+      ],
+      "group": "interlocks",
+      "affects": "both",
+      "label": {
+        "en": "Hold during turn"
+      },
+      "description": {
+        "en": "Stops that hold the pallet during the turn"
+      }
+    }
+  ],
+  "ports": [
+    {
+      "id": "P0",
+      "direction": "inout",
+      "facing": "+x",
+      "local": {
+        "x": [
+          {
+            "param": "platformLength",
+            "factor": 0.5
+          }
+        ],
+        "y": "surfaceHeight",
+        "z": 0
+      }
+    },
+    {
+      "id": "P90",
+      "direction": "inout",
+      "facing": "-z",
+      "local": {
+        "x": 0,
+        "y": "surfaceHeight",
+        "z": [
+          {
+            "param": "platformLength",
+            "factor": -0.5
+          }
+        ]
+      }
+    },
+    {
+      "id": "P180",
+      "direction": "inout",
+      "facing": "-x",
+      "local": {
+        "x": [
+          {
+            "param": "platformLength",
+            "factor": -0.5
+          }
+        ],
+        "y": "surfaceHeight",
+        "z": 0
+      }
+    },
+    {
+      "id": "P270",
+      "direction": "inout",
+      "facing": "+z",
+      "local": {
+        "x": 0,
+        "y": "surfaceHeight",
+        "z": [
+          {
+            "param": "platformLength",
+            "factor": 0.5
+          }
+        ]
+      }
+    }
+  ],
+  "signals": {
+    "inputs": [
+      "run",
+      "reverse",
+      "turnTo",
+      "enable"
+    ],
+    "outputs": [
+      "atStation",
+      "turning",
+      "occupied"
+    ]
+  },
+  "statistics": [
+    "utilization",
+    "turns",
+    "meanCycleTime",
+    "palletsProcessed"
+  ],
+  "geometry": "geom.roller_turntable",
+  "behaviors": {
+    "des": "des.turntable",
+    "physics": "phys.roller_turntable"
+  },
+  "validationRules": [
+    "min3RollersUnderPallet"
+  ],
+  "presets": []
+}

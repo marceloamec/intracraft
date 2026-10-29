@@ -1,0 +1,1085 @@
+{
+  "schemaVersion": 1,
+  "assets": [
+    {
+      "id": "asset.pallets.pallet_a01",
+      "category": "pallets",
+      "name": {
+        "en": "Wooden pallet A",
+        "es": "Pallet de madera A"
+      },
+      "tags": ["wood", "pallet"],
+      "file": "models/pallets/pallet_a01.glb",
+      "bytes": 248380,
+      "sha256": "477e2de5901da209855aa6196180b33cb8da387b732eb27fca259e24bb14b647",
+      "dimensions": {
+        "x": 1.204,
+        "y": 0.209,
+        "z": 0.8
+      },
+      "source": {
+        "dataset": "codepawl/simready-glb",
+        "revision": "e52172290393dde80e8d383861db94b8d0e92ec3",
+        "name": "pallet_a01"
+      },
+      "license": {
+        "id": "CC-BY-4.0",
+        "attribution": "Model from NVIDIA SimReady Assets (nvidia/simready-assets), licensed CC BY 4.0",
+        "url": "https://creativecommons.org/licenses/by/4.0/"
+      }
+    },
+    {
+      "id": "asset.pallets.pallet_b01",
+      "category": "pallets",
+      "name": {
+        "en": "Wooden pallet B",
+        "es": "Pallet de madera B"
+      },
+      "tags": ["wood", "pallet"],
+      "file": "models/pallets/pallet_b01.glb",
+      "bytes": 226092,
+      "sha256": "a169e192584f236e12542c5d821fdf8e582dd8186d55043b834eafd8266db8f8",
+      "dimensions": {
+        "x": 1.21,
+        "y": 0.209,
+        "z": 1.003
+      },
+      "source": {
+        "dataset": "codepawl/simready-glb",
+        "revision": "e52172290393dde80e8d383861db94b8d0e92ec3",
+        "name": "pallet_b01"
+      },
+      "license": {
+        "id": "CC-BY-4.0",
+        "attribution": "Model from NVIDIA SimReady Assets (nvidia/simready-assets), licensed CC BY 4.0",
+        "url": "https://creativecommons.org/licenses/by/4.0/"
+      }
+    },
+    {
+      "id": "asset.pallets.pallet_block_a01",
+      "category": "pallets",
+      "name": {
+        "en": "Block pallet",
+        "es": "Pallet de tacos"
+      },
+      "tags": ["wood", "block", "pallet"],
+      "file": "models/pallets/pallet_block_a01.glb",
+      "bytes": 161064,
+      "sha256": "69be547f05803af3c03cf23135631ea025223c98d3ef16047798dd71e41e20af",
+      "dimensions": {
+        "x": 1,
+        "y": 0.12,
+        "z": 1.2
+      },
+      "source": {
+        "dataset": "codepawl/simready-glb",
+        "revision": "e52172290393dde80e8d383861db94b8d0e92ec3",
+        "name": "pallet_block_a01"
+      },
+      "license": {
+        "id": "CC-BY-4.0",
+        "attribution": "Model from NVIDIA SimReady Assets (nvidia/simready-assets), licensed CC BY 4.0",
+        "url": "https://creativecommons.org/licenses/by/4.0/"
+      }
+    },
+    {
+      "id": "asset.pallets.pallet_wood_recycled_a05",
+      "category": "pallets",
+      "name": {
+        "en": "Recycled wooden pallet",
+        "es": "Pallet de madera reciclada"
+      },
+      "tags": ["wood", "recycled", "pallet"],
+      "file": "models/pallets/pallet_wood_recycled_a05.glb",
+      "bytes": 215204,
+      "sha256": "af5dea112c8859ab356f9daa8677700fcfa31c13c05324a3810b5c26f9d2c8fa",
+      "dimensions": {
+        "x": 1.194,
+        "y": 0.121,
+        "z": 0.905
+      },
+      "source": {
+        "dataset": "codepawl/simready-glb",
+        "revision": "e52172290393dde80e8d383861db94b8d0e92ec3",
+        "name": "pallet_wood_recycled_a05"
+      },
+      "license": {
+        "id": "CC-BY-4.0",
+        "attribution": "Model from NVIDIA SimReady Assets (nvidia/simready-assets), licensed CC BY 4.0",
+        "url": "https://creativecommons.org/licenses/by/4.0/"
+      }
+    },
+    {
+      "id": "asset.pallets.pallet_rackable_black_a01",
+      "category": "pallets",
+      "name": {
+        "en": "Rackable plastic pallet, black",
+        "es": "Pallet plástico para rack, negro"
+      },
+      "tags": ["plastic", "rackable", "pallet"],
+      "file": "models/pallets/pallet_rackable_black_a01.glb",
+      "bytes": 3551956,
+      "sha256": "9d0ce77fe034306c36f09c3c17b8a37b882e2ff03f2d5aa3b361f4e8df83e6ec",
+      "dimensions": {
+        "x": 1.22,
+        "y": 0.148,
+        "z": 1.02
+      },
+      "source": {
+        "dataset": "codepawl/simready-glb",
+        "revision": "e52172290393dde80e8d383861db94b8d0e92ec3",
+        "name": "pallet_rackable_black_a01"
+      },
+      "license": {
+        "id": "CC-BY-4.0",
+        "attribution": "Model from NVIDIA SimReady Assets (nvidia/simready-assets), licensed CC BY 4.0",
+        "url": "https://creativecommons.org/licenses/by/4.0/"
+      }
+    },
+    {
+      "id": "asset.pallets.pallet_steel_galvanized_a01",
+      "category": "pallets",
+      "name": {
+        "en": "Galvanized steel pallet",
+        "es": "Pallet de acero galvanizado"
+      },
+      "tags": ["steel", "pallet"],
+      "file": "models/pallets/pallet_steel_galvanized_a01.glb",
+      "bytes": 1626524,
+      "sha256": "bd7d7fe84c4957d70d1fa9a0a337ed1ca71fe441bbf1f1c9dd88bad36252d5fe",
+      "dimensions": {
+        "x": 1.219,
+        "y": 0.119,
+        "z": 1.221
+      },
+      "source": {
+        "dataset": "codepawl/simready-glb",
+        "revision": "e52172290393dde80e8d383861db94b8d0e92ec3",
+        "name": "pallet_steel_galvanized_a01"
+      },
+      "license": {
+        "id": "CC-BY-4.0",
+        "attribution": "Model from NVIDIA SimReady Assets (nvidia/simready-assets), licensed CC BY 4.0",
+        "url": "https://creativecommons.org/licenses/by/4.0/"
+      }
+    },
+    {
+      "id": "asset.pallets.pallet_assembly_a02",
+      "category": "pallets",
+      "name": {
+        "en": "Pallet assembly A02",
+        "es": "Conjunto de pallet A02"
+      },
+      "tags": ["pallet", "assembly"],
+      "file": "models/pallets/pallet_assembly_a02.glb",
+      "bytes": 1411612,
+      "sha256": "3591b4927d10ae56c6a8027fed9fb9e98a6ccc6f370f006509566713097be4c7",
+      "dimensions": {
+        "x": 0.901,
+        "y": 0.505,
+        "z": 0.904
+      },
+      "source": {
+        "dataset": "codepawl/simready-glb",
+        "revision": "e52172290393dde80e8d383861db94b8d0e92ec3",
+        "name": "pallet_assembly_a02"
+      },
+      "license": {
+        "id": "CC-BY-4.0",
+        "attribution": "Model from NVIDIA SimReady Assets (nvidia/simready-assets), licensed CC BY 4.0",
+        "url": "https://creativecommons.org/licenses/by/4.0/"
+      }
+    },
+    {
+      "id": "asset.boxes.box_cardboard_a01",
+      "category": "boxes",
+      "name": {
+        "en": "Cardboard box A",
+        "es": "Caja de cartón A"
+      },
+      "tags": ["cardboard", "box"],
+      "file": "models/boxes/box_cardboard_a01.glb",
+      "bytes": 55584,
+      "sha256": "b14034a549bd6d2e08f40fa1126f4a1cf513700a7b6e0887272e794501b28818",
+      "dimensions": {
+        "x": 0.699,
+        "y": 0.51,
+        "z": 0.521
+      },
+      "source": {
+        "dataset": "codepawl/simready-glb",
+        "revision": "e52172290393dde80e8d383861db94b8d0e92ec3",
+        "name": "box_cardboard_a01"
+      },
+      "license": {
+        "id": "CC-BY-4.0",
+        "attribution": "Model from NVIDIA SimReady Assets (nvidia/simready-assets), licensed CC BY 4.0",
+        "url": "https://creativecommons.org/licenses/by/4.0/"
+      }
+    },
+    {
+      "id": "asset.boxes.box_cardboard_c01",
+      "category": "boxes",
+      "name": {
+        "en": "Cardboard box C",
+        "es": "Caja de cartón C"
+      },
+      "tags": ["cardboard", "box"],
+      "file": "models/boxes/box_cardboard_c01.glb",
+      "bytes": 77224,
+      "sha256": "aa5dc77a4032501974459cf7e01f794d944bdadf7bc7f981d6969e2c1e9ee8cc",
+      "dimensions": {
+        "x": 0.513,
+        "y": 0.26,
+        "z": 0.511
+      },
+      "source": {
+        "dataset": "codepawl/simready-glb",
+        "revision": "e52172290393dde80e8d383861db94b8d0e92ec3",
+        "name": "box_cardboard_c01"
+      },
+      "license": {
+        "id": "CC-BY-4.0",
+        "attribution": "Model from NVIDIA SimReady Assets (nvidia/simready-assets), licensed CC BY 4.0",
+        "url": "https://creativecommons.org/licenses/by/4.0/"
+      }
+    },
+    {
+      "id": "asset.boxes.box_cardboard_large_a02",
+      "category": "boxes",
+      "name": {
+        "en": "Large cardboard box",
+        "es": "Caja de cartón grande"
+      },
+      "tags": ["cardboard", "box", "large"],
+      "file": "models/boxes/box_cardboard_large_a02.glb",
+      "bytes": 1032984,
+      "sha256": "5757b0f0ddacc7ae1eda608a6b50f8f0fd28b348a17ee7cec72fc82ca24de5f5",
+      "dimensions": {
+        "x": 1.004,
+        "y": 0.681,
+        "z": 1.202
+      },
+      "source": {
+        "dataset": "codepawl/simready-glb",
+        "revision": "e52172290393dde80e8d383861db94b8d0e92ec3",
+        "name": "box_cardboard_large_a02"
+      },
+      "license": {
+        "id": "CC-BY-4.0",
+        "attribution": "Model from NVIDIA SimReady Assets (nvidia/simready-assets), licensed CC BY 4.0",
+        "url": "https://creativecommons.org/licenses/by/4.0/"
+      }
+    },
+    {
+      "id": "asset.boxes.box_cube_a01",
+      "category": "boxes",
+      "name": {
+        "en": "Small cube box",
+        "es": "Caja cúbica pequeña"
+      },
+      "tags": ["box", "cube"],
+      "file": "models/boxes/box_cube_a01.glb",
+      "bytes": 473940,
+      "sha256": "7eb0b61430b2ddc7ce2721f5e9a418a14da8d7d3712736039813ba4e45378357",
+      "dimensions": {
+        "x": 0.106,
+        "y": 0.105,
+        "z": 0.105
+      },
+      "source": {
+        "dataset": "codepawl/simready-glb",
+        "revision": "e52172290393dde80e8d383861db94b8d0e92ec3",
+        "name": "box_cube_a01"
+      },
+      "license": {
+        "id": "CC-BY-4.0",
+        "attribution": "Model from NVIDIA SimReady Assets (nvidia/simready-assets), licensed CC BY 4.0",
+        "url": "https://creativecommons.org/licenses/by/4.0/"
+      }
+    },
+    {
+      "id": "asset.boxes.box_flat_a01",
+      "category": "boxes",
+      "name": {
+        "en": "Small flat box",
+        "es": "Caja plana pequeña"
+      },
+      "tags": ["box", "flat"],
+      "file": "models/boxes/box_flat_a01.glb",
+      "bytes": 450564,
+      "sha256": "e5d71133c2111aab4f15bf827367c3919fa3e9f6c6020f90bb5f11b3f33c52b8",
+      "dimensions": {
+        "x": 0.15,
+        "y": 0.058,
+        "z": 0.16
+      },
+      "source": {
+        "dataset": "codepawl/simready-glb",
+        "revision": "e52172290393dde80e8d383861db94b8d0e92ec3",
+        "name": "box_flat_a01"
+      },
+      "license": {
+        "id": "CC-BY-4.0",
+        "attribution": "Model from NVIDIA SimReady Assets (nvidia/simready-assets), licensed CC BY 4.0",
+        "url": "https://creativecommons.org/licenses/by/4.0/"
+      }
+    },
+    {
+      "id": "asset.boxes.box_long_a01",
+      "category": "boxes",
+      "name": {
+        "en": "Small long box",
+        "es": "Caja alargada pequeña"
+      },
+      "tags": ["box", "long"],
+      "file": "models/boxes/box_long_a01.glb",
+      "bytes": 443536,
+      "sha256": "a651de8e59e7ce424b866d1aa5a76f430ee8546b0fa9f79c86acbea8496b8839",
+      "dimensions": {
+        "x": 0.08,
+        "y": 0.08,
+        "z": 0.156
+      },
+      "source": {
+        "dataset": "codepawl/simready-glb",
+        "revision": "e52172290393dde80e8d383861db94b8d0e92ec3",
+        "name": "box_long_a01"
+      },
+      "license": {
+        "id": "CC-BY-4.0",
+        "attribution": "Model from NVIDIA SimReady Assets (nvidia/simready-assets), licensed CC BY 4.0",
+        "url": "https://creativecommons.org/licenses/by/4.0/"
+      }
+    },
+    {
+      "id": "asset.boxes.box_multidepth_a01",
+      "category": "boxes",
+      "name": {
+        "en": "Multi-depth box",
+        "es": "Caja de profundidad variable"
+      },
+      "tags": ["box"],
+      "file": "models/boxes/box_multiDepth_a01.glb",
+      "bytes": 447712,
+      "sha256": "3a524c3d4760c3a9221dd6e40a13ddceade378c5c40aec6713f23af1cb9d8ebf",
+      "dimensions": {
+        "x": 0.202,
+        "y": 0.206,
+        "z": 0.204
+      },
+      "source": {
+        "dataset": "codepawl/simready-glb",
+        "revision": "e52172290393dde80e8d383861db94b8d0e92ec3",
+        "name": "box_multiDepth_a01"
+      },
+      "license": {
+        "id": "CC-BY-4.0",
+        "attribution": "Model from NVIDIA SimReady Assets (nvidia/simready-assets), licensed CC BY 4.0",
+        "url": "https://creativecommons.org/licenses/by/4.0/"
+      }
+    },
+    {
+      "id": "asset.containers.crate_blue_a01",
+      "category": "containers",
+      "name": {
+        "en": "Plastic crate, blue",
+        "es": "Cajón plástico, azul"
+      },
+      "tags": ["crate", "plastic", "bin"],
+      "file": "models/containers/crate_blue_a01.glb",
+      "bytes": 526916,
+      "sha256": "14478870d10895a51a76cd741d0563bd5649c1964081e2a7f36cf16e95e2a641",
+      "dimensions": {
+        "x": 0.605,
+        "y": 0.253,
+        "z": 0.405
+      },
+      "source": {
+        "dataset": "codepawl/simready-glb",
+        "revision": "e52172290393dde80e8d383861db94b8d0e92ec3",
+        "name": "crate_blue_a01"
+      },
+      "license": {
+        "id": "CC-BY-4.0",
+        "attribution": "Model from NVIDIA SimReady Assets (nvidia/simready-assets), licensed CC BY 4.0",
+        "url": "https://creativecommons.org/licenses/by/4.0/"
+      }
+    },
+    {
+      "id": "asset.containers.crate_gray_a08",
+      "category": "containers",
+      "name": {
+        "en": "Plastic crate, gray",
+        "es": "Cajón plástico, gris"
+      },
+      "tags": ["crate", "plastic", "bin"],
+      "file": "models/containers/crate_gray_a08.glb",
+      "bytes": 427332,
+      "sha256": "de5e0188a27fed511416eabcd1d5e4866a2e73b010148282167f3859d4dc6332",
+      "dimensions": {
+        "x": 0.605,
+        "y": 0.17,
+        "z": 0.405
+      },
+      "source": {
+        "dataset": "codepawl/simready-glb",
+        "revision": "e52172290393dde80e8d383861db94b8d0e92ec3",
+        "name": "crate_gray_a08"
+      },
+      "license": {
+        "id": "CC-BY-4.0",
+        "attribution": "Model from NVIDIA SimReady Assets (nvidia/simready-assets), licensed CC BY 4.0",
+        "url": "https://creativecommons.org/licenses/by/4.0/"
+      }
+    },
+    {
+      "id": "asset.containers.crate_green_a01",
+      "category": "containers",
+      "name": {
+        "en": "Plastic crate, green",
+        "es": "Cajón plástico, verde"
+      },
+      "tags": ["crate", "plastic", "bin"],
+      "file": "models/containers/crate_green_a01.glb",
+      "bytes": 523820,
+      "sha256": "2c0fd9ce015a0be43f8b75182392a222dc33eaa113325e65c13a79053275ebb5",
+      "dimensions": {
+        "x": 0.605,
+        "y": 0.253,
+        "z": 0.405
+      },
+      "source": {
+        "dataset": "codepawl/simready-glb",
+        "revision": "e52172290393dde80e8d383861db94b8d0e92ec3",
+        "name": "crate_green_a01"
+      },
+      "license": {
+        "id": "CC-BY-4.0",
+        "attribution": "Model from NVIDIA SimReady Assets (nvidia/simready-assets), licensed CC BY 4.0",
+        "url": "https://creativecommons.org/licenses/by/4.0/"
+      }
+    },
+    {
+      "id": "asset.containers.crate_plywood_b02",
+      "category": "containers",
+      "name": {
+        "en": "Plywood crate",
+        "es": "Cajón de contrachapado"
+      },
+      "tags": ["crate", "wood"],
+      "file": "models/containers/crate_plywood_b02.glb",
+      "bytes": 1273648,
+      "sha256": "a977c6e2d2b9772b122f7cfb5d31b993f6e435360b220355477fa194f06c8053",
+      "dimensions": {
+        "x": 1.002,
+        "y": 1.017,
+        "z": 1.009
+      },
+      "source": {
+        "dataset": "codepawl/simready-glb",
+        "revision": "e52172290393dde80e8d383861db94b8d0e92ec3",
+        "name": "crate_plywood_b02"
+      },
+      "license": {
+        "id": "CC-BY-4.0",
+        "attribution": "Model from NVIDIA SimReady Assets (nvidia/simready-assets), licensed CC BY 4.0",
+        "url": "https://creativecommons.org/licenses/by/4.0/"
+      }
+    },
+    {
+      "id": "asset.containers.container_recycle_blue_b02",
+      "category": "containers",
+      "name": {
+        "en": "Recycling container, blue",
+        "es": "Contenedor de reciclaje, azul"
+      },
+      "tags": ["container", "bin"],
+      "file": "models/containers/container_recycle_blue_b02.glb",
+      "bytes": 804672,
+      "sha256": "3e8af9e616b5d00325ec3e39baceef1942096f774b247250c6190c3072a7ffd6",
+      "dimensions": {
+        "x": 0.719,
+        "y": 0.749,
+        "z": 0.621
+      },
+      "source": {
+        "dataset": "codepawl/simready-glb",
+        "revision": "e52172290393dde80e8d383861db94b8d0e92ec3",
+        "name": "container_recycle_blue_b02"
+      },
+      "license": {
+        "id": "CC-BY-4.0",
+        "attribution": "Model from NVIDIA SimReady Assets (nvidia/simready-assets), licensed CC BY 4.0",
+        "url": "https://creativecommons.org/licenses/by/4.0/"
+      }
+    },
+    {
+      "id": "asset.containers.misc_basket_plastic_a01",
+      "category": "containers",
+      "name": {
+        "en": "Plastic basket",
+        "es": "Cesta plástica"
+      },
+      "tags": ["basket", "plastic"],
+      "file": "models/containers/misc_basket_plastic_a01.glb",
+      "bytes": 1588548,
+      "sha256": "1cfca9b9d0171d7ba1be721fbe41b369fc4b3ad1f370dedd7b680f12e0148c35",
+      "dimensions": {
+        "x": 0.201,
+        "y": 0.114,
+        "z": 0.271
+      },
+      "source": {
+        "dataset": "codepawl/simready-glb",
+        "revision": "e52172290393dde80e8d383861db94b8d0e92ec3",
+        "name": "misc_basket_plastic_a01"
+      },
+      "license": {
+        "id": "CC-BY-4.0",
+        "attribution": "Model from NVIDIA SimReady Assets (nvidia/simready-assets), licensed CC BY 4.0",
+        "url": "https://creativecommons.org/licenses/by/4.0/"
+      }
+    },
+    {
+      "id": "asset.containers.ibctank_a02",
+      "category": "containers",
+      "name": {
+        "en": "IBC tank",
+        "es": "Depósito IBC"
+      },
+      "tags": ["ibc", "tank", "liquid"],
+      "file": "models/containers/ibcTank_a02.glb",
+      "bytes": 1111652,
+      "sha256": "49550e46f3c131d7f17650108086dfaba670ade50f9e439b5c4962bbecbab296",
+      "dimensions": {
+        "x": 1.048,
+        "y": 1.202,
+        "z": 1.256
+      },
+      "source": {
+        "dataset": "codepawl/simready-glb",
+        "revision": "e52172290393dde80e8d383861db94b8d0e92ec3",
+        "name": "ibcTank_a02"
+      },
+      "license": {
+        "id": "CC-BY-4.0",
+        "attribution": "Model from NVIDIA SimReady Assets (nvidia/simready-assets), licensed CC BY 4.0",
+        "url": "https://creativecommons.org/licenses/by/4.0/"
+      }
+    },
+    {
+      "id": "asset.drums.drum_steel_a01",
+      "category": "drums",
+      "name": {
+        "en": "Steel drum",
+        "es": "Bidón de acero"
+      },
+      "tags": ["drum", "steel"],
+      "file": "models/drums/drum_steel_a01.glb",
+      "bytes": 973676,
+      "sha256": "e7cdd6691e3fea3d0d2616739378eb9c5a08e07324b7fd29e8c3e82759311731",
+      "dimensions": {
+        "x": 0.642,
+        "y": 0.868,
+        "z": 0.657
+      },
+      "source": {
+        "dataset": "codepawl/simready-glb",
+        "revision": "e52172290393dde80e8d383861db94b8d0e92ec3",
+        "name": "drum_steel_a01"
+      },
+      "license": {
+        "id": "CC-BY-4.0",
+        "attribution": "Model from NVIDIA SimReady Assets (nvidia/simready-assets), licensed CC BY 4.0",
+        "url": "https://creativecommons.org/licenses/by/4.0/"
+      }
+    },
+    {
+      "id": "asset.drums.drum_plastic_blue_a01",
+      "category": "drums",
+      "name": {
+        "en": "Plastic drum, blue",
+        "es": "Bidón plástico, azul"
+      },
+      "tags": ["drum", "plastic"],
+      "file": "models/drums/drum_plastic_blue_a01.glb",
+      "bytes": 235140,
+      "sha256": "377b8d8299eba4fa843e5ccb372cac7d6e7f2e3a1958ef1125972c3163add021",
+      "dimensions": {
+        "x": 0.283,
+        "y": 0.387,
+        "z": 0.284
+      },
+      "source": {
+        "dataset": "codepawl/simready-glb",
+        "revision": "e52172290393dde80e8d383861db94b8d0e92ec3",
+        "name": "drum_plastic_blue_a01"
+      },
+      "license": {
+        "id": "CC-BY-4.0",
+        "attribution": "Model from NVIDIA SimReady Assets (nvidia/simready-assets), licensed CC BY 4.0",
+        "url": "https://creativecommons.org/licenses/by/4.0/"
+      }
+    },
+    {
+      "id": "asset.drums.drum_fiber_a02",
+      "category": "drums",
+      "name": {
+        "en": "Fiber drum",
+        "es": "Bidón de fibra"
+      },
+      "tags": ["drum", "fiber"],
+      "file": "models/drums/drum_fiber_a02.glb",
+      "bytes": 287816,
+      "sha256": "5ace626f2245207a680327bc94b2b5df98e31ed23d13de1682e6e2a4b3a3b3cf",
+      "dimensions": {
+        "x": 0.578,
+        "y": 0.907,
+        "z": 0.586
+      },
+      "source": {
+        "dataset": "codepawl/simready-glb",
+        "revision": "e52172290393dde80e8d383861db94b8d0e92ec3",
+        "name": "drum_fiber_a02"
+      },
+      "license": {
+        "id": "CC-BY-4.0",
+        "attribution": "Model from NVIDIA SimReady Assets (nvidia/simready-assets), licensed CC BY 4.0",
+        "url": "https://creativecommons.org/licenses/by/4.0/"
+      }
+    },
+    {
+      "id": "asset.drums.warehouse_barrel_plastic_a01",
+      "category": "drums",
+      "name": {
+        "en": "Plastic barrel",
+        "es": "Barril plástico"
+      },
+      "tags": ["barrel", "plastic"],
+      "file": "models/drums/warehouse_barrel_plastic_a01.glb",
+      "bytes": 370180,
+      "sha256": "2a6bc4dae864438d0adac9c7aaa0acb1a3984d96dab50742c7c679f7a629b8a7",
+      "dimensions": {
+        "x": 0.5,
+        "y": 0.962,
+        "z": 0.511
+      },
+      "source": {
+        "dataset": "codepawl/simready-glb",
+        "revision": "e52172290393dde80e8d383861db94b8d0e92ec3",
+        "name": "warehouse_barrel_plastic_a01"
+      },
+      "license": {
+        "id": "CC-BY-4.0",
+        "attribution": "Model from NVIDIA SimReady Assets (nvidia/simready-assets), licensed CC BY 4.0",
+        "url": "https://creativecommons.org/licenses/by/4.0/"
+      }
+    },
+    {
+      "id": "asset.racks.rack_large_empty_a01",
+      "category": "racks",
+      "name": {
+        "en": "Large pallet rack",
+        "es": "Rack de pallets grande"
+      },
+      "tags": ["rack", "storage"],
+      "file": "models/racks/rack_large_empty_a01.glb",
+      "bytes": 791208,
+      "sha256": "8d5fd3b9b7ebf643c0360d4f8504dcbfc7e851c44c9c34eaa0c214f9d5ed8d07",
+      "dimensions": {
+        "x": 4,
+        "y": 3.01,
+        "z": 2.067
+      },
+      "source": {
+        "dataset": "codepawl/simready-glb",
+        "revision": "e52172290393dde80e8d383861db94b8d0e92ec3",
+        "name": "rack_large_empty_a01"
+      },
+      "license": {
+        "id": "CC-BY-4.0",
+        "attribution": "Model from NVIDIA SimReady Assets (nvidia/simready-assets), licensed CC BY 4.0",
+        "url": "https://creativecommons.org/licenses/by/4.0/"
+      }
+    },
+    {
+      "id": "asset.racks.rack_long_empty_a01",
+      "category": "racks",
+      "name": {
+        "en": "Long pallet rack",
+        "es": "Rack de pallets largo"
+      },
+      "tags": ["rack", "storage"],
+      "file": "models/racks/rack_long_empty_a01.glb",
+      "bytes": 792532,
+      "sha256": "b31743df69494f86c5d275cbf29f4b43b14a19f401ee91a3d357e8107d9a6f74",
+      "dimensions": {
+        "x": 4,
+        "y": 3.01,
+        "z": 1.081
+      },
+      "source": {
+        "dataset": "codepawl/simready-glb",
+        "revision": "e52172290393dde80e8d383861db94b8d0e92ec3",
+        "name": "rack_long_empty_a01"
+      },
+      "license": {
+        "id": "CC-BY-4.0",
+        "attribution": "Model from NVIDIA SimReady Assets (nvidia/simready-assets), licensed CC BY 4.0",
+        "url": "https://creativecommons.org/licenses/by/4.0/"
+      }
+    },
+    {
+      "id": "asset.racks.rack_bulk_storage_a03",
+      "category": "racks",
+      "name": {
+        "en": "Bulk storage rack",
+        "es": "Rack de almacenamiento a granel"
+      },
+      "tags": ["rack", "storage", "bulk"],
+      "file": "models/racks/rack_bulk_storage_a03.glb",
+      "bytes": 3469412,
+      "sha256": "647b6667786c64c2896b1ddcc28110abd935ec0a632e9cefe334366a80ce8194",
+      "dimensions": {
+        "x": 2.454,
+        "y": 2.431,
+        "z": 1.226
+      },
+      "source": {
+        "dataset": "codepawl/simready-glb",
+        "revision": "e52172290393dde80e8d383861db94b8d0e92ec3",
+        "name": "rack_bulk_storage_a03"
+      },
+      "license": {
+        "id": "CC-BY-4.0",
+        "attribution": "Model from NVIDIA SimReady Assets (nvidia/simready-assets), licensed CC BY 4.0",
+        "url": "https://creativecommons.org/licenses/by/4.0/"
+      }
+    },
+    {
+      "id": "asset.racks.storagesystem_rack_heavyduty_f01",
+      "category": "racks",
+      "name": {
+        "en": "Heavy-duty rack",
+        "es": "Rack de carga pesada"
+      },
+      "tags": ["rack", "storage", "heavy"],
+      "file": "models/racks/storageSystem_rack_heavyDuty_f01.glb",
+      "bytes": 396832,
+      "sha256": "ec91e9a185bbc1a9822c1c9e9b2076ccbc31932bdba99cd2146af6e0aec4b0f0",
+      "dimensions": {
+        "x": 1.3,
+        "y": 0.934,
+        "z": 1.093
+      },
+      "source": {
+        "dataset": "codepawl/simready-glb",
+        "revision": "e52172290393dde80e8d383861db94b8d0e92ec3",
+        "name": "storageSystem_rack_heavyDuty_f01"
+      },
+      "license": {
+        "id": "CC-BY-4.0",
+        "attribution": "Model from NVIDIA SimReady Assets (nvidia/simready-assets), licensed CC BY 4.0",
+        "url": "https://creativecommons.org/licenses/by/4.0/"
+      }
+    },
+    {
+      "id": "asset.racks.shelve_steel_heavyduty_a06",
+      "category": "racks",
+      "name": {
+        "en": "Heavy-duty steel shelving",
+        "es": "Estantería de acero de carga pesada"
+      },
+      "tags": ["shelving", "steel"],
+      "file": "models/racks/shelve_steel_heavyDuty_a06.glb",
+      "bytes": 1967684,
+      "sha256": "7c7903fe26e67f82c26611c8323aabbfbb493eeadc539580d51bb24d08e461e9",
+      "dimensions": {
+        "x": 0.92,
+        "y": 2.438,
+        "z": 0.615
+      },
+      "source": {
+        "dataset": "codepawl/simready-glb",
+        "revision": "e52172290393dde80e8d383861db94b8d0e92ec3",
+        "name": "shelve_steel_heavyDuty_a06"
+      },
+      "license": {
+        "id": "CC-BY-4.0",
+        "attribution": "Model from NVIDIA SimReady Assets (nvidia/simready-assets), licensed CC BY 4.0",
+        "url": "https://creativecommons.org/licenses/by/4.0/"
+      }
+    },
+    {
+      "id": "asset.vehicles.vehicle_forklift_blue_a01",
+      "category": "vehicles",
+      "name": {
+        "en": "Forklift, blue",
+        "es": "Carretilla elevadora, azul"
+      },
+      "tags": ["forklift", "vehicle"],
+      "file": "models/vehicles/vehicle_forklift_blue_a01.glb",
+      "bytes": 2541872,
+      "sha256": "4b0dfe95e32952eaf50077b87a363b1215d7bb218be5150f4bd9d6874a587e03",
+      "dimensions": {
+        "x": 0.823,
+        "y": 1.957,
+        "z": 1.885
+      },
+      "source": {
+        "dataset": "codepawl/simready-glb",
+        "revision": "e52172290393dde80e8d383861db94b8d0e92ec3",
+        "name": "vehicle_forklift_blue_a01"
+      },
+      "license": {
+        "id": "CC-BY-4.0",
+        "attribution": "Model from NVIDIA SimReady Assets (nvidia/simready-assets), licensed CC BY 4.0",
+        "url": "https://creativecommons.org/licenses/by/4.0/"
+      }
+    },
+    {
+      "id": "asset.vehicles.vehicle_forklift_red_b01",
+      "category": "vehicles",
+      "name": {
+        "en": "Forklift, red",
+        "es": "Carretilla elevadora, roja"
+      },
+      "tags": ["forklift", "vehicle"],
+      "file": "models/vehicles/vehicle_forklift_red_b01.glb",
+      "bytes": 6260580,
+      "sha256": "c77e62112511f0f17313945c588ff06da41701e5599c8066ed7c696b742a7eba",
+      "dimensions": {
+        "x": 1.129,
+        "y": 2.933,
+        "z": 3.031
+      },
+      "source": {
+        "dataset": "codepawl/simready-glb",
+        "revision": "e52172290393dde80e8d383861db94b8d0e92ec3",
+        "name": "vehicle_forklift_red_b01"
+      },
+      "license": {
+        "id": "CC-BY-4.0",
+        "attribution": "Model from NVIDIA SimReady Assets (nvidia/simready-assets), licensed CC BY 4.0",
+        "url": "https://creativecommons.org/licenses/by/4.0/"
+      }
+    },
+    {
+      "id": "asset.vehicles.palletjack_heavyduty_a01",
+      "category": "vehicles",
+      "name": {
+        "en": "Heavy-duty pallet jack",
+        "es": "Transpaleta de carga pesada"
+      },
+      "tags": ["pallet jack", "manual"],
+      "file": "models/vehicles/palletJack_heavyDuty_a01.glb",
+      "bytes": 2390164,
+      "sha256": "7b025a6507d4dd21cc2295615b909708d8eb6ffcb5c2e358d4fe98fcba7d36fe",
+      "dimensions": {
+        "x": 0.681,
+        "y": 1.201,
+        "z": 1.601
+      },
+      "source": {
+        "dataset": "codepawl/simready-glb",
+        "revision": "e52172290393dde80e8d383861db94b8d0e92ec3",
+        "name": "palletJack_heavyDuty_a01"
+      },
+      "license": {
+        "id": "CC-BY-4.0",
+        "attribution": "Model from NVIDIA SimReady Assets (nvidia/simready-assets), licensed CC BY 4.0",
+        "url": "https://creativecommons.org/licenses/by/4.0/"
+      }
+    },
+    {
+      "id": "asset.vehicles.palletjack_lowprofile_a01",
+      "category": "vehicles",
+      "name": {
+        "en": "Low-profile pallet jack",
+        "es": "Transpaleta de perfil bajo"
+      },
+      "tags": ["pallet jack", "manual"],
+      "file": "models/vehicles/palletJack_lowProfile_a01.glb",
+      "bytes": 1374276,
+      "sha256": "4ff16a277e07c815960af26feeab4c1343091c2d0d9453fb3f1e0afd7c6015ad",
+      "dimensions": {
+        "x": 0.653,
+        "y": 1.274,
+        "z": 1.63
+      },
+      "source": {
+        "dataset": "codepawl/simready-glb",
+        "revision": "e52172290393dde80e8d383861db94b8d0e92ec3",
+        "name": "palletJack_lowProfile_a01"
+      },
+      "license": {
+        "id": "CC-BY-4.0",
+        "attribution": "Model from NVIDIA SimReady Assets (nvidia/simready-assets), licensed CC BY 4.0",
+        "url": "https://creativecommons.org/licenses/by/4.0/"
+      }
+    },
+    {
+      "id": "asset.conveyors.conveyor_belt_a02",
+      "category": "conveyors",
+      "name": {
+        "en": "Belt conveyor A (decorative)",
+        "es": "Cinta transportadora A (decorativa)"
+      },
+      "tags": ["belt", "conveyor", "decorative"],
+      "file": "models/conveyors/conveyor_belt_a02.glb",
+      "bytes": 2622792,
+      "sha256": "dda89bcdbb03cb46e1265c1b5a02317521f0899108d6a077dc39feeb1b600d87",
+      "dimensions": {
+        "x": 2.101,
+        "y": 1.166,
+        "z": 2.071
+      },
+      "source": {
+        "dataset": "codepawl/simready-glb",
+        "revision": "e52172290393dde80e8d383861db94b8d0e92ec3",
+        "name": "conveyor_belt_a02"
+      },
+      "license": {
+        "id": "CC-BY-4.0",
+        "attribution": "Model from NVIDIA SimReady Assets (nvidia/simready-assets), licensed CC BY 4.0",
+        "url": "https://creativecommons.org/licenses/by/4.0/"
+      }
+    },
+    {
+      "id": "asset.conveyors.conveyor_belt_a05",
+      "category": "conveyors",
+      "name": {
+        "en": "Belt conveyor B (decorative)",
+        "es": "Cinta transportadora B (decorativa)"
+      },
+      "tags": ["belt", "conveyor", "decorative"],
+      "file": "models/conveyors/conveyor_belt_a05.glb",
+      "bytes": 2129720,
+      "sha256": "7f8a47747ec043d7e5893d6a420d3276e371752e87018cbd548f31d66f5c95df",
+      "dimensions": {
+        "x": 1.151,
+        "y": 1.166,
+        "z": 2
+      },
+      "source": {
+        "dataset": "codepawl/simready-glb",
+        "revision": "e52172290393dde80e8d383861db94b8d0e92ec3",
+        "name": "conveyor_belt_a05"
+      },
+      "license": {
+        "id": "CC-BY-4.0",
+        "attribution": "Model from NVIDIA SimReady Assets (nvidia/simready-assets), licensed CC BY 4.0",
+        "url": "https://creativecommons.org/licenses/by/4.0/"
+      }
+    },
+    {
+      "id": "asset.safety.barrier_fence_metal_a02",
+      "category": "safety",
+      "name": {
+        "en": "Metal safety fence",
+        "es": "Valla metálica de seguridad"
+      },
+      "tags": ["fence", "safety"],
+      "file": "models/safety/barrier_fence_metal_a02.glb",
+      "bytes": 203768,
+      "sha256": "e310efcf28e02389cf4efee1d38c65f4b159a409b692b7935b2365ece5b0ce22",
+      "dimensions": {
+        "x": 1.23,
+        "y": 1.072,
+        "z": 0.23
+      },
+      "source": {
+        "dataset": "codepawl/simready-glb",
+        "revision": "e52172290393dde80e8d383861db94b8d0e92ec3",
+        "name": "barrier_fence_metal_a02"
+      },
+      "license": {
+        "id": "CC-BY-4.0",
+        "attribution": "Model from NVIDIA SimReady Assets (nvidia/simready-assets), licensed CC BY 4.0",
+        "url": "https://creativecommons.org/licenses/by/4.0/"
+      }
+    },
+    {
+      "id": "asset.safety.barrier_gate_safetydock_a02",
+      "category": "safety",
+      "name": {
+        "en": "Dock safety gate",
+        "es": "Barrera de seguridad de muelle"
+      },
+      "tags": ["gate", "dock", "safety"],
+      "file": "models/safety/barrier_gate_safetyDock_a02.glb",
+      "bytes": 499636,
+      "sha256": "90735a7c34e3957e3895df054571323d42d1e91c610c603ca50d9c042bb188b4",
+      "dimensions": {
+        "x": 3.162,
+        "y": 1.143,
+        "z": 0.148
+      },
+      "source": {
+        "dataset": "codepawl/simready-glb",
+        "revision": "e52172290393dde80e8d383861db94b8d0e92ec3",
+        "name": "barrier_gate_safetyDock_a02"
+      },
+      "license": {
+        "id": "CC-BY-4.0",
+        "attribution": "Model from NVIDIA SimReady Assets (nvidia/simready-assets), licensed CC BY 4.0",
+        "url": "https://creativecommons.org/licenses/by/4.0/"
+      }
+    },
+    {
+      "id": "asset.safety.barrier_wall_plastic_orange_a03",
+      "category": "safety",
+      "name": {
+        "en": "Orange plastic barrier",
+        "es": "Barrera plástica naranja"
+      },
+      "tags": ["barrier", "safety"],
+      "file": "models/safety/barrier_wall_plastic_orange_a03.glb",
+      "bytes": 2283748,
+      "sha256": "5e03673f5bd98d44d9f170b84380f04d3810ffa1389011668b19a653987506b5",
+      "dimensions": {
+        "x": 1.829,
+        "y": 2.036,
+        "z": 0.472
+      },
+      "source": {
+        "dataset": "codepawl/simready-glb",
+        "revision": "e52172290393dde80e8d383861db94b8d0e92ec3",
+        "name": "barrier_wall_plastic_orange_a03"
+      },
+      "license": {
+        "id": "CC-BY-4.0",
+        "attribution": "Model from NVIDIA SimReady Assets (nvidia/simready-assets), licensed CC BY 4.0",
+        "url": "https://creativecommons.org/licenses/by/4.0/"
+      }
+    },
+    {
+      "id": "asset.safety.ramp_long_a01",
+      "category": "safety",
+      "name": {
+        "en": "Long ramp",
+        "es": "Rampa larga"
+      },
+      "tags": ["ramp", "dock"],
+      "file": "models/safety/ramp_long_a01.glb",
+      "bytes": 116248,
+      "sha256": "47a445b48cf09846051ddcfb6f3c8383f88f33ef1ef5846c338758a23d714199",
+      "dimensions": {
+        "x": 2.241,
+        "y": 0.501,
+        "z": 0.348
+      },
+      "source": {
+        "dataset": "codepawl/simready-glb",
+        "revision": "e52172290393dde80e8d383861db94b8d0e92ec3",
+        "name": "ramp_long_a01"
+      },
+      "license": {
+        "id": "CC-BY-4.0",
+        "attribution": "Model from NVIDIA SimReady Assets (nvidia/simready-assets), licensed CC BY 4.0",
+        "url": "https://creativecommons.org/licenses/by/4.0/"
+      }
+    }
+  ]
+}

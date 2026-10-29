@@ -1,0 +1,76 @@
+[
+  {
+    "id": "eur",
+    "name": { "en": "EUR / EPAL", "es": "EUR / EPAL", "de": "EUR / EPAL" },
+    "length": 1.2,
+    "width": 0.8,
+    "height": 0.144,
+    "tareMass": 25,
+    "bottomBoards": 3,
+    "profileStatus": "indicative",
+    "occupancy": {
+      "alongLength": [
+        { "fromHeight": 0, "toHeight": 0.022, "solid": [[0, 1.2]] },
+        { "fromHeight": 0.022, "toHeight": 0.1, "solid": [[0, 0.145], [0.5275, 0.6725], [1.055, 1.2]] },
+        { "fromHeight": 0.1, "toHeight": 0.122, "solid": [[0, 0.145], [0.5275, 0.6725], [1.055, 1.2]] },
+        { "fromHeight": 0.122, "toHeight": 0.144, "solid": [[0, 1.2]] }
+      ],
+      "alongWidth": [
+        { "fromHeight": 0, "toHeight": 0.022, "solid": [[0, 0.1], [0.3275, 0.4725], [0.7, 0.8]] },
+        { "fromHeight": 0.022, "toHeight": 0.1, "solid": [[0, 0.1], [0.3275, 0.4725], [0.7, 0.8]] },
+        { "fromHeight": 0.1, "toHeight": 0.122, "solid": [[0, 0.8]] },
+        {
+          "fromHeight": 0.122,
+          "toHeight": 0.144,
+          "solid": [[0, 0.145], [0.18625, 0.28625], [0.3275, 0.4725], [0.51375, 0.61375], [0.655, 0.8]]
+        }
+      ]
+    }
+  },
+  {
+    "id": "iso1200x1000",
+    "name": { "en": "1200 × 1000", "es": "1200 × 1000", "de": "1200 × 1000" },
+    "length": 1.2,
+    "width": 1.0,
+    "height": 0.15,
+    "tareMass": 28,
+    "bottomBoards": 3,
+    "profileStatus": "approximate",
+    "occupancy": {
+      "alongLength": [
+        { "fromHeight": 0, "toHeight": 0.022, "solid": [[0, 1.2]] },
+        { "fromHeight": 0.022, "toHeight": 0.1, "solid": [[0, 0.145], [0.5275, 0.6725], [1.055, 1.2]] },
+        { "fromHeight": 0.1, "toHeight": 0.122, "solid": [[0, 0.145], [0.5275, 0.6725], [1.055, 1.2]] },
+        { "fromHeight": 0.122, "toHeight": 0.15, "solid": [[0, 1.2]] }
+      ],
+      "alongWidth": [
+        { "fromHeight": 0, "toHeight": 0.022, "solid": [[0, 0.1], [0.4275, 0.5725], [0.9, 1.0]] },
+        { "fromHeight": 0.022, "toHeight": 0.1, "solid": [[0, 0.1], [0.4275, 0.5725], [0.9, 1.0]] },
+        { "fromHeight": 0.1, "toHeight": 0.122, "solid": [[0, 1.0]] },
+        { "fromHeight": 0.122, "toHeight": 0.15, "solid": [[0, 1.0]] }
+      ]
+    }
+  },
+  {
+    "id": "gma",
+    "name": { "en": "GMA 48 × 40 in", "es": "GMA 48 × 40 pulg.", "de": "GMA 48 × 40 Zoll" },
+    "length": 1.219,
+    "width": 1.016,
+    "height": 0.14,
+    "tareMass": 25,
+    "bottomBoards": 3,
+    "profileStatus": "approximate",
+    "occupancy": {
+      "alongLength": [
+        { "fromHeight": 0, "toHeight": 0.016, "solid": [[0, 1.219]] },
+        { "fromHeight": 0.016, "toHeight": 0.124, "solid": [[0, 1.219]] },
+        { "fromHeight": 0.124, "toHeight": 0.14, "solid": [[0, 1.219]] }
+      ],
+      "alongWidth": [
+        { "fromHeight": 0, "toHeight": 0.016, "solid": [[0, 1.016]] },
+        { "fromHeight": 0.016, "toHeight": 0.124, "solid": [[0, 0.038], [0.489, 0.527], [0.978, 1.016]] },
+        { "fromHeight": 0.124, "toHeight": 0.14, "solid": [[0, 1.016]] }
+      ]
+    }
+  }
+]

@@ -1,0 +1,14 @@
+{
+  "name": "@intracraft/asset-catalog",
+  "version": "0.0.0",
+  "private": true,
+  "description": "Catalogue of third-party 3D models (GLB) for scenery and loads; queries and manifest.",
+  "type": "module",
+  "exports": {
+    ".": "./src/index.ts"
+  },
+  "dependencies": {
+    "@intracraft/core-model": "workspace:*",
+    "zod": "4.6.7"
+  }
+}

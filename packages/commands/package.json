@@ -1,0 +1,15 @@
+{
+  "name": "@intracraft/commands",
+  "version": "0.0.0",
+  "private": true,
+  "description": "Command layer: every change to the layout as a typed, validated, logged and undoable command (ADR-0004, ADR-0005).",
+  "type": "module",
+  "exports": {
+    ".": "./src/index.ts"
+  },
+  "dependencies": {
+    "@intracraft/core-model": "workspace:*",
+    "@intracraft/library": "workspace:*",
+    "zod": "4.6.7"
+  }
+}

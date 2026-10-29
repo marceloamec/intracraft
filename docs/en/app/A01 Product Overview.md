@@ -1,0 +1,55 @@
+---
+title: A01 Product Overview
+lang: en
+tags: [app, overview]
+---
+
+🌐 **EN** · [[A01 Visión del producto|ES]] · [[A01 Produktüberblick|DE]] · [[Home (EN)|Index]]
+
+# A01 Product Overview
+
+## What IntraCraft is
+
+An application to **design and simulate pallet conveyor systems** with one layout and two simulation modes:
+
+| Mode              | Engine        | Speed              | Answers                                                  |
+| ----------------- | ------------- | ------------------ | -------------------------------------------------------- |
+| 2D discrete (DES) | `sim-des`     | ≥ 1000× real time  | Throughput, accumulation, blocking, utilisation          |
+| 3D physics        | `sim-physics` | Real time (60 FPS) | Friction, impacts, alignment, sensors with real geometry |
+
+Both modes read the same layout and are driven by the same If/Then controller. Theory: [[T01 Simulation Paradigms]].
+
+## Design principles
+
+1. The layout is the source of truth; 2D, 3D and statistics are derived from it.
+2. Same control logic, different plant.
+3. Every parameter has a unit, range, default and description; the editing UI is generated from that schema.
+4. Determinism: same data + same seed → same results.
+5. Real pallet geometry matters (voids between boards and blocks).
+6. Validate before extending: analytic tests and comparison with known reference models.
+7. Small steps, always with a test.
+
+## MVP scope
+
+**In:** five conveyors ([[S01 Roller Conveyor]], [[S02 Chain Conveyor]], [[S03 Chain Turntable]], [[S04 Roller Turntable]], [[S05 Roller-to-Chain Transfer]]); photoelectric sensors (diffuse, retroreflective, through-beam); fixed and retractable stops; side guides with funnel; source and sink; EUR, 1200 × 1000, GMA and custom pallets; If/Then controller with boolean signals; both modes on the same layout (switching restarts); editor (place, connect, parametrise, save, open; play, pause, speed); basic statistics, CSV/JSON export, headless CLI; built-in library with presets and user components.
+
+**Out (post-MVP):** curves, lifts, shuttles, diverters; boxes and totes; failures (MTBF/MTTR) and energy; user scripting; mid-run mode switch; automatic 2D↔3D calibration; experiments and optimisation; OPC UA / PLC; CAD import; collaboration.
+
+## MVP definition of done
+
+1. The five conveyors can be placed, connected and parametrised from the library.
+2. A reference layout with all five runs in both modes unattended.
+3. 2D results match the analytic tests within 1 % ([[A11 Testing and Validation]]).
+4. In 3D a pallet stops against a stop within ±5 mm, rebound < 10 mm.
+5. Transit times and sensor events differ between modes by < 5 % and ±50 ms.
+6. Same layout + same seed → identical results in two runs.
+7. 3D keeps 60 FPS with 20 conveyors and 10 pallets on a current laptop.
+8. Three known reference models are reproduced and compared.
+
+## Current status (2026-10-28)
+
+Phase 0 scaffolding is in place: monorepo, packages, CI workflow, analytic kinematics (T1–T5 pass), event queue, seeded RNG, project schema, roller-conveyor definition, rule evaluator and a viewer showing a parametric roller conveyor. See [[A12 Roadmap]].
+
+## Related
+
+[[A02 Architecture]] · [[A12 Roadmap]] · [[Glossary]]

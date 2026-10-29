@@ -1,0 +1,35 @@
+{
+  "name": "intracraft",
+  "version": "0.0.0",
+  "private": true,
+  "description": "IntraCraft: hybrid 2D (discrete-event) / 3D (physics) pallet conveyor simulator",
+  "type": "module",
+  "packageManager": "pnpm@10.34.9",
+  "engines": {
+    "node": ">=24"
+  },
+  "scripts": {
+    "dev": "pnpm --filter @intracraft/editor dev",
+    "build": "pnpm --filter @intracraft/editor build",
+    "test": "vitest run",
+    "test:watch": "vitest",
+    "lint": "eslint . && tsc -p tsconfig.json --noEmit",
+    "typecheck": "tsc -p tsconfig.json --noEmit",
+    "format": "prettier --write .",
+    "format:check": "prettier --check .",
+    "format:docs": "node scripts/align-md-tables.mjs docs",
+    "assets:fetch": "node scripts/fetch-assets.mjs",
+    "scenario": "pnpm --filter @intracraft/cli scenario"
+  },
+  "devDependencies": {
+    "@eslint/js": "10.0.1",
+    "@types/node": "24.19.2",
+    "eslint": "10.13.0",
+    "eslint-plugin-react-hooks": "7.1.1",
+    "globals": "17.13.0",
+    "prettier": "3.9.10",
+    "typescript": "6.0.3",
+    "typescript-eslint": "8.72.1",
+    "vitest": "5.0.5"
+  }
+}

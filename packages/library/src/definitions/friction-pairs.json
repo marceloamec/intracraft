@@ -1,0 +1,26 @@
+[
+  {
+    "id": "wood-steel-roller",
+    "name": { "en": "Wood – steel (roller)", "es": "Madera – acero (rodillo)", "de": "Holz – Stahl (Rolle)" },
+    "mu": 0.35,
+    "range": [0.25, 0.5]
+  },
+  {
+    "id": "wood-steel-chain",
+    "name": { "en": "Wood – steel chain", "es": "Madera – cadena de acero", "de": "Holz – Stahlkette" },
+    "mu": 0.3,
+    "range": [0.2, 0.45]
+  },
+  {
+    "id": "plastic-steel",
+    "name": { "en": "Plastic – steel", "es": "Plástico – acero", "de": "Kunststoff – Stahl" },
+    "mu": 0.25,
+    "range": [0.15, 0.4]
+  },
+  {
+    "id": "wood-steel-guide",
+    "name": { "en": "Wood – steel guide", "es": "Madera – guía de acero", "de": "Holz – Stahlführung" },
+    "mu": 0.3,
+    "range": [0.2, 0.45]
+  }
+]
