@@ -1,0 +1,113 @@
+{
+  "id": "flow.process_station",
+  "version": "0.1.0",
+  "category": "flow",
+  "name": { "en": "Process station", "es": "Estación de proceso", "de": "Prozessstation" },
+  "description": {
+    "en": "Short deck where one pallet at a time stops and is processed for a time (inspection, strapping, wrapping). Reports working, blocked and idle shares.",
+    "es": "Cubierta corta donde un pallet a la vez se detiene y se procesa durante un tiempo (inspección, flejado, enfardado). Informa de los porcentajes de trabajo, bloqueo y espera.",
+    "de": "Kurzes Deck, auf dem jeweils eine Palette anhält und eine Zeit lang bearbeitet wird (Prüfung, Umreifen, Wickeln). Meldet Anteile für Arbeit, Blockierung und Leerlauf."
+  },
+  "parameters": [
+    {
+      "key": "length", "type": "number", "unit": "m", "displayUnit": "mm",
+      "default": 1.6, "min": 1.0, "max": 3.0, "group": "geometry", "affects": "both",
+      "label": { "en": "Length", "es": "Longitud", "de": "Länge" },
+      "description": {
+        "en": "Deck length; at least the pallet length plus margins",
+        "es": "Longitud de la cubierta; como mínimo la del pallet más holguras",
+        "de": "Decklänge; mindestens Palettenlänge plus Spiel"
+      }
+    },
+    {
+      "key": "deckType", "type": "enum", "options": ["rollers", "chains"], "default": "rollers",
+      "group": "geometry", "affects": "geometry",
+      "label": { "en": "Deck type", "es": "Tipo de cubierta", "de": "Decktyp" },
+      "description": {
+        "en": "Drawing only: rollers or chains (both convey the same way in 2D)",
+        "es": "Solo el dibujo: rodillos o cadenas (en 2D transportan igual)",
+        "de": "Nur Darstellung: Rollen oder Ketten (in 2D gleiches Verhalten)"
+      }
+    },
+    {
+      "key": "palletSideAlongTravel", "type": "enum", "options": ["long", "short"], "default": "long",
+      "group": "geometry", "affects": "both",
+      "label": { "en": "Pallet side along travel", "es": "Lado del pallet paralelo al avance", "de": "Palettenseite in Förderrichtung" },
+      "description": {
+        "en": "Which pallet side is parallel to the direction of travel",
+        "es": "Qué lado del pallet queda paralelo al avance",
+        "de": "Welche Palettenseite parallel zur Förderrichtung liegt"
+      }
+    },
+    {
+      "key": "surfaceHeight", "type": "number", "unit": "m", "displayUnit": "mm",
+      "default": 0.6, "min": 0.2, "max": 1.5, "group": "geometry", "affects": "geometry",
+      "label": { "en": "Surface height", "es": "Altura de la superficie", "de": "Förderhöhe" },
+      "description": {
+        "en": "Height of the deck surface and of both ports; match the conveyors",
+        "es": "Altura de la superficie y de ambos puertos; debe coincidir con los transportadores",
+        "de": "Höhe der Decklauffläche und beider Anschlüsse; muss zu den Förderern passen"
+      }
+    },
+    {
+      "key": "nominalSpeed", "type": "number", "unit": "m/s", "displayUnit": "m/s",
+      "default": 0.25, "min": 0.05, "max": 1.0, "group": "motion", "affects": "both",
+      "label": { "en": "Nominal speed", "es": "Velocidad nominal", "de": "Nenngeschwindigkeit" },
+      "description": {
+        "en": "Speed of the deck while it moves a pallet in or out",
+        "es": "Velocidad de la cubierta al mover un pallet hacia dentro o fuera",
+        "de": "Geschwindigkeit des Decks beim Ein- und Ausfahren einer Palette"
+      }
+    },
+    {
+      "key": "accel", "type": "number", "unit": "m/s²", "displayUnit": "m/s²",
+      "default": 0.5, "min": 0.05, "max": 2.0, "group": "motion", "affects": "both",
+      "label": { "en": "Acceleration", "es": "Aceleración", "de": "Beschleunigung" },
+      "description": {
+        "en": "Acceleration and deceleration of the deck",
+        "es": "Aceleración y deceleración de la cubierta",
+        "de": "Beschleunigung und Verzögerung des Decks"
+      }
+    },
+    {
+      "key": "processingMode", "type": "enum", "options": ["fixed", "normal", "exponential"], "default": "fixed",
+      "group": "process", "affects": "2d",
+      "label": { "en": "Processing time", "es": "Tiempo de proceso", "de": "Bearbeitungszeit" },
+      "description": {
+        "en": "How the time of each pallet is chosen: fixed, normal distribution or exponential distribution",
+        "es": "Cómo se elige el tiempo de cada pallet: fijo, distribución normal o exponencial",
+        "de": "Wie die Zeit jeder Palette gewählt wird: fest, Normal- oder Exponentialverteilung"
+      }
+    },
+    {
+      "key": "processingTime", "type": "number", "unit": "s", "displayUnit": "s",
+      "default": 30, "min": 0.1, "max": 7200, "group": "process", "affects": "2d",
+      "label": { "en": "Mean processing time", "es": "Tiempo de proceso medio", "de": "Mittlere Bearbeitungszeit" },
+      "description": {
+        "en": "The time itself when fixed; the mean of the distribution otherwise",
+        "es": "El tiempo en sí si es fijo; la media de la distribución en los demás casos",
+        "de": "Die Zeit selbst bei fest; sonst der Mittelwert der Verteilung"
+      }
+    },
+    {
+      "key": "processingStdDev", "type": "number", "unit": "s", "displayUnit": "s",
+      "default": 5, "min": 0, "max": 3600, "group": "process", "affects": "2d", "dependsOn": "processingMode=normal",
+      "label": { "en": "Standard deviation", "es": "Desviación típica", "de": "Standardabweichung" },
+      "description": {
+        "en": "Spread of the normal distribution; times below 0 are cut at 0",
+        "es": "Dispersión de la distribución normal; los tiempos negativos se recortan a 0",
+        "de": "Streuung der Normalverteilung; Zeiten unter 0 werden auf 0 begrenzt"
+      }
+    }
+  ],
+  "ports": [
+    { "id": "IN", "direction": "in", "facing": "-x", "local": { "x": 0, "y": "surfaceHeight", "z": 0 } },
+    { "id": "OUT", "direction": "out", "facing": "+x", "local": { "x": "length", "y": "surfaceHeight", "z": 0 } }
+  ],
+  "signals": { "inputs": [], "outputs": [] },
+  "statistics": ["utilization", "blockedShare", "idleShare", "palletsProcessed", "meanProcessingTime", "meanCycleTime"],
+  "geometry": "geom.process_station",
+  "behaviors": { "des": "des.process_station", "physics": "phys.process_station" },
+  "validationRules": [],
+  "presets": []
+}

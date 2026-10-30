@@ -4,6 +4,9 @@ import { instanceParams } from '@intracraft/library';
 import { useMemo } from 'react';
 import { registry } from '../../layout-store';
 import { ChainConveyorModel } from './ChainConveyorModel';
+import { FlowEndModel } from './FlowEndModel';
+import { PhotoeyeModel } from './PhotoeyeModel';
+import { ProcessStationModel } from './ProcessStationModel';
 import { type ModelStyle, ModelStyleContext } from './parts';
 import { RollerConveyorModel } from './RollerConveyorModel';
 import { TransferModel } from './TransferModel';
@@ -16,6 +19,10 @@ const MODELS: Record<string, (props: ModelProps) => React.JSX.Element> = {
   'conveyor.chain_turntable': (props) => <TurntableModel {...props} deck="chains" />,
   'conveyor.roller_turntable': (props) => <TurntableModel {...props} deck="rollers" />,
   'conveyor.transfer_rc': TransferModel,
+  'flow.source': (props) => <FlowEndModel {...props} kind="source" />,
+  'flow.sink': (props) => <FlowEndModel {...props} kind="sink" />,
+  'flow.process_station': ProcessStationModel,
+  'sensor.photoeye': PhotoeyeModel,
 };
 
 export function InstanceModel({
@@ -44,7 +51,7 @@ export function InstanceModel({
       userData={instanceId === undefined ? { ghost: true } : { instanceId }}
     >
       <ModelStyleContext value={style}>
-        <Model params={values} />
+        {instanceId === undefined ? <Model params={values} /> : <Model params={values} instanceId={instanceId} />}
       </ModelStyleContext>
     </group>
   );

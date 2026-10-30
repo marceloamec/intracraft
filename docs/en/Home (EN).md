@@ -71,6 +71,7 @@ IntraCraft simulates pallet conveyor systems with **one layout and two modes**: 
 | S08 | [[S08 Side Guide]]               | `mechanics.guide`           |
 | S09 | [[S09 Source and Sink]]          | `flow.source`, `flow.sink`  |
 | S10 | [[S10 Pallet Types]]             | `pallet.*`                  |
+| S11 | [[S11 Process Station]]          | `flow.process_station`      |
 
 ## Decisions
 
@@ -78,6 +79,8 @@ IntraCraft simulates pallet conveyor systems with **one layout and two modes**: 
 - [[ADR-0002 Physics Engine Candidate]]
 - [[ADR-0003 Trilingual Documentation and English Identifiers]]
 - [[ADR-0004 AI-Ready Command Layer and MCP]]
+- [[ADR-0005 3D Asset Sources]]
+- [[ADR-0011 Reference Review of a Commercial Simulator Manual]]
 
 ## Reference
 

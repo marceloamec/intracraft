@@ -12,13 +12,16 @@ Theory: [[T02 Discrete-Event Simulation]], [[T03 Time, Event Ordering and Determ
 
 ## 1. What exists today
 
-| Module           | Content                                                                                                                          | Tests                                  |
-| ---------------- | -------------------------------------------------------------------------------------------------------------------------------- | -------------------------------------- |
-| `event-queue.ts` | `EventQueue<T>`: binary min-heap ordered by (time, priority, seq); integer µs only                                               | Ordering, ties, non-integer rejection  |
-| `simulator.ts`   | `DesSimulator`: clock, `on(type, handler)`, `schedule(delay, event, priority)`, `cancel(ticket)`, `runUntil(t)`, event `trace`   | Clock jumps, cancellation, determinism |
-| `kinematics.ts`  | `profileTime`, `transferCycleTime`, `maxThroughput`, `palletCapacity`, `impactEnergy`, `positionAt`, `velocityAt`, `timeToReach` | T1–T5, triangular case, segments       |
+| Module           | Content                                                                                                                                                       | Tests                                                    |
+| ---------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------- | -------------------------------------------------------- |
+| `event-queue.ts` | `EventQueue<T>`: binary min-heap ordered by (time, priority, seq); integer µs only                                                                            | Ordering, ties, non-integer rejection                    |
+| `simulator.ts`   | `DesSimulator`: clock, `on(type, handler)`, `schedule(delay, event, priority)`, `cancel(ticket)`, `runUntil(t)`, event `trace`                                | Clock jumps, cancellation, determinism                   |
+| `kinematics.ts`  | `profileTime`, `transferCycleTime`, `maxThroughput`, `palletCapacity`, `impactEnergy`, `positionAt`, `velocityAt`, `timeToReach`                              | T1–T5, triangular case, segments                         |
+| `flow/`          | `buildFlowNetwork`, `FlowSimulation`: source → conveyors without accumulation → sink, statistics, snapshots ([[ADR-0007 2D Flow Model Without Accumulation]]) | T1, T2, hand-over, blocking, determinism, 4 h invariants |
 
-## 2. Planned design (phase 3)
+The flow model implements the "none" accumulation mode and the stations: the turntable cycle (`flow/turntable.ts`, [[ADR-0008 Turntable 2D Cycle and Exit Rule]]) and the transfer table (`flow/transfer.ts`, [[ADR-0009 Transfer Table 2D Cycle and Stations]]), both through the `Station` interface (`flow/station.ts`). Photocells (`flow/photoeye.ts`) compute, for each pallet, the exact front positions at which their beam is blocked; the edges are predicted like any other change ([[S06 Photoelectric Sensor]]). Every event *settles* the plant at the current time: crossings complete, waiting sources place pallets, and front pallets at their decision point are accepted downstream or make their conveyor hold. Conveyors linked by a crossing pallet move as one group; one wake-up is then scheduled at the earliest predicted change. The design below (per-pallet segments, ZPA, sensors) is still the plan for the other modes.
+
+## 2. Planned design (rest of phase 3)
 
 ### Tracks
 

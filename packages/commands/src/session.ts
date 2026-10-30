@@ -5,11 +5,13 @@ import { type DefinitionRegistry, type ValidationIssue, deriveConnections } from
 import type { z } from 'zod';
 import { addInstance } from './add-instance';
 import { clearLayout } from './clear-layout';
+import { loadLayout } from './load-layout';
 import type { Command } from './command';
 import { moveInstance } from './move-instance';
 import { removeInstance } from './remove-instance';
 import { setAttributes } from './set-attributes';
 import { setParams } from './set-params';
+import { setRules } from './set-rules';
 
 export const COMMANDS = {
   'layout.addInstance': addInstance,
@@ -18,6 +20,8 @@ export const COMMANDS = {
   'layout.setAttributes': setAttributes,
   'layout.remove': removeInstance,
   'layout.clear': clearLayout,
+  'layout.load': loadLayout,
+  'control.setRules': setRules,
 } as const;
 
 export type CommandName = keyof typeof COMMANDS;

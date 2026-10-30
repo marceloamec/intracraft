@@ -1,0 +1,114 @@
+{
+  "id": "sensor.photoeye",
+  "version": "0.1.0",
+  "category": "sensors",
+  "name": { "en": "Photoelectric sensor", "es": "Fotocélula", "de": "Lichtschranke" },
+  "description": {
+    "en": "Light beam between the sensor and its reflector (or receiver), mounted on a conveyor; reports when a pallet or load interrupts it.",
+    "es": "Haz de luz entre el sensor y su reflector (o receptor), montado en un transportador; indica cuándo un pallet o su carga lo interrumpe.",
+    "de": "Lichtstrahl zwischen Sensor und Reflektor (oder Empfänger) an einem Förderer; meldet, wenn eine Palette oder Last ihn unterbricht."
+  },
+  "parameters": [
+    {
+      "key": "type", "type": "enum", "options": ["retroreflective", "throughBeam", "diffuse"],
+      "default": "retroreflective", "group": "sensor", "affects": "both",
+      "label": { "en": "Type", "es": "Tipo", "de": "Typ" },
+      "description": {
+        "en": "Retroreflective: sensor + reflector; through-beam: emitter + receiver; diffuse: sensor only (treated like a beam across the conveyor for now)",
+        "es": "Retrorreflectiva: sensor + reflector; barrera: emisor + receptor; difusa: solo sensor (por ahora se trata como un haz que cruza el transportador)",
+        "de": "Reflexions-Lichtschranke: Sensor + Reflektor; Einweg: Sender + Empfänger; Taster: nur Sensor (vorerst wie ein Strahl quer über den Förderer)"
+      }
+    },
+    {
+      "key": "host", "type": "text", "default": "", "group": "mounting", "affects": "both",
+      "label": { "en": "Mounted on", "es": "Montada en", "de": "Montiert an" },
+      "description": { "en": "Id of the conveyor the sensor is mounted on; positions are measured on that conveyor", "es": "Id del transportador en el que va montada; las posiciones se miden sobre ese transportador", "de": "Id des Förderers, an dem der Sensor montiert ist; Positionen werden auf diesem Förderer gemessen" }
+    },
+    {
+      "key": "sensorS", "type": "number", "unit": "m", "displayUnit": "mm",
+      "default": 0, "min": 0, "max": 12, "group": "mounting", "affects": "both",
+      "label": { "en": "Sensor position", "es": "Posición del sensor", "de": "Sensorposition" },
+      "description": { "en": "Distance of the sensor from the conveyor entry, along travel", "es": "Distancia del sensor a la entrada del transportador, en el sentido de avance", "de": "Abstand des Sensors vom Fördereranfang in Förderrichtung" }
+    },
+    {
+      "key": "sensorLateral", "type": "number", "unit": "m", "displayUnit": "mm",
+      "default": -0.8, "min": -2, "max": 2, "group": "mounting", "affects": "both",
+      "label": { "en": "Sensor lateral position", "es": "Posición lateral del sensor", "de": "Seitliche Sensorposition" },
+      "description": { "en": "Distance from the conveyor axis (negative: left side seen in the direction of travel)", "es": "Distancia al eje del transportador (negativa: lado izquierdo mirando en el sentido de avance)", "de": "Abstand von der Förderachse (negativ: links in Förderrichtung gesehen)" }
+    },
+    {
+      "key": "sensorHeight", "type": "number", "unit": "m", "displayUnit": "mm",
+      "default": 0.06, "min": 0, "max": 2.5, "group": "mounting", "affects": "both",
+      "label": { "en": "Sensor height", "es": "Altura del sensor", "de": "Sensorhöhe" },
+      "description": { "en": "Beam height above the conveying surface at the sensor (EUR: 122–144 mm on rollers and 100–122 mm on chains avoid flicker)", "es": "Altura del haz sobre la superficie de transporte en el sensor (EUR: 122–144 mm en rodillos y 100–122 mm en cadenas evitan parpadeos)", "de": "Strahlhöhe über der Förderebene am Sensor (EUR: 122–144 mm auf Rollen, 100–122 mm auf Ketten vermeiden Flackern)" }
+    },
+    {
+      "key": "reflectorS", "type": "number", "unit": "m", "displayUnit": "mm",
+      "default": 0, "min": 0, "max": 12, "group": "mounting", "affects": "both", "dependsOn": "type!=diffuse",
+      "label": { "en": "Reflector position", "es": "Posición del reflector", "de": "Reflektorposition" },
+      "description": { "en": "Distance of the reflector (or receiver) from the conveyor entry; equal to the sensor position for a beam square to travel", "es": "Distancia del reflector (o receptor) a la entrada; igual a la del sensor para un haz perpendicular al avance", "de": "Abstand des Reflektors (oder Empfängers) vom Fördereranfang; gleich der Sensorposition für einen Strahl quer zur Förderrichtung" }
+    },
+    {
+      "key": "reflectorLateral", "type": "number", "unit": "m", "displayUnit": "mm",
+      "default": 0.8, "min": -2, "max": 2, "group": "mounting", "affects": "both", "dependsOn": "type!=diffuse",
+      "label": { "en": "Reflector lateral position", "es": "Posición lateral del reflector", "de": "Seitliche Reflektorposition" },
+      "description": { "en": "Distance of the reflector from the conveyor axis", "es": "Distancia del reflector al eje del transportador", "de": "Abstand des Reflektors von der Förderachse" }
+    },
+    {
+      "key": "reflectorHeight", "type": "number", "unit": "m", "displayUnit": "mm",
+      "default": 0.06, "min": 0, "max": 2.5, "group": "mounting", "affects": "both", "dependsOn": "type!=diffuse",
+      "label": { "en": "Reflector height", "es": "Altura del reflector", "de": "Reflektorhöhe" },
+      "description": { "en": "Beam height at the reflector; different from the sensor height for an inclined beam", "es": "Altura del haz en el reflector; distinta de la del sensor para un haz inclinado", "de": "Strahlhöhe am Reflektor; anders als die Sensorhöhe für einen geneigten Strahl" }
+    },
+    {
+      "key": "range", "type": "number", "unit": "m", "displayUnit": "mm",
+      "default": 5, "min": 0.05, "max": 5, "group": "sensor", "affects": "both",
+      "label": { "en": "Range", "es": "Alcance", "de": "Reichweite" },
+      "description": { "en": "Maximum detection distance; a longer beam is reported", "es": "Distancia máxima de detección; se avisa si el haz es más largo", "de": "Maximale Erfassungsdistanz; ein längerer Strahl wird gemeldet" }
+    },
+    {
+      "key": "responseTime", "type": "number", "unit": "s", "displayUnit": "ms",
+      "default": 0.002, "min": 0, "max": 0.05, "group": "signal", "affects": "both",
+      "label": { "en": "Response time", "es": "Tiempo de respuesta", "de": "Ansprechzeit" },
+      "description": { "en": "The sensor's own delay before its output changes", "es": "Retardo propio del sensor antes de cambiar su salida", "de": "Eigene Verzögerung des Sensors, bevor sein Ausgang wechselt" }
+    },
+    {
+      "key": "filter", "type": "number", "unit": "s", "displayUnit": "ms",
+      "default": 0, "min": 0, "max": 2, "group": "signal", "affects": "both",
+      "label": { "en": "Filter", "es": "Filtro", "de": "Filter" },
+      "description": { "en": "Off-delay: the beam must stay free this long before the output turns off; bridges the voids of a pallet", "es": "Retardo a la desconexión: el haz debe quedar libre este tiempo para que la salida se apague; salva los huecos del pallet", "de": "Ausschaltverzögerung: der Strahl muss so lange frei sein, bevor der Ausgang abfällt; überbrückt Hohlräume der Palette" }
+    },
+    {
+      "key": "polarity", "type": "enum", "options": ["activeOnDetect", "activeOnDark"],
+      "default": "activeOnDetect", "group": "signal", "affects": "both",
+      "label": { "en": "Polarity", "es": "Polaridad", "de": "Polarität" },
+      "description": { "en": "Whether the output signal is on while something is detected or while the beam is free", "es": "Si la señal de salida está activa mientras detecta algo o mientras el haz está libre", "de": "Ob das Ausgangssignal bei Erfassung oder bei freiem Strahl aktiv ist" }
+    },
+    {
+      "key": "outputSignal", "type": "text", "default": "", "group": "signal", "affects": "both",
+      "label": { "en": "Output signal", "es": "Señal de salida", "de": "Ausgangssignal" },
+      "description": { "en": "Name of the boolean signal; empty uses the sensor id", "es": "Nombre de la señal booleana; vacío usa el id del sensor", "de": "Name des binären Signals; leer verwendet die Sensor-Id" }
+    },
+    {
+      "key": "showBeam", "type": "boolean", "default": true, "group": "display", "affects": "3d",
+      "label": { "en": "Show beam", "es": "Mostrar haz", "de": "Strahl anzeigen" },
+      "description": { "en": "Draw the beam (green free, red detecting)", "es": "Dibujar el haz (verde libre, rojo detectando)", "de": "Strahl zeichnen (grün frei, rot erfassend)" }
+    }
+  ],
+  "ports": [],
+  "signals": { "inputs": [], "outputs": ["detected"] },
+  "statistics": ["pulses", "occupiedTime", "occupancy"],
+  "geometry": "geom.photoeye",
+  "behaviors": { "des": "des.photoeye", "physics": "phys.photoeye" },
+  "validationRules": [],
+  "presets": [
+    {
+      "name": { "en": "Rollers, EUR long side: top deck 130 mm", "es": "Rodillos, EUR lado largo: tablero superior 130 mm", "de": "Rollen, EUR längs: Deckbretter 130 mm" },
+      "values": { "sensorHeight": 0.13, "reflectorHeight": 0.13 }
+    },
+    {
+      "name": { "en": "Chains, EUR short side: stringer boards 110 mm", "es": "Cadenas, EUR lado corto: largueros 110 mm", "de": "Ketten, EUR quer: Querbretter 110 mm" },
+      "values": { "sensorHeight": 0.11, "reflectorHeight": 0.11 }
+    }
+  ]
+}

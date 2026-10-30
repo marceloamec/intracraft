@@ -1,0 +1,70 @@
+[
+  {
+    "id": "T1-2D",
+    "title": {
+      "en": "T1 in the 2D model: a pallet crosses a 3 m roller conveyor from rest",
+      "es": "T1 en el modelo 2D: un pallet recorre una mesa de rodillos de 3 m desde reposo"
+    },
+    "kind": "flow",
+    "inputs": {
+      "layout": "flow-t1",
+      "seconds": 60,
+      "instanceId": "roller1",
+      "statistic": "meanTransitTime"
+    },
+    "unit": "s",
+    "expected": 12.25,
+    "relativeTolerance": 0.01
+  },
+  {
+    "id": "T2-2D",
+    "title": {
+      "en": "T2 in the 2D model: saturated 12 m roller line, EUR long side + 0.15 m gap",
+      "es": "T2 en el modelo 2D: línea de rodillos de 12 m saturada, EUR lado largo + 0,15 m"
+    },
+    "kind": "flow",
+    "inputs": {
+      "layout": "flow-t2",
+      "seconds": 28800,
+      "instanceId": "sink1",
+      "statistic": "throughputPerHour"
+    },
+    "unit": "pallets/h",
+    "expected": 666.6666666666666,
+    "relativeTolerance": 0.01
+  },
+  {
+    "id": "REF-5",
+    "title": {
+      "en": "Reference layout with all five conveyors: one pallet every 30 s gets through (no bottleneck)",
+      "es": "Layout de referencia con los cinco transportadores: pasa un pallet cada 30 s (sin cuello de botella)"
+    },
+    "kind": "flow",
+    "inputs": {
+      "layout": "reference-all-five",
+      "seconds": 28800,
+      "instanceId": "sink1",
+      "statistic": "throughputPerHour"
+    },
+    "unit": "pallets/h",
+    "expected": 120,
+    "relativeTolerance": 0.01
+  },
+  {
+    "id": "PROC-1",
+    "title": {
+      "en": "Process station (30 s) after an infeed of one pallet every 120 s: 30 pallets processed in one hour",
+      "es": "Estación de proceso (30 s) con una entrada de un pallet cada 120 s: 30 pallets procesados en una hora"
+    },
+    "kind": "flow",
+    "inputs": {
+      "layout": "demo-process-line",
+      "seconds": 3600,
+      "instanceId": "process_station1",
+      "statistic": "palletsProcessed"
+    },
+    "unit": "pallets",
+    "expected": 30,
+    "relativeTolerance": 0.01
+  }
+]

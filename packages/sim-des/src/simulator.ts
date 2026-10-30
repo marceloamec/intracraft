@@ -22,7 +22,13 @@ export class DesSimulator {
   private readonly handlers = new Map<string, EventHandler>();
   private readonly cancelled = new Set<number>();
   private clock: SimTime = 0;
+  private readonly keepTrace: boolean;
   readonly trace: EventTrace[] = [];
+
+  /** `trace: false` skips recording every event (long interactive runs). */
+  constructor(options: { trace?: boolean } = {}) {
+    this.keepTrace = options.trace ?? true;
+  }
 
   get now(): SimTime {
     return this.clock;
@@ -42,6 +48,16 @@ export class DesSimulator {
     this.cancelled.add(ticket);
   }
 
+  /** Time of the next pending (not cancelled) event, or undefined when nothing is scheduled. */
+  nextEventTime(): SimTime | undefined {
+    for (;;) {
+      const next = this.queue.peek();
+      if (next === undefined || !this.cancelled.has(next.seq)) return next?.time;
+      this.queue.pop();
+      this.cancelled.delete(next.seq);
+    }
+  }
+
   /** Process events until the queue is empty or the next event is after `endTime`. */
   runUntil(endTime: SimTime): void {
     for (;;) {
@@ -50,7 +66,7 @@ export class DesSimulator {
       this.queue.pop();
       if (this.cancelled.delete(next.seq)) continue;
       this.clock = next.time;
-      this.trace.push({ time: next.time, type: next.payload.type, target: next.payload.target });
+      if (this.keepTrace) this.trace.push({ time: next.time, type: next.payload.type, target: next.payload.target });
       const handler = this.handlers.get(next.payload.type);
       if (handler === undefined) throw new Error(`No handler for event type "${next.payload.type}"`);
       handler(this, next.payload);

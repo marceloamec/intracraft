@@ -80,11 +80,11 @@ The list values 76/133 come from the plan; 89/206.3 are the owner's equipment. T
 
 | Test | Expected                                                                                 | Status          |
 | ---- | ---------------------------------------------------------------------------------------- | --------------- |
-| T1   | 3 m from rest, 0.25 m/s, 0.5 m/s² → 12.25 s                                              | ✅ formula      |
-| T2   | EUR long side + 0.15 m gap → ≈ 667 pallets/h                                             | ✅ formula      |
+| T1   | 3 m from rest, 0.25 m/s, 0.5 m/s² → 12.25 s                                              | ✅ formula + 2D |
+| T2   | EUR long side + 0.15 m gap → ≈ 667 pallets/h                                             | ✅ formula + 2D |
 | —    | Defaults: Ø89, pitch 206.3, accumulation `none`                                          | ✅ library test |
 | T6   | Sensor at 2.0 m, continuous band → 4.8 s occupied                                        | ⏳ phase 3      |
-| —    | `none`: entering pallet moves the resident pallet; blocked exit stops the whole conveyor | ⏳ phase 3      |
+| —    | `none`: entering pallet moves the resident pallet; blocked exit stops the whole conveyor | ✅ 2D flow test |
 | S1-a | 1000 kg on 10 kinematic rollers → nominal speed ±3 %                                     | ⏳ spike S1     |
 
 ## Related

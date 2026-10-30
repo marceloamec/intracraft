@@ -1,0 +1,12 @@
+:root {
+  --ic-navy-900: #0b2545;
+  --ic-navy-700: #13396b;
+  --ic-steel-500: #3e7cb1;
+  --ic-steel-200: #c9dcec;
+  --ic-amber-500: #f2a900;
+  --ic-grey-900: #1b1f24;
+  --ic-grey-600: #5a6572;
+  --ic-grey-100: #eef1f4;
+  --ic-white: #ffffff;
+  --ic-font: Inter, "IBM Plex Sans", "Segoe UI", system-ui, sans-serif;
+}

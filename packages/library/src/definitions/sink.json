@@ -1,0 +1,44 @@
+{
+  "id": "flow.sink",
+  "version": "0.1.0",
+  "category": "flow",
+  "name": { "en": "Pallet sink", "es": "Sumidero de pallets", "de": "Palettensenke" },
+  "description": {
+    "en": "Removes the pallets it receives and measures throughput and cycle time.",
+    "es": "Retira los pallets que recibe y mide el rendimiento y el tiempo de ciclo.",
+    "de": "Entnimmt die empfangenen Paletten und misst Durchsatz und Durchlaufzeit."
+  },
+  "parameters": [
+    {
+      "key": "removalMode", "type": "enum", "options": ["immediate", "afterTime"],
+      "default": "immediate", "group": "removal", "affects": "2d",
+      "label": { "en": "Removal", "es": "Retirada", "de": "Entnahme" },
+      "description": {
+        "en": "immediate: always free; afterTime: busy for the removal time after each pallet",
+        "es": "immediate: siempre libre; afterTime: ocupado durante el tiempo de retirada tras cada pallet",
+        "de": "immediate: immer frei; afterTime: nach jeder Palette für die Entnahmezeit belegt"
+      }
+    },
+    {
+      "key": "removalTime", "type": "number", "unit": "s", "displayUnit": "s",
+      "default": 0, "min": 0, "max": 3600, "group": "removal", "affects": "2d", "dependsOn": "removalMode=afterTime",
+      "label": { "en": "Removal time", "es": "Tiempo de retirada", "de": "Entnahmezeit" },
+      "description": { "en": "Time the sink stays busy after receiving a pallet", "es": "Tiempo que el sumidero queda ocupado tras recibir un pallet", "de": "Zeit, die die Senke nach einer Palette belegt bleibt" }
+    },
+    {
+      "key": "surfaceHeight", "type": "number", "unit": "m", "displayUnit": "mm",
+      "default": 0.6, "min": 0.2, "max": 1.5, "group": "geometry", "affects": "geometry",
+      "label": { "en": "Port height", "es": "Altura del puerto", "de": "Anschlusshöhe" },
+      "description": { "en": "Height of the input port; match the conveyor surface height", "es": "Altura del puerto de entrada; debe coincidir con la del transportador", "de": "Höhe des Eingangs; muss zur Förderhöhe passen" }
+    }
+  ],
+  "ports": [
+    { "id": "IN", "direction": "in", "facing": "-x", "local": { "x": 0, "y": "surfaceHeight", "z": 0 } }
+  ],
+  "signals": { "inputs": [], "outputs": ["busy"] },
+  "statistics": ["palletsReceived", "throughputPerHour", "meanCycleTime"],
+  "geometry": "geom.sink",
+  "behaviors": { "des": "des.sink", "physics": "phys.sink" },
+  "validationRules": [],
+  "presets": []
+}

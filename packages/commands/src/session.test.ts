@@ -88,6 +88,17 @@ describe('layout.move, layout.setAttributes, layout.remove, layout.clear', () =>
     expect(session.layout.instances[0]?.yaw).toBeCloseTo(Math.PI / 2, 12);
   });
 
+  it('changes parameters together with the move in one undo step, or rejects both', () => {
+    const session = withRoller();
+    session.execute('layout.move', { instanceId: 'roller1', position: { x: 1, y: 0, z: 0 }, yaw: 0, params: { length: 4 } }, 'user');
+    expect(session.layout.instances[0]).toMatchObject({ position: { x: 1 }, params: { length: 4 } });
+    const rejected = session.execute('layout.move', { instanceId: 'roller1', position: { x: 9, y: 0, z: 0 }, yaw: 0, params: { length: 99 } }, 'user');
+    expect(rejected.ok).toBe(false);
+    expect(session.layout.instances[0]?.position.x).toBe(1);
+    session.undo('user');
+    expect(session.layout.instances[0]).toMatchObject({ position: { x: 0 }, params: { length: 3 } });
+  });
+
   it('renames and stores free attributes', () => {
     const session = withRoller();
     session.execute(
@@ -116,6 +127,69 @@ describe('layout.move, layout.setAttributes, layout.remove, layout.clear', () =>
     const session = withRoller();
     session.execute('layout.clear', {}, 'user');
     expect(session.layout).toEqual({ instances: [], connections: [] });
+  });
+});
+
+describe('layout.load', () => {
+  it('replaces the layout, fills new parameters with defaults and derives the connections', () => {
+    const source = withRoller();
+    source.execute('layout.addInstance', { definitionId: 'conveyor.roller', position: { x: 3.02, y: 0, z: 0 } }, 'user');
+    const saved = structuredClone(source.layout);
+    delete saved.instances[0]?.params['minGap'];
+    saved.connections = [];
+
+    const session = withRoller();
+    const result = session.execute('layout.load', { layout: saved }, 'user');
+    expect(result.ok).toBe(true);
+    expect(session.layout.instances[0]?.params['minGap']).toBe(0.15);
+    expect(session.layout.connections).toHaveLength(1);
+    session.undo('user');
+    expect(session.layout.instances.map((i) => i.id)).toEqual(['roller1']);
+  });
+
+  it('rejects the whole file on an unknown component, a duplicate id or an invalid parameter', () => {
+    const session = withRoller();
+    const roller = session.layout.instances[0];
+    if (roller === undefined) throw new Error('no roller');
+    const bad = {
+      instances: [
+        roller,
+        { ...roller },
+        { ...roller, id: 'x1', definitionId: 'conveyor.unknown' },
+        { ...roller, id: 'x2', params: { length: 99 } },
+      ],
+      connections: [],
+    };
+    const result = session.execute('layout.load', { layout: bad }, 'user');
+    expect(result.ok).toBe(false);
+    expect(result.issues.map((i) => i.rule)).toEqual(['duplicateInstanceId', 'unknownDefinition', 'paramOutOfRange']);
+    expect(session.layout.instances).toHaveLength(1);
+  });
+});
+
+describe('control.setRules', () => {
+  const stopRule = {
+    id: 'stopAtSensor',
+    when: [{ signal: 'photoeye1.detected', edge: 'rising' as const }],
+    then: [{ signal: 'roller1.run', value: false }],
+  };
+
+  it('stores the rules with the layout, undoably, and warns about unknown objects', () => {
+    const session = withRoller();
+    const result = session.execute('control.setRules', { rules: [stopRule] }, 'user');
+    expect(result.ok).toBe(true);
+    expect(result.issues.map((i) => i.message)).toEqual([expect.stringContaining('photoeye1.detected')]);
+    expect(session.layout.rules).toEqual([stopRule]);
+    session.undo('user');
+    expect(session.layout.rules).toBeUndefined();
+  });
+
+  it('rejects duplicate rule ids and keeps the rules through layout.load', () => {
+    const session = withRoller();
+    expect(session.execute('control.setRules', { rules: [stopRule, stopRule] }, 'user').ok).toBe(false);
+    session.execute('control.setRules', { rules: [stopRule] }, 'user');
+    session.execute('layout.load', { layout: structuredClone(session.layout) }, 'user');
+    expect(session.layout.rules).toEqual([stopRule]);
   });
 });
 

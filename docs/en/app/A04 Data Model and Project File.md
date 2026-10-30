@@ -66,6 +66,15 @@ Only parameters that differ from the definition defaults need to be stored; miss
 
 - `schemaVersion` is a literal in the schema: a file with another version is **rejected**, never silently read.
 - Each schema change adds a migration function `v(n) → v(n+1)`; loading applies them in sequence, then validates.
+- Implemented in `core-model/src/project-file.ts` (2026-10-30):
+  - `readProjectFile(text)` returns the project or a readable error. It reports invalid JSON, a missing `schemaVersion`, a newer version, or the first invalid field.
+  - `writeProjectFile(name, seed, layout)` writes the file with two-space indentation.
+  - `projectFileName(name)` gives a safe file name.
+- Opening a file in the editor is one command, `layout.load`, so it can be undone.
+  - It **rejects the whole file** if any object has an unknown definition, a duplicate id or an invalid parameter.
+  - Parameters added to a definition after the file was saved take their defaults.
+  - Connections are derived again from the geometry, so files may store `connections: []`.
+- Example files: `packages/scenarios/scenarios/layouts/*.intracraft.json`.
 - Instances pin `definitionVersion` (semantic versioning). Upgrading a component definition is an explicit migration, so an old layout keeps behaving the same.
 
 ## 5. What is not stored in the project

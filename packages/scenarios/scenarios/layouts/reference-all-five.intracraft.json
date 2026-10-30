@@ -1,0 +1,146 @@
+{
+  "schemaVersion": 1,
+  "name": "Reference: all five conveyors",
+  "seed": 1,
+  "layout": {
+    "instances": [
+      {
+        "id": "source1",
+        "definitionId": "flow.source",
+        "definitionVersion": "0.1.0",
+        "name": "Infeed",
+        "position": {
+          "x": -0.42,
+          "y": 0,
+          "z": 0
+        },
+        "yaw": 0,
+        "params": {
+          "interval": 30
+        },
+        "attributes": {}
+      },
+      {
+        "id": "roller1",
+        "definitionId": "conveyor.roller",
+        "definitionVersion": "0.1.0",
+        "name": "Roller in",
+        "position": {
+          "x": 0,
+          "y": 0,
+          "z": 0
+        },
+        "yaw": 0,
+        "params": {},
+        "attributes": {}
+      },
+      {
+        "id": "roller_turntable1",
+        "definitionId": "conveyor.roller_turntable",
+        "definitionVersion": "0.1.0",
+        "name": "Roller turntable",
+        "position": {
+          "x": 3.72,
+          "y": 0,
+          "z": 0
+        },
+        "yaw": 0,
+        "params": {},
+        "attributes": {}
+      },
+      {
+        "id": "roller2",
+        "definitionId": "conveyor.roller",
+        "definitionVersion": "0.1.0",
+        "name": "Roller to transfer",
+        "position": {
+          "x": 4.44,
+          "y": 0,
+          "z": 0
+        },
+        "yaw": 0,
+        "params": {},
+        "attributes": {}
+      },
+      {
+        "id": "transfer_rc1",
+        "definitionId": "conveyor.transfer_rc",
+        "definitionVersion": "0.1.0",
+        "name": "Transfer",
+        "position": {
+          "x": 7.46,
+          "y": 0,
+          "z": 0
+        },
+        "yaw": 0,
+        "params": {},
+        "attributes": {}
+      },
+      {
+        "id": "chain1",
+        "definitionId": "conveyor.chain",
+        "definitionVersion": "0.1.0",
+        "name": "Chain out of transfer",
+        "position": {
+          "x": 8.16,
+          "y": 0,
+          "z": 0.52
+        },
+        "yaw": 4.71238898038469,
+        "params": {
+          "surfaceHeight": 0.64
+        },
+        "attributes": {}
+      },
+      {
+        "id": "chain_turntable1",
+        "definitionId": "conveyor.chain_turntable",
+        "definitionVersion": "0.1.0",
+        "name": "Chain turntable",
+        "position": {
+          "x": 8.16,
+          "y": 0,
+          "z": 4.24
+        },
+        "yaw": 0,
+        "params": {
+          "surfaceHeight": 0.64
+        },
+        "attributes": {}
+      },
+      {
+        "id": "chain2",
+        "definitionId": "conveyor.chain",
+        "definitionVersion": "0.1.0",
+        "name": "Chain out",
+        "position": {
+          "x": 8.88,
+          "y": 0,
+          "z": 4.24
+        },
+        "yaw": 0,
+        "params": {
+          "surfaceHeight": 0.64
+        },
+        "attributes": {}
+      },
+      {
+        "id": "sink1",
+        "definitionId": "flow.sink",
+        "definitionVersion": "0.1.0",
+        "name": "Outfeed",
+        "position": {
+          "x": 11.9,
+          "y": 0,
+          "z": 4.24
+        },
+        "yaw": 0,
+        "params": {
+          "surfaceHeight": 0.64
+        },
+        "attributes": {}
+      }
+    ],
+    "connections": []
+  }
+}

@@ -20,7 +20,7 @@ export interface Rule {
   id: string;
   /** All conditions must hold (logical AND). */
   when: Condition[];
-  then: { signal: string; value: boolean; delayMs?: number }[];
+  then: { signal: string; value: boolean; delayMs?: number | undefined }[];
 }
 
 export function evaluateRules(

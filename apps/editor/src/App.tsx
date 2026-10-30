@@ -1,5 +1,6 @@
 import { useShortcuts } from './actions';
 import { CatalogPanel } from './components/CatalogPanel';
+import { ControlPanel } from './components/ControlPanel';
 import { LibraryPanel } from './components/LibraryPanel';
 import { MenuBar } from './components/MenuBar';
 import { PropertiesPanel } from './components/PropertiesPanel';
@@ -13,6 +14,7 @@ export function App() {
   const catalogOpen = useEditorStore((s) => s.catalogOpen);
   const showComponents = usePanelStore((s) => s.showComponents);
   const showProperties = usePanelStore((s) => s.showProperties);
+  const showController = usePanelStore((s) => s.showController);
   useShortcuts();
 
   return (
@@ -24,6 +26,7 @@ export function App() {
         <main className="viewport">
           <Viewport />
         </main>
+        {showController && <ControlPanel />}
         {showProperties && <PropertiesPanel />}
         {catalogOpen && <CatalogPanel />}
       </div>

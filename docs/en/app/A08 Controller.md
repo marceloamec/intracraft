@@ -26,6 +26,15 @@ evaluateRules(rules, previous, current) → SignalWrite[]   // { signal, value, 
 
 Tested with a two-zone ZPA template and edge/delay cases (`rules.test.ts`).
 
+**Since 2026-10-30** ([[ADR-0010 Controller Rules in the Layout and in 2D]]):
+- Rules are stored in `layout.rules` and edited with `control.setRules`.
+- The 2D simulation evaluates them on every signal change. The signals are:
+  - conveyor `run` (input), `running` and `occupied` (outputs);
+  - source `enable` (input);
+  - photocell `detected` (output).
+- The editor has a Controller panel with live signal values and a *Stop at sensor* template.
+- Delayed writes are never cancelled (provisional).
+
 ## 2. How each mode drives it
 
 | Step                | 2D (DES)                                                 | 3D (physics)                        |
@@ -38,7 +47,7 @@ Tested with a two-zone ZPA template and edge/delay cases (`rules.test.ts`).
 ## 3. Planned additions
 
 - Rule editor in the UI with templates (ZPA, stop with sensor, turntable waiting for centred pallet, full transfer sequence).
-- Cancellation semantics of delayed writes (on-delay vs pulse) — to specify before phase 3.
+- Cancellation semantics of delayed writes (on-delay vs pulse) — provisionally "never cancelled" (ADR-0010).
 - Signal registry with naming convention `<instance>.<signal>` and validation that every referenced signal exists.
 - Interlocks are **not** rules: they live inside component behaviours and log a warning when they block a command.
 - User scripting (sandboxed) is post-MVP.

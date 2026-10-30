@@ -2,13 +2,14 @@
   "name": "@intracraft/scenarios",
   "version": "0.0.0",
   "private": true,
-  "description": "Reference scenarios with expected results (analytic now, full layouts from phase 3).",
+  "description": "Reference scenarios with expected results: analytic formulas and saved layouts run in the 2D mode.",
   "type": "module",
   "exports": {
     ".": "./src/index.ts"
   },
   "dependencies": {
     "@intracraft/core-model": "workspace:*",
+    "@intracraft/library": "workspace:*",
     "@intracraft/sim-des": "workspace:*",
     "zod": "4.6.7"
   }

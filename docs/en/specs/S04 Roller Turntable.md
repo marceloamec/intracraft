@@ -32,6 +32,8 @@ If `lockRollersDuringTurn` is off and `holdDuringTurn` = none → warning: risk 
 
 Same battery as S03 (T3, S1-e / P4).
 
+2D behaviour: the same cycle as [[S03 Chain Turntable]] with the deck speed `loadSpeed` (implemented 2026-10-30, [[ADR-0008 Turntable 2D Cycle and Exit Rule]]). `lockRollersDuringTurn` and `holdDuringTurn` only matter in 3D.
+
 ## Related
 
 [[S03 Chain Turntable]] · [[S01 Roller Conveyor]] · [[T13 Turntables and Transfer Lifts]]

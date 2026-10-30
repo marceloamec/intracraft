@@ -34,13 +34,13 @@ Each question states **what must be decided**, **why it matters** (which result 
 - **Decide:** what happens when the front pallet reaches the end and the next conveyor is not free.
 - **Why:** changes effective capacity, blocked time and stopping position.
 - **Specific questions:** (a) Does the conveyor stop when the front reaches the conveyor end, or when an end sensor X mm before it detects it? What is X? (b) Does it brake with the normal ramp (the pallet overruns the sensor by $v^2/2b$ = 62.5 mm at 0.25 m/s) or stop at an exact position? (c) While stopped with a pallet at the end, can another pallet enter? (In `none` this would move the front one, so I assume **no**.) (d) Is there always a default end sensor?
-- **Assumed:** virtual end sensor at the end; the conveyor brakes with its ramp; it does not receive while blocked.
+- **Assumed (implemented 2026-10-30, [[ADR-0007 2D Flow Model Without Accumulation]]):** a virtual end sensor at L − v²/2b, so the conveyor brakes with its ramp and the pallet stops with its front exactly at the end. It does not receive while blocked, and it only accepts a pallet that can get completely aboard.
 
 ### Q3. Speed during hand-over between conveyors with different speeds
 - **Decide:** the speed of a pallet straddling A and B in 2D.
 - **Why:** transit times and 2D/3D consistency (±5 %).
 - **Options:** (1) the slower one; (2) the receiving one; (3) the delivering one until the centre of mass crosses over.
-- **Assumed:** the slower one.
+- **Assumed (implemented, ADR-0007):** the slower one; both conveyors move together while the pallet crosses.
 
 ### Q4. Chain conveyor with transverse EUR: width and guides
 - **Decide:** default usable width and whether there are side guides.
@@ -74,6 +74,12 @@ Each question states **what must be decided**, **why it matters** (which result 
 ### Q9. Real speeds and ramps
 - **Decide:** your equipment's defaults for rollers, chains, turntables and transfers.
 - **Assumed:** 0.25 m/s and 0.5 m/s²; turntable 15 °/s and 30 °/s²; transfer 0.2 m/s.
+
+### Q11. Which exit a turntable sends a pallet to
+- **Decide:** until control rules exist, how a turntable with several connected exits chooses one.
+- **Why:** throughput of each branch, platform turns and utilisation.
+- **Options:** (1) in turn (`alternate`); (2) always the first exit clockwise from the entry; (3) random with equal chances; (4) the first free exit (needs look-ahead; better in the controller).
+- **Assumed (implemented 2026-10-30, [[ADR-0008 Turntable 2D Cycle and Exit Rule]]):** a parameter `exitRule` per turntable with options 1–3, default `alternate`.
 
 ### Q10. Reference models for comparison
 - **Decide:** three models you know well (simple flow, accumulation, turntable or transfer) with their results (throughput, cycle time, occupancy).

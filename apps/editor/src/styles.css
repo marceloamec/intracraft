@@ -34,6 +34,8 @@ body,
 .viewport {
   flex: 1;
   min-height: 0;
+  /* Let the 3D view shrink when several side panels are open. */
+  min-width: 0;
 }
 
 .workspace {
@@ -402,4 +404,105 @@ details summary {
 .status-counts {
   margin-left: auto;
   opacity: 0.7;
+}
+
+/* Simulation run */
+.status-run {
+  display: flex;
+  gap: 8px;
+  align-items: center;
+  font-variant-numeric: tabular-nums;
+}
+.run-status.working {
+  color: #2f9e5b;
+}
+.run-status.blocked,
+.run-status.waiting {
+  color: #d0574a;
+}
+.issue-list {
+  margin: 0;
+  padding-left: 16px;
+  font-size: 12px;
+}
+.issue-list .warning {
+  color: #b7791f;
+}
+.issue-list .error {
+  color: #c53030;
+}
+
+/* Controller panel */
+.control-buttons {
+  display: flex;
+  gap: 6px;
+  margin-bottom: 8px;
+}
+.rule-card {
+  border: 1px solid #3a414b;
+  border-radius: 6px;
+  padding: 6px 8px;
+  margin-bottom: 8px;
+}
+.rule-card header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+.rule-label {
+  font-size: 11px;
+  text-transform: uppercase;
+  opacity: 0.7;
+  margin-top: 4px;
+}
+.rule-row {
+  display: flex;
+  gap: 4px;
+  align-items: center;
+  margin: 2px 0;
+}
+.rule-row select {
+  min-width: 0;
+}
+.rule-delay input {
+  width: 52px;
+}
+.signal-select {
+  display: inline-flex;
+  align-items: center;
+  gap: 3px;
+  flex: 1;
+  min-width: 0;
+}
+.signal-select select {
+  flex: 1;
+  min-width: 0;
+}
+.signal-dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  border: 1px solid #6b7480;
+}
+.signal-dot.on {
+  background: #3ddc84;
+  border-color: #3ddc84;
+}
+.signal-dot.off {
+  background: transparent;
+}
+.icon-text,
+.link-button {
+  background: none;
+  border: none;
+  color: inherit;
+  cursor: pointer;
+  padding: 0 4px;
+}
+.link-button {
+  font-size: 12px;
+  opacity: 0.8;
+}
+.run-status.stopped {
+  color: #e0b341;
 }

@@ -50,15 +50,15 @@ Interlocks: no lift without a centred pallet · rollers stopped while chains are
 
 ## 4. Behaviour
 
-**2D.** State machine with the durations above; the roller section is blocked while lifted.
+**2D.** State machine with the durations above; the roller section is blocked while lifted. Implemented 2026-10-30 ([[ADR-0009 Transfer Table 2D Cycle and Stations]]): the chains rest down, lift after the pallet is centred on the rollers, carry it out sideways (its side along travel swaps) and lower once it has left.
 **3D.** Chains are kinematic bodies that rise (vertical motion) and then move horizontally; the pallet is lifted by contact. The simulator warns if a chain falls into a void of the pallet and does not touch it.
 
 ## 5. Tests
 
-| Test | Criterion                                                  | Status     |
-| ---- | ---------------------------------------------------------- | ---------- |
-| T4   | Cycle 7.4 s                                                | ✅ formula |
-| P5   | Lifted 40 ± 5 mm, moved 1 m ± 10 mm, set down rotated < 1° | ⏳ phase 8 |
+| Test | Criterion                                                  | Status                                            |
+| ---- | ---------------------------------------------------------- | ------------------------------------------------- |
+| T4   | Cycle 7.4 s                                                | ✅ formula; 2D cycle adds lift/lower times (test) |
+| P5   | Lifted 40 ± 5 mm, moved 1 m ± 10 mm, set down rotated < 1° | ⏳ phase 8                                        |
 
 ## Related
 

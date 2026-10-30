@@ -1,5 +1,5 @@
-// Analytic reference scenarios T1–T5 (MVP plan §15.2). Each one states its inputs in SI units
-// and the expected result; running it compares the 2D-mode formula against that expectation.
+// Reference scenarios: analytic T1–T5 (MVP plan §15.2) and the same checks run on saved layouts in
+// the 2D mode. Each one states its inputs in SI units and the expected result.
 import { localizedTextSchema } from '@intracraft/core-model';
 import {
   impactEnergy,
@@ -9,6 +9,8 @@ import {
 } from '@intracraft/sim-des';
 import { z } from 'zod';
 import scenariosJson from '../scenarios/analytic.json';
+import layoutScenariosJson from '../scenarios/layouts.json';
+import { flowInputsSchema, runFlowScenario } from './flow';
 
 export const analyticScenarioSchema = z.discriminatedUnion('kind', [
   z.object({
@@ -38,6 +40,7 @@ export const analyticScenarioSchema = z.discriminatedUnion('kind', [
     kind: z.literal('impactEnergy'),
     inputs: z.object({ mass: z.number(), speed: z.number() }),
   }),
+  z.object({ kind: z.literal('flow'), inputs: flowInputsSchema }),
 ]);
 
 export const scenarioSchema = z.intersection(
@@ -61,7 +64,7 @@ export interface ScenarioResult {
   passed: boolean;
 }
 
-export const SCENARIOS: Scenario[] = z.array(scenarioSchema).parse(scenariosJson);
+export const SCENARIOS: Scenario[] = z.array(scenarioSchema).parse([...scenariosJson, ...layoutScenariosJson]);
 
 export function findScenario(id: string): Scenario | undefined {
   return SCENARIOS.find((s) => s.id.toLowerCase() === id.toLowerCase());
@@ -91,5 +94,7 @@ function evaluate(scenario: Scenario): number {
       return transferCycleTime(scenario.inputs);
     case 'impactEnergy':
       return impactEnergy(scenario.inputs.mass, scenario.inputs.speed);
+    case 'flow':
+      return runFlowScenario(scenario.inputs);
   }
 }

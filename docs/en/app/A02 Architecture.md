@@ -15,7 +15,7 @@ tags: [app, architecture]
 | Model          | `core-model`  | Units, time, seeded RNG, logger, project/layout schema, validation       | zod                                         |
 | Library        | `library`     | Component definitions (JSON), reference data, validation rules, registry | core-model, zod                             |
 | Geometry       | `geometry`    | Parametric layout of rollers, chains, frames (pure numbers)              | —                                           |
-| DES engine     | `sim-des`     | Event queue, simulator loop, analytic kinematics, statistics             | core-model                                  |
+| DES engine     | `sim-des`     | Event queue, simulator loop, analytic kinematics, 2D flow, statistics    | core-model, library, control                |
 | Physics engine | `sim-physics` | Backend interface, fixed-step clock, closed-form mechanics               | core-model (+ Jolt/Rapier after S1)         |
 | Controller     | `control`     | Boolean signals and If/Then rules                                        | —                                           |
 | Scenarios      | `scenarios`   | Reference scenarios and expected results                                 | core-model, sim-des                         |
@@ -37,6 +37,8 @@ flowchart TD
   scenarios --> core
   library --> core
   simdes --> core
+  simdes --> library
+  simdes --> control
   simphys[sim-physics] --> core
   control
 ```

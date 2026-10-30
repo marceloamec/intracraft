@@ -16,6 +16,7 @@ import { registry, useLayoutStore } from '../layout-store';
 import { useEditorStore } from '../store';
 import { AttributesEditor } from './AttributesEditor';
 import { NumberInput, ParamField } from './ParamField';
+import { InstanceStatistics, RunWarnings } from './RunResults';
 
 export function PropertiesPanel() {
   const t = useT();
@@ -27,17 +28,56 @@ export function PropertiesPanel() {
     <aside className="side-panel properties-panel" aria-label={t('propertiesTitle')}>
       <h2>{t('propertiesTitle')}</h2>
       {instance === undefined ? (
-        <p className="hint">
-          {t('nothingSelected')}
-          <br />
-          {t('layoutSummary')
-            .replace('{objects}', String(layout.instances.length))
-            .replace('{connections}', String(layout.connections.length))}
-        </p>
+        <>
+          <p className="hint">
+            {t('nothingSelected')}
+            <br />
+            {t('layoutSummary')
+              .replace('{objects}', String(layout.instances.length))
+              .replace('{connections}', String(layout.connections.length))}
+          </p>
+          <ProjectProperties />
+        </>
       ) : (
         <InstanceProperties key={instance.id} instance={instance} definition={registry.get(instance.definitionId)} />
       )}
+      <RunWarnings />
     </aside>
+  );
+}
+
+/** Name and random seed, saved in the project file; a new seed gives a different random run. */
+function ProjectProperties() {
+  const t = useT();
+  const projectName = useLayoutStore((s) => s.projectName);
+  const seed = useLayoutStore((s) => s.seed);
+  const setProjectInfo = useLayoutStore((s) => s.setProjectInfo);
+  return (
+    <section className="prop-section">
+      <h3>{t('project')}</h3>
+      <label className="prop-row">
+        <span>{t('projectName')}</span>
+        <input
+          key={projectName}
+          defaultValue={projectName}
+          onBlur={(e) => {
+            const name = e.currentTarget.value.trim();
+            if (name === '') e.currentTarget.value = projectName;
+            else setProjectInfo({ projectName: name });
+          }}
+          onKeyDown={blurOnEnter}
+        />
+      </label>
+      <NumberInput
+        label={t('seed')}
+        value={seed}
+        onCommit={(value) => {
+          if (!Number.isInteger(value) || value < 0) return false;
+          setProjectInfo({ seed: value });
+          return true;
+        }}
+      />
+    </section>
   );
 }
 
@@ -96,6 +136,8 @@ function InstanceProperties({ instance, definition }: { instance: Instance; defi
           onCommit={(deg) => move(instance.position, degToRad(deg))}
         />
       </section>
+
+      <InstanceStatistics instanceId={instance.id} keys={definition.statistics} />
 
       <section className="prop-section">
         <h3>{t('attributes')}</h3>
@@ -177,8 +219,11 @@ function groupParameters(parameters: ParameterDefinition[]): [string, ParameterD
 /** `dependsOn` has the form "key=value": the field is only active when that holds. */
 function dependencyMet(p: ParameterDefinition, values: Record<string, number | boolean | string>): boolean {
   if (p.dependsOn === undefined) return true;
-  const [key, expected] = p.dependsOn.split('=');
-  return key === undefined || expected === undefined || String(values[key]) === expected;
+  // "key=value" or "key!=value"
+  const negated = p.dependsOn.includes('!=');
+  const [key, expected] = p.dependsOn.split(negated ? '!=' : '=');
+  if (key === undefined || expected === undefined) return true;
+  return (String(values[key]) === expected) !== negated;
 }
 
 function groupLabel(group: string): string {

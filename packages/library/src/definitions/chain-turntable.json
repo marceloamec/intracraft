@@ -492,6 +492,28 @@
       "description": {
         "en": "Pallet–chain friction coefficient"
       }
+    },
+    {
+      "key": "exitRule",
+      "type": "enum",
+      "options": [
+        "alternate",
+        "firstExit",
+        "random"
+      ],
+      "default": "alternate",
+      "group": "routing",
+      "affects": "2d",
+      "label": {
+        "en": "Exit rule",
+        "es": "Regla de salida",
+        "de": "Ausgangsregel"
+      },
+      "description": {
+        "en": "Which connected exit a pallet takes until control rules exist: alternate (in turn), firstExit (always the first, counting clockwise from the entry), random (seeded, equal chances)",
+        "es": "Qué salida conectada toma un pallet mientras no haya reglas de control: alternate (por turnos), firstExit (siempre la primera, contando en sentido horario desde la entrada), random (con semilla, misma probabilidad)",
+        "de": "Welchen angeschlossenen Ausgang eine Palette nimmt, solange es keine Steuerregeln gibt: alternate (abwechselnd), firstExit (immer der erste, im Uhrzeigersinn ab dem Eingang), random (mit Seed, gleich wahrscheinlich)"
+      }
     }
   ],
   "ports": [

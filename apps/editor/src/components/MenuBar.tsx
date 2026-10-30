@@ -1,4 +1,4 @@
-// Application menu: File, Edit, View. Items are the shared editor actions (actions.ts).
+// Application menu: File, Edit, View, Run. Items are the shared editor actions (actions.ts).
 import { useEffect, useRef, useState } from 'react';
 import { type Action, useActions } from '../actions';
 import type { StringKey } from '../i18n/strings';
@@ -20,9 +20,10 @@ export function MenuBar() {
   }, [open]);
 
   const menus: { id: string; label: StringKey; items: (Action | 'separator')[] }[] = [
-    { id: 'file', label: 'menuFile', items: [a.newLayout] },
+    { id: 'file', label: 'menuFile', items: [a.newLayout, a.open, a.save, 'separator', a.exportResults] },
     { id: 'edit', label: 'menuEdit', items: [a.undo, a.redo, 'separator', a.rotate, a.remove] },
-    { id: 'view', label: 'menuView', items: [a.toggleView, 'separator', a.components, a.properties, a.assets] },
+    { id: 'view', label: 'menuView', items: [a.toggleView, a.frameAll, 'separator', a.components, a.properties, a.controller, a.assets] },
+    { id: 'run', label: 'menuRun', items: [a.playPause, a.step, a.stop] },
   ];
 
   return (

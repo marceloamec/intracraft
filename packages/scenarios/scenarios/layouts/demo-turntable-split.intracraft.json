@@ -1,0 +1,112 @@
+{
+  "schemaVersion": 1,
+  "name": "Demo: roller turntable splitting into two lines",
+  "seed": 1,
+  "layout": {
+    "instances": [
+      {
+        "id": "source1",
+        "definitionId": "flow.source",
+        "definitionVersion": "0.1.0",
+        "name": "Infeed",
+        "position": {
+          "x": -0.42,
+          "y": 0,
+          "z": 0
+        },
+        "yaw": 0,
+        "params": {
+          "interval": 12
+        },
+        "attributes": {}
+      },
+      {
+        "id": "roller1",
+        "definitionId": "conveyor.roller",
+        "definitionVersion": "0.1.0",
+        "name": "Infeed roller",
+        "position": {
+          "x": 0,
+          "y": 0,
+          "z": 0
+        },
+        "yaw": 0,
+        "params": {},
+        "attributes": {}
+      },
+      {
+        "id": "roller_turntable1",
+        "definitionId": "conveyor.roller_turntable",
+        "definitionVersion": "0.1.0",
+        "name": "Turntable",
+        "position": {
+          "x": 3.72,
+          "y": 0,
+          "z": 0
+        },
+        "yaw": 0,
+        "params": {
+          "exitRule": "alternate"
+        },
+        "attributes": {}
+      },
+      {
+        "id": "roller2",
+        "definitionId": "conveyor.roller",
+        "definitionVersion": "0.1.0",
+        "name": "Line A",
+        "position": {
+          "x": 4.44,
+          "y": 0,
+          "z": 0
+        },
+        "yaw": 0,
+        "params": {},
+        "attributes": {}
+      },
+      {
+        "id": "sink1",
+        "definitionId": "flow.sink",
+        "definitionVersion": "0.1.0",
+        "name": "Outfeed A",
+        "position": {
+          "x": 7.460000000000001,
+          "y": 0,
+          "z": 0
+        },
+        "yaw": 0,
+        "params": {},
+        "attributes": {}
+      },
+      {
+        "id": "roller3",
+        "definitionId": "conveyor.roller",
+        "definitionVersion": "0.1.0",
+        "name": "Line B",
+        "position": {
+          "x": 3.72,
+          "y": 0,
+          "z": -0.72
+        },
+        "yaw": 1.5707963267948966,
+        "params": {},
+        "attributes": {}
+      },
+      {
+        "id": "sink2",
+        "definitionId": "flow.sink",
+        "definitionVersion": "0.1.0",
+        "name": "Outfeed B",
+        "position": {
+          "x": 3.72,
+          "y": 0,
+          "z": -3.74
+        },
+        "yaw": 1.5707963267948966,
+        "params": {},
+        "attributes": {}
+      }
+    ],
+    "connections": []
+  }
+}

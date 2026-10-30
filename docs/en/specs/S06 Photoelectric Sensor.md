@@ -15,6 +15,18 @@ Theory: [[T06 Photoelectric Sensing]].
 
 **Owner requirement (2026-10-29):** the position **and the height** of the photocell and of its reflector are parameters of each instance — the user chooses them. The beam is therefore the segment between two points chosen by the user, not a fixed horizontal line.
 
+**Implemented 2026-10-30 (2D):**
+- Definition `sensor.photoeye` (`photoeye.json`); behaviour in `packages/sim-des/src/flow/photoeye.ts`.
+- **Mounting.** Drag the sensor onto a roller or chain conveyor. That conveyor becomes `host`, and the drop point sets `sensorS` = `reflectorS`.
+- **Defaults.** The sensor and reflector sit at ∓800 mm lateral, both at 60 mm high; two presets give 130 mm (rollers) and 110 mm (chains).
+- **Simplifications:**
+  - `diffuse` is treated as a beam straight across the conveyor;
+  - an inclined beam is evaluated at its mean height, with a warning;
+  - `orientation`, `spotDiameter` and `cycleDelay` are not used yet.
+- **`filter` is an off-delay.** The output switches on after `responseTime`, and switches off only when the beam has stayed free for `responseTime + filter`. A symmetric minimum-state time would never switch on at 60 mm, where the solid parts last only 0.58 s, so it could not "bridge pallet voids" as §1 asks. The output therefore lasts `filter` longer than the pallet.
+- **Run warnings:** `sensorWithoutHost`, `inclinedBeam`, `beamOutOfRange`, `beamInVoidBand` (with the void length and its duration at nominal speed).
+- **Viewer.** The beam is drawn green while free and red while detecting. The sensor's statistics are pulses, detecting time and detecting share.
+
 ## 1. Parameters
 
 | Key                | Plan key          | Unit | Default                      | Range                                 | Description                                                                                 |
@@ -63,9 +75,9 @@ Above the pallet (> 144 mm) the beam sees the load instead, if there is one.
 
 | Test | Criterion                                                                                          | Status     |
 | ---- | -------------------------------------------------------------------------------------------------- | ---------- |
-| T6   | Sensor and reflector at 2.0 m, beam in a continuous band → rising at front, falling at tail, 4.8 s | ⏳ phase 3 |
-| —    | Beam at 60 mm on rollers with EUR → three pulses per pallet; with `filter` 2000 ms → one           | ⏳ phase 3 |
-| —    | Oblique beam (different `sensorS` and `reflectorS`) → edges match the analytic intervals           | ⏳ phase 3 |
+| T6   | Sensor and reflector at 2.0 m, beam in a continuous band → rising at front, falling at tail, 4.8 s | ✅ 2D test |
+| —    | Beam at 60 mm on rollers with EUR → three pulses per pallet; with `filter` 2000 ms → one           | ✅ 2D test |
+| —    | Oblique beam (different `sensorS` and `reflectorS`) → edges match the analytic intervals           | ✅ 2D test |
 | P6   | 3D and 2D edges within ±50 ms                                                                      | ⏳ phase 4 |
 
 ## Related

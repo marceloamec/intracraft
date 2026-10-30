@@ -4,11 +4,13 @@
 import type { Vec3 } from '@intracraft/core-model';
 import { Canvas, useThree } from '@react-three/fiber';
 import { type DragEvent, type PointerEvent, useEffect, useRef } from 'react';
-import { Box3, type Camera, type Mesh, type Object3D, Plane, Raycaster, Vector2, Vector3 } from 'three';
+import { Box3, type Camera, type Mesh, type Object3D, OrthographicCamera, PerspectiveCamera, Plane, Raycaster, Vector2, Vector3 } from 'three';
 import { OrbitControls } from 'three/examples/jsm/controls/OrbitControls.js';
 import { useLayoutStore } from '../layout-store';
+import { displayPose } from '../sensor-mount';
 import { useEditorStore } from '../store';
 import { InstanceModel } from './models/InstanceModel';
+import { PalletLayer } from './PalletLayer';
 import { PortMarkers } from './PortMarkers';
 
 export const DEFINITION_MIME = 'application/x-intracraft-definition';
@@ -119,8 +121,7 @@ function LayoutScene() {
           instanceId={instance.id}
           definitionId={instance.definitionId}
           params={instance.params}
-          position={instance.position}
-          yaw={instance.yaw}
+          {...displayPose(instance, layout)}
           style={{
             ...NORMAL,
             selected: instance.id === selectedId,
@@ -138,6 +139,7 @@ function LayoutScene() {
         />
       )}
       <PortMarkers layout={layout} target={preview?.link?.target ?? null} />
+      <PalletLayer />
     </>
   );
 }
@@ -193,9 +195,16 @@ function pickBox(group: Object3D): Box3 {
   return box;
 }
 
+/** Camera commands for the menu, toolbar and shortcuts; set while a view is mounted. */
+export const cameraActions: { frameAll: (() => void) | null } = { frameAll: null };
+
+const FRAME_MARGIN = 1.15;
+
 function CameraControls({ target, allowRotate }: { target: [number, number, number]; allowRotate: boolean }) {
   const camera = useThree((s) => s.camera);
   const domElement = useThree((s) => s.gl.domElement);
+  const scene = useThree((s) => s.scene);
+  const getState = useThree((s) => s.get);
   const [tx, ty, tz] = target;
 
   useEffect(() => {
@@ -203,8 +212,31 @@ function CameraControls({ target, allowRotate }: { target: [number, number, numb
     controls.target.set(tx, ty, tz);
     controls.enableRotate = allowRotate;
     controls.update();
-    return () => controls.dispose();
-  }, [camera, domElement, tx, ty, tz, allowRotate]);
+    cameraActions.frameAll = () => {
+      const bounds = new Box3();
+      for (const child of scene.children) if (child.userData['instanceId'] !== undefined) bounds.expandByObject(child);
+      if (bounds.isEmpty()) return;
+      const centre = bounds.getCenter(new Vector3());
+      const extent = bounds.getSize(new Vector3());
+      if (camera instanceof OrthographicCamera) {
+        camera.position.set(centre.x, camera.position.y, centre.z);
+        const { width, height } = getState().size;
+        camera.zoom = Math.min(width / extent.x, height / extent.z) / FRAME_MARGIN;
+        camera.updateProjectionMatrix();
+      } else if (camera instanceof PerspectiveCamera) {
+        const radius = extent.length() / 2;
+        const distance = (radius / Math.sin((camera.fov * Math.PI) / 360)) * FRAME_MARGIN;
+        const direction = camera.position.clone().sub(controls.target).normalize();
+        camera.position.copy(centre).addScaledVector(direction, distance);
+      }
+      controls.target.copy(centre);
+      controls.update();
+    };
+    return () => {
+      controls.dispose();
+      cameraActions.frameAll = null;
+    };
+  }, [camera, domElement, scene, getState, tx, ty, tz, allowRotate]);
 
   return null;
 }

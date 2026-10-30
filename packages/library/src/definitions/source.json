@@ -1,0 +1,88 @@
+{
+  "id": "flow.source",
+  "version": "0.1.0",
+  "category": "flow",
+  "name": { "en": "Pallet source", "es": "Generador de pallets", "de": "Palettenquelle" },
+  "description": {
+    "en": "Creates pallets and puts them on the entry of the conveyor connected to its output.",
+    "es": "Crea pallets y los coloca en la entrada del transportador conectado a su salida.",
+    "de": "Erzeugt Paletten und setzt sie auf den Eingang des an ihren Ausgang angeschlossenen Förderers."
+  },
+  "parameters": [
+    {
+      "key": "palletType", "type": "enum", "options": ["eur", "iso1200x1000", "gma"],
+      "default": "eur", "group": "pallet", "affects": "both",
+      "label": { "en": "Pallet type", "es": "Tipo de pallet", "de": "Palettentyp" },
+      "description": { "en": "Pallet type from the library", "es": "Tipo de pallet de la librería", "de": "Palettentyp aus der Bibliothek" }
+    },
+    {
+      "key": "orientation", "type": "enum", "options": ["long", "short"],
+      "default": "long", "group": "pallet", "affects": "both",
+      "label": { "en": "Pallet side along travel", "es": "Lado del pallet paralelo al avance", "de": "Palettenseite in Förderrichtung" },
+      "description": {
+        "en": "Orientation when created: long side along travel (rollers) or short side along travel (chains)",
+        "es": "Orientación al crearlo: lado largo paralelo al avance (rodillos) o lado corto (cadenas)",
+        "de": "Ausrichtung beim Erzeugen: Längsseite in Förderrichtung (Rollen) oder Schmalseite (Ketten)"
+      }
+    },
+    {
+      "key": "loadMass", "type": "number", "unit": "kg", "displayUnit": "kg",
+      "default": 600, "min": 0, "max": 1500, "group": "pallet", "affects": "both",
+      "label": { "en": "Load mass", "es": "Masa de la carga", "de": "Lastmasse" },
+      "description": { "en": "Mass of the load on the pallet", "es": "Masa de la carga sobre el pallet", "de": "Masse der Last auf der Palette" }
+    },
+    {
+      "key": "loadHeight", "type": "number", "unit": "m", "displayUnit": "mm",
+      "default": 1.2, "min": 0, "max": 2.2, "group": "pallet", "affects": "both",
+      "label": { "en": "Load height", "es": "Altura de la carga", "de": "Lasthöhe" },
+      "description": { "en": "Load height above the pallet", "es": "Altura de la carga sobre el pallet", "de": "Lasthöhe über der Palette" }
+    },
+    {
+      "key": "generationMode", "type": "enum", "options": ["fixedInterval", "exponential"],
+      "default": "fixedInterval", "group": "arrivals", "affects": "2d",
+      "label": { "en": "Arrival rule", "es": "Regla de llegadas", "de": "Ankunftsregel" },
+      "description": {
+        "en": "fixedInterval: one pallet every interval, the first at time 0; exponential: random times between pallets with the interval as mean (seeded)",
+        "es": "fixedInterval: un pallet cada intervalo, el primero en el instante 0; exponential: tiempos aleatorios entre pallets con el intervalo como media (con semilla)",
+        "de": "fixedInterval: eine Palette je Intervall, die erste zum Zeitpunkt 0; exponential: zufällige Zeiten zwischen Paletten mit dem Intervall als Mittelwert (mit Seed)"
+      }
+    },
+    {
+      "key": "interval", "type": "number", "unit": "s", "displayUnit": "s",
+      "default": 20, "min": 1, "max": 3600, "group": "arrivals", "affects": "2d",
+      "label": { "en": "Interval", "es": "Intervalo", "de": "Intervall" },
+      "description": { "en": "Time between pallets (mean for exponential)", "es": "Tiempo entre pallets (media en exponential)", "de": "Zeit zwischen Paletten (Mittelwert bei exponential)" }
+    },
+    {
+      "key": "maxPallets", "type": "integer",
+      "default": 0, "min": 0, "max": 100000, "group": "arrivals", "affects": "2d",
+      "label": { "en": "Max pallets", "es": "Máx. pallets", "de": "Max. Paletten" },
+      "description": { "en": "Number of pallets to create; 0 = unlimited", "es": "Número de pallets a crear; 0 = ilimitado", "de": "Anzahl zu erzeugender Paletten; 0 = unbegrenzt" }
+    },
+    {
+      "key": "blockIfOccupied", "type": "boolean",
+      "default": true, "group": "arrivals", "affects": "2d",
+      "label": { "en": "Wait if occupied", "es": "Esperar si está ocupado", "de": "Warten wenn belegt" },
+      "description": {
+        "en": "Yes: the pallet waits until the entry is free (the lost time is reported); no: it is not created and counts as rejected",
+        "es": "Sí: el pallet espera a que la entrada quede libre (se informa el tiempo perdido); no: no se crea y cuenta como rechazado",
+        "de": "Ja: die Palette wartet, bis der Eingang frei ist (Verlustzeit wird gemeldet); nein: sie wird nicht erzeugt und als abgewiesen gezählt"
+      }
+    },
+    {
+      "key": "surfaceHeight", "type": "number", "unit": "m", "displayUnit": "mm",
+      "default": 0.6, "min": 0.2, "max": 1.5, "group": "geometry", "affects": "geometry",
+      "label": { "en": "Port height", "es": "Altura del puerto", "de": "Anschlusshöhe" },
+      "description": { "en": "Height of the output port; match the conveyor surface height", "es": "Altura del puerto de salida; debe coincidir con la del transportador", "de": "Höhe des Ausgangs; muss zur Förderhöhe passen" }
+    }
+  ],
+  "ports": [
+    { "id": "OUT", "direction": "out", "facing": "+x", "local": { "x": 0.4, "y": "surfaceHeight", "z": 0 } }
+  ],
+  "signals": { "inputs": ["enable"], "outputs": ["waiting"] },
+  "statistics": ["palletsCreated", "palletsRejected", "waitingTime"],
+  "geometry": "geom.source",
+  "behaviors": { "des": "des.source", "physics": "phys.source" },
+  "validationRules": [],
+  "presets": []
+}

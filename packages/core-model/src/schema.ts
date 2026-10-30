@@ -37,9 +37,24 @@ export const connectionSchema = z.object({
   gap: z.number().nonnegative().default(0.02),
 });
 
+/** Signal names follow `<instance id>.<signal>` (A08), e.g. `photoeye1.detected`, `roller2.run`. */
+export const signalConditionSchema = z.union([
+  z.object({ signal: z.string().min(1), is: z.boolean() }),
+  z.object({ signal: z.string().min(1), edge: z.enum(['rising', 'falling']) }),
+]);
+
+/** If all conditions hold, write the signals (after an optional delay). Same shape as control's `Rule`. */
+export const ruleSchema = z.object({
+  id: z.string().min(1),
+  when: z.array(signalConditionSchema).min(1),
+  then: z.array(z.object({ signal: z.string().min(1), value: z.boolean(), delayMs: z.number().nonnegative().optional() })).min(1),
+});
+
 export const layoutSchema = z.object({
   instances: z.array(instanceSchema),
   connections: z.array(connectionSchema),
+  /** Controller rules (A08). Optional: files without rules stay valid without a migration. */
+  rules: z.array(ruleSchema).optional(),
 });
 
 export const projectSchema = z.object({
@@ -55,6 +70,7 @@ export type Attributes = z.infer<typeof attributesSchema>;
 export type Instance = z.infer<typeof instanceSchema>;
 export type Connection = z.infer<typeof connectionSchema>;
 export type Layout = z.infer<typeof layoutSchema>;
+export type RuleData = z.infer<typeof ruleSchema>;
 export type Project = z.infer<typeof projectSchema>;
 
 export type Language = 'en' | 'es' | 'de';

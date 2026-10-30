@@ -52,7 +52,7 @@ waiting → receiving (chains running) → centred → turning → settling → 
 
 ## 4. Behaviour
 
-**2D.** The pallet travels with the platform; the turn lasts what the angular profile gives; discharge is enabled after settling.
+**2D.** The pallet travels with the platform; the turn lasts what the angular profile gives; discharge is enabled after settling. Implemented 2026-10-30 ([[ADR-0008 Turntable 2D Cycle and Exit Rule]]). The exit is chosen by the new parameter `exitRule` (`alternate`, `firstExit`, `random`) until control rules exist.
 **3D.** Kinematic platform with angular velocity about the vertical axis; chain strips on top; the pallet is dynamic and held by friction.
 
 ## 5. Validations
@@ -61,10 +61,10 @@ Swept radius vs neighbours · enough motor torque · required vs available frict
 
 ## 6. Tests
 
-| Test      | Criterion                                           | Status     |
-| --------- | --------------------------------------------------- | ---------- |
-| T3        | 90° turn → 6.5 s                                    | ✅ formula |
-| S1-e / P4 | Pallet moves < 5 mm relative to platform during 90° | ⏳ phase 6 |
+| Test      | Criterion                                           | Status          |
+| --------- | --------------------------------------------------- | --------------- |
+| T3        | 90° turn → 6.5 s (+ 0.3 s settle in the 2D cycle)   | ✅ formula + 2D |
+| S1-e / P4 | Pallet moves < 5 mm relative to platform during 90° | ⏳ phase 6      |
 
 ## Related
 

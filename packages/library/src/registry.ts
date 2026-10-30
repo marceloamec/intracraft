@@ -1,8 +1,12 @@
 // Built-in definitions, validated at load time. User and project libraries will register here too.
 import chainConveyorJson from './definitions/chain-conveyor.json';
 import chainTurntableJson from './definitions/chain-turntable.json';
+import photoeyeJson from './definitions/photoeye.json';
+import processStationJson from './definitions/process-station.json';
 import rollerConveyorJson from './definitions/roller-conveyor.json';
 import rollerTurntableJson from './definitions/roller-turntable.json';
+import sinkJson from './definitions/sink.json';
+import sourceJson from './definitions/source.json';
 import transferRcJson from './definitions/transfer-rc.json';
 import { type ComponentDefinition, componentDefinitionSchema } from './definition-schema';
 
@@ -12,6 +16,10 @@ const BUILT_IN_SOURCES: unknown[] = [
   chainTurntableJson,
   rollerTurntableJson,
   transferRcJson,
+  sourceJson,
+  sinkJson,
+  processStationJson,
+  photoeyeJson,
 ];
 
 export class DefinitionRegistry {

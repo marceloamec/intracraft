@@ -20,14 +20,25 @@ describe('built-in registry', () => {
     expect(roller.ports.map((p) => p.id)).toEqual(['A', 'B']);
   });
 
-  it('contains the five MVP conveyors', () => {
+  it('contains the five MVP conveyors, the source, the sink, the process station and the photocell', () => {
     expect(createBuiltInRegistry().list().map((d) => d.id)).toEqual([
       'conveyor.roller',
       'conveyor.chain',
       'conveyor.chain_turntable',
       'conveyor.roller_turntable',
       'conveyor.transfer_rc',
+      'flow.source',
+      'flow.sink',
+      'flow.process_station',
+      'sensor.photoeye',
     ]);
+  });
+
+  it('offers every library pallet type in the source', () => {
+    const palletType = createBuiltInRegistry()
+      .get('flow.source')
+      .parameters.find((p) => p.key === 'palletType');
+    expect(palletType?.options).toEqual(PALLET_TYPES.map((p) => p.id));
   });
 
   describe.each(DEFINITION_IDS)('%s', (id) => {

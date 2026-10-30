@@ -5,6 +5,7 @@ import {
   maxThroughput,
   palletCapacity,
   positionAt,
+  profilePositionAt,
   profileTime,
   timeToReach,
   transferCycleTime,
@@ -58,6 +59,22 @@ describe('profileTime', () => {
 
   it('rejects non-positive speed', () => {
     expect(() => profileTime({ distance: 1, maxSpeed: 0, accel: 1 })).toThrow();
+  });
+});
+
+describe('profilePositionAt', () => {
+  it('follows the T3 turn: ramp, cruise and brake end exactly at 90° after 6.5 s', () => {
+    const turn = { distance: degToRad(90), maxSpeed: degToRad(15), accel: degToRad(30), decel: degToRad(30) };
+    expect(profilePositionAt(turn, 0.5)).toBeCloseTo(degToRad(3.75), 12); // ½·30·0.5²
+    expect(profilePositionAt(turn, 3.25)).toBeCloseTo(degToRad(45), 12); // symmetric profile
+    expect(profilePositionAt(turn, 6.5)).toBeCloseTo(degToRad(90), 12);
+    expect(profilePositionAt(turn, 9)).toBe(degToRad(90));
+  });
+
+  it('handles a triangular profile', () => {
+    const move = { distance: 0.5, maxSpeed: 1, accel: 1, decel: 1 };
+    const total = profileTime(move);
+    expect(profilePositionAt(move, total / 2)).toBeCloseTo(0.25, 12);
   });
 });
 

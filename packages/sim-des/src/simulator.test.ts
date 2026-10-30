@@ -41,6 +41,17 @@ describe('DesSimulator', () => {
     expect(seen).toEqual(['fresh']);
   });
 
+  it('reports the next pending event time, skipping cancelled ones', () => {
+    const sim = new DesSimulator();
+    sim.on('x', () => undefined);
+    const first = sim.schedule(1_000, { type: 'x', target: 'a' });
+    sim.schedule(3_000, { type: 'x', target: 'b' });
+    sim.cancel(first);
+    expect(sim.nextEventTime()).toBe(3_000);
+    sim.runUntil(3_000);
+    expect(sim.nextEventTime()).toBeUndefined();
+  });
+
   it('is deterministic: the same schedule gives the same trace', () => {
     expect(runChain()).toEqual(runChain());
   });

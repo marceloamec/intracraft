@@ -1,6 +1,8 @@
 import { type Action, useActions } from '../actions';
 import { LANGUAGES, type Language } from '../i18n/strings';
 import { useT } from '../i18n/useT';
+import { SIM_SPEEDS, type SimSpeed } from '../sim/protocol';
+import { useSimStore } from '../sim-store';
 import { type SimMode, useEditorStore } from '../store';
 import { Icon } from './icons';
 
@@ -8,11 +10,15 @@ export function Toolbar() {
   const t = useT();
   const a = useActions();
   const { language, simMode, setLanguage, setSimMode } = useEditorStore();
+  const speed = useSimStore((s) => s.speed);
+  const setSpeed = useSimStore((s) => s.setSpeed);
   const groups: Action[][] = [
-    [a.newLayout, a.undo, a.redo],
+    [a.newLayout, a.open, a.save],
+    [a.undo, a.redo],
     [a.rotate, a.remove],
-    [a.toggleView],
-    [a.components, a.properties, a.assets],
+    [a.toggleView, a.frameAll],
+    [a.components, a.properties, a.controller, a.assets],
+    [a.playPause, a.step, a.stop],
   ];
 
   return (
@@ -24,6 +30,16 @@ export function Toolbar() {
           ))}
         </div>
       ))}
+      <label>
+        {t('speed')}{' '}
+        <select value={String(speed)} onChange={(e) => setSpeed(parseSpeed(e.target.value))}>
+          {SIM_SPEEDS.map((s) => (
+            <option key={s} value={String(s)}>
+              {s === 'max' ? t('speedMax') : `×${s}`}
+            </option>
+          ))}
+        </select>
+      </label>
       <label>
         {t('simulationMode')}{' '}
         <select value={simMode} onChange={(e) => setSimMode(e.target.value as SimMode)}>
@@ -43,6 +59,10 @@ export function Toolbar() {
       </label>
     </header>
   );
+}
+
+function parseSpeed(value: string): SimSpeed {
+  return SIM_SPEEDS.find((s) => String(s) === value) ?? 1;
 }
 
 function ToolButton({ action, label }: { action: Action; label: string }) {

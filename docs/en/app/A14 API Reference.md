@@ -29,6 +29,7 @@ All values in SI units unless stated. Every package is imported as `@intracraft/
 | `Project`, `Layout`, `Instance`, `Connection`, `Vec3`, `LocalizedText`                                                      | Types inferred from the schemas                | —                                                                     |
 | `attributesSchema`, `Attributes`                                                                                            | Zod schema / type                              | Free instance attributes                                              |
 | `localize`                                                                                                                  | `(text, language) => string`                   | Text in a language, English fallback                                  |
+| `readProjectFile`, `writeProjectFile`, `projectFileName`, `PROJECT_FILE_EXTENSION`                                          | `(text) => { ok, project } \| { ok, error }` … | Project file read (with migrations) and write                         |
 
 ## library
 
@@ -61,26 +62,29 @@ All values in SI units unless stated. Every package is imported as `@intracraft/
 
 ## commands
 
-| Export        | Signature                                                                                                           | Purpose                                                                       |
-| ------------- | ------------------------------------------------------------------------------------------------------------------- | ----------------------------------------------------------------------------- |
-| `Session`     | `execute(name, input, actor)`, `undo(actor)`, `redo(actor)`, `replay(entry)`, `layout`, `log`, `canUndo`, `canRedo` | Editing session ([[ADR-0006 Command Package and Geometric Port Connections]]) |
-| `COMMANDS`    | `layout.addInstance`, `.move`, `.setParams`, `.setAttributes`, `.remove`, `.clear`                                  | Command catalogue with Zod input schemas                                      |
-| `checkParams` | `(def, values) => ValidationIssue[]`                                                                                | Type, range, choice and option checks                                         |
+| Export        | Signature                                                                                                           | Purpose                                                                                                                                         |
+| ------------- | ------------------------------------------------------------------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------- |
+| `Session`     | `execute(name, input, actor)`, `undo(actor)`, `redo(actor)`, `replay(entry)`, `layout`, `log`, `canUndo`, `canRedo` | Editing session ([[ADR-0006 Command Package and Geometric Port Connections]])                                                                   |
+| `COMMANDS`    | `layout.addInstance`, `.move`, `.setParams`, `.setAttributes`, `.remove`, `.clear`, `.load`                         | Command catalogue with Zod input schemas; `layout.move` may also change parameters (a sensor mounted on another conveyor) in the same undo step |
+| `checkParams` | `(def, values) => ValidationIssue[]`                                                                                | Type, range, choice and option checks                                                                                                           |
 
 ## sim-des
 
-| Export                     | Signature                                                                                                                | Purpose                                                               |
-| -------------------------- | ------------------------------------------------------------------------------------------------------------------------ | --------------------------------------------------------------------- |
-| `EventQueue<T>`            | `push(time, priority, payload)`, `pop()`, `peek()`, `size`                                                               | Min-heap by (time, priority, seq); integer times only                 |
-| `compareEvents`            | `(a, b) => number`                                                                                                       | Total order used by the queue                                         |
-| `DesSimulator`             | `now`, `on(type, handler)`, `schedule(delay, event, priority?) → ticket`, `cancel(ticket)`, `runUntil(endTime)`, `trace` | Next-event loop                                                       |
-| `profileTime`              | `({ distance, maxSpeed, accel, decel? }) => seconds`                                                                     | Trapezoidal/triangular move time; no `decel` = arrive at cruise speed |
-| `transferCycleTime`        | `({ liftTime, lowerTime, distance, speed, accel, settleTime? }) => seconds`                                              | Transfer-table cycle (T4)                                             |
-| `maxThroughput`            | `(speed, palletLength, gap) => pallets/s`                                                                                | $v/(L+g)$ (T2)                                                        |
-| `palletCapacity`           | `(length, palletLength, gap) => integer`                                                                                 | $\lfloor \text{length}/(L+g) \rfloor$                                 |
-| `impactEnergy`             | `(mass, speed) => J`                                                                                                     | $\frac12 m v^2$ (T5)                                                  |
-| `positionAt`, `velocityAt` | `(segment, t) => number`                                                                                                 | Evaluate a kinematic segment                                          |
-| `timeToReach`              | `(segment, s) => t \| undefined`                                                                                         | Earliest time a segment reaches position *s*                          |
+| Export                       | Signature                                                                                                                | Purpose                                                               |
+| ---------------------------- | ------------------------------------------------------------------------------------------------------------------------ | --------------------------------------------------------------------- |
+| `EventQueue<T>`              | `push(time, priority, payload)`, `pop()`, `peek()`, `size`                                                               | Min-heap by (time, priority, seq); integer times only                 |
+| `compareEvents`              | `(a, b) => number`                                                                                                       | Total order used by the queue                                         |
+| `DesSimulator`               | `now`, `on(type, handler)`, `schedule(delay, event, priority?) → ticket`, `cancel(ticket)`, `runUntil(endTime)`, `trace` | Next-event loop                                                       |
+| `profileTime`                | `({ distance, maxSpeed, accel, decel? }) => seconds`                                                                     | Trapezoidal/triangular move time; no `decel` = arrive at cruise speed |
+| `transferCycleTime`          | `({ liftTime, lowerTime, distance, speed, accel, settleTime? }) => seconds`                                              | Transfer-table cycle (T4)                                             |
+| `maxThroughput`              | `(speed, palletLength, gap) => pallets/s`                                                                                | $v/(L+g)$ (T2)                                                        |
+| `palletCapacity`             | `(length, palletLength, gap) => integer`                                                                                 | $\lfloor \text{length}/(L+g) \rfloor$                                 |
+| `impactEnergy`               | `(mass, speed) => J`                                                                                                     | $\frac12 m v^2$ (T5)                                                  |
+| `positionAt`, `velocityAt`   | `(segment, t) => number`                                                                                                 | Evaluate a kinematic segment                                          |
+| `timeToReach`                | `(segment, s) => t \| undefined`                                                                                         | Earliest time a segment reaches position *s*                          |
+| `DesSimulator.nextEventTime` | `() => SimTime \| undefined`                                                                                             | Next pending event (editor "Next event" button)                       |
+| `buildFlowNetwork`           | `(layout, registry) => { nodes, issues }`                                                                                | Layout → 2D nodes (line, source, sink, inert) and warnings            |
+| `FlowSimulation`             | `new (network, { seed })`, `runUntil(t)`, `nextEventTime()`, `snapshot()`, `statistics()`, `issues`, `now`               | 2D run ([[ADR-0007 2D Flow Model Without Accumulation]])              |
 
 ## sim-physics
 

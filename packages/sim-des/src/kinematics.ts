@@ -45,6 +45,28 @@ export function profileTime({ distance, maxSpeed, accel, decel }: MoveProfile): 
   return peakSpeed / accel + peakSpeed / decel;
 }
 
+/** Distance (or angle) covered `t` seconds after the start of a `profileTime` move. */
+export function profilePositionAt(profile: MoveProfile, t: number): number {
+  const { distance, maxSpeed, accel, decel } = profile;
+  const total = profileTime(profile);
+  if (t <= 0) return 0;
+  if (t >= total) return distance;
+  const accelDistance = (maxSpeed * maxSpeed) / (2 * accel);
+  const decelDistance = decel === undefined ? 0 : (maxSpeed * maxSpeed) / (2 * decel);
+  const peak =
+    distance >= accelDistance + decelDistance
+      ? maxSpeed
+      : decel === undefined
+        ? Math.sqrt(2 * distance * accel)
+        : Math.sqrt((2 * distance * accel * decel) / (accel + decel));
+  const accelTime = peak / accel;
+  if (t <= accelTime) return 0.5 * accel * t * t;
+  const brakeTime = decel === undefined ? 0 : peak / decel;
+  if (t <= total - brakeTime || decel === undefined) return (peak * peak) / (2 * accel) + peak * (t - accelTime);
+  const remaining = total - t;
+  return distance - 0.5 * decel * remaining * remaining;
+}
+
 /** Transfer-table cycle: lift + chain move (accelerate, cruise, brake) + lower. */
 export function transferCycleTime(args: {
   liftTime: number;

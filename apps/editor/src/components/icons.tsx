@@ -10,6 +10,14 @@ const PATHS = {
   components: 'M4 4h7v7H4z M13 4h7v7h-7z M4 13h7v7H4z M13 13h7v7h-7z',
   properties: 'M4 6h16 M4 12h16 M4 18h16 M8 4v4 M16 10v4 M10 16v4',
   assets: 'M3 8l9-5 9 5-9 5z M3 8v8l9 5 9-5V8 M12 13v8',
+  open: 'M3 7h6l2 2h10v10H3z',
+  frameAll: 'M4 9V4h5 M15 4h5v5 M20 15v5h-5 M9 20H4v-5 M9 9h6v6H9z',
+  save: 'M5 3h11l3 3v15H5z M8 3v6h8V3 M8 21v-7h8v7',
+  controller: 'M4 6h6v4H4z M14 14h6v4h-6z M10 8h4v8h0 M14 16h-4',
+  play: 'M7 4l13 8-13 8z',
+  pause: 'M7 4h4v16H7z M14 4h4v16h-4z',
+  step: 'M5 4l10 8-10 8z M18 4v16',
+  stop: 'M6 6h12v12H6z',
 } as const;
 
 export type IconName = keyof typeof PATHS;

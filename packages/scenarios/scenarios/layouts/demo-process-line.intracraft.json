@@ -1,0 +1,84 @@
+{
+  "schemaVersion": 1,
+  "name": "Demo: process station between two conveyors (30 s per pallet)",
+  "seed": 1,
+  "layout": {
+    "connections": [],
+    "instances": [
+      {
+        "id": "source1",
+        "definitionId": "flow.source",
+        "definitionVersion": "0.1.0",
+        "name": "Infeed",
+        "position": {
+          "x": 0,
+          "y": 0,
+          "z": 0
+        },
+        "yaw": 0,
+        "params": {
+          "interval": 120
+        },
+        "attributes": {}
+      },
+      {
+        "id": "roller1",
+        "definitionId": "conveyor.roller",
+        "definitionVersion": "0.1.0",
+        "name": "Roller 1",
+        "position": {
+          "x": 0.42,
+          "y": 0,
+          "z": 0
+        },
+        "yaw": 0,
+        "params": {},
+        "attributes": {}
+      },
+      {
+        "id": "process_station1",
+        "definitionId": "flow.process_station",
+        "definitionVersion": "0.1.0",
+        "name": "Inspection (30 s)",
+        "position": {
+          "x": 3.44,
+          "y": 0,
+          "z": 0
+        },
+        "yaw": 0,
+        "params": {
+          "processingTime": 30
+        },
+        "attributes": {}
+      },
+      {
+        "id": "roller2",
+        "definitionId": "conveyor.roller",
+        "definitionVersion": "0.1.0",
+        "name": "Roller 2",
+        "position": {
+          "x": 5.06,
+          "y": 0,
+          "z": 0
+        },
+        "yaw": 0,
+        "params": {},
+        "attributes": {}
+      },
+      {
+        "id": "sink1",
+        "definitionId": "flow.sink",
+        "definitionVersion": "0.1.0",
+        "name": "Outfeed",
+        "position": {
+          "x": 8.08,
+          "y": 0,
+          "z": 0
+        },
+        "yaw": 0,
+        "params": {},
+        "attributes": {}
+      }
+    ]
+  }
+}

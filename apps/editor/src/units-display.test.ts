@@ -7,6 +7,11 @@ describe('display units', () => {
     expect(fromDisplay(206.3, 'm', 'mm')).toBeCloseTo(0.2063, 12);
   });
 
+  it('shows seconds as milliseconds and back', () => {
+    expect(toDisplay(0.002, 's', 'ms')).toBeCloseTo(2, 12);
+    expect(fromDisplay(2000, 's', 'ms')).toBe(2);
+  });
+
   it('shows radians, rad/s and rad/s² as degrees', () => {
     expect(toDisplay(Math.PI / 2, 'rad', '°')).toBeCloseTo(90, 9);
     expect(toDisplay((15 * Math.PI) / 180, 'rad/s', '°/s')).toBeCloseTo(15, 9);

@@ -1,0 +1,21 @@
+{
+  "note": "Paleta propia de IntraCraft. Dematic es solo referencia de tono (sobriedad, confianza); no se copian sus colores.",
+  "colors": {
+    "navy-900": { "hex": "#0B2545", "role": "base de marca, fondos oscuros, texto principal sobre claro" },
+    "navy-700": { "hex": "#13396B", "role": "variante de base, hover" },
+    "steel-500": { "hex": "#3E7CB1", "role": "acento secundario, enlaces, gráficos" },
+    "steel-200": { "hex": "#C9DCEC", "role": "fondos suaves, bordes" },
+    "amber-500": { "hex": "#F2A900", "role": "acento único: flujo, llamada a la acción (uso escaso)" },
+    "grey-900": { "hex": "#1B1F24", "role": "texto en modo claro" },
+    "grey-600": { "hex": "#5A6572", "role": "texto secundario" },
+    "grey-100": { "hex": "#EEF1F4", "role": "fondo claro" },
+    "white": { "hex": "#FFFFFF", "role": "fondo y texto sobre oscuro" }
+  },
+  "contrast": [
+    { "fg": "white", "bg": "navy-900", "ratio": "14.9:1", "aa": true },
+    { "fg": "navy-900", "bg": "grey-100", "ratio": "13.2:1", "aa": true },
+    { "fg": "navy-900", "bg": "amber-500", "ratio": "7.4:1", "aa": true },
+    { "fg": "steel-500", "bg": "white", "ratio": "4.2:1", "aa": "solo texto grande" }
+  ],
+  "contrastStatus": "valores estimados; se verifican con script en el paso 3"
+}

@@ -1,0 +1,54 @@
+{
+  "schemaVersion": 1,
+  "name": "T1 single pallet over a 3 m roller conveyor",
+  "seed": 1,
+  "layout": {
+    "instances": [
+      {
+        "id": "source1",
+        "definitionId": "flow.source",
+        "definitionVersion": "0.1.0",
+        "name": "Source",
+        "position": {
+          "x": 0,
+          "y": 0,
+          "z": 0
+        },
+        "yaw": 0,
+        "params": {
+          "maxPallets": 1
+        },
+        "attributes": {}
+      },
+      {
+        "id": "roller1",
+        "definitionId": "conveyor.roller",
+        "definitionVersion": "0.1.0",
+        "name": "Roller 3 m",
+        "position": {
+          "x": 0.42,
+          "y": 0,
+          "z": 0
+        },
+        "yaw": 0,
+        "params": {},
+        "attributes": {}
+      },
+      {
+        "id": "sink1",
+        "definitionId": "flow.sink",
+        "definitionVersion": "0.1.0",
+        "name": "Sink",
+        "position": {
+          "x": 3.44,
+          "y": 0,
+          "z": 0
+        },
+        "yaw": 0,
+        "params": {},
+        "attributes": {}
+      }
+    ],
+    "connections": []
+  }
+}
