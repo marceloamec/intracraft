@@ -101,7 +101,7 @@ Same set for [[S12 Manual Lift Table]], [[S13 Scissor Lift Table]] and [[S14 Pal
 - Signals (`enable`, `atTop`, `atBottom`, `occupied`), push-button or foot-pedal control, and safety devices (light curtain).
 - The operator as a separate object: walking times, or one operator serving several tables.
 - A table that waits at the other level.
-- 3D physics (`phys.lift_station`), which arrives with spike S1.
+- 3D physics: done on 2026-10-31 (`Station3D`). The platform carries the pallet up and down by contact; the cycle is the 2D one ([[ADR-0016 Physics World Built from the Layout]]).
 
 The real pallet-jack height and how the jack enters are open: [[Open Questions]] Q14.
 

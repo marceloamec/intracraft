@@ -90,6 +90,7 @@ IntraCraft simulates pallet conveyor systems with **one layout and two modes**: 
 - [[ADR-0013 Lift Station 2D Cycle]]
 - [[ADR-0014 Gravity Line 2D Model]]
 - [[ADR-0015 MTBH Rigid Body from Pallet and Load Models]]
+- [[ADR-0016 Physics World Built from the Layout]]
 
 ## Reference
 

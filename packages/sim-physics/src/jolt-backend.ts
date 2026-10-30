@@ -231,7 +231,12 @@ class JoltBackend implements PhysicsBackend {
     return { linear, angular: { x: w.GetX(), y: w.GetY(), z: w.GetZ() } };
   }
 
-  castRay(origin: Vec3, direction: Vec3, maxDistance: number): RayHit | undefined {
+  castRay(
+    origin: Vec3,
+    direction: Vec3,
+    maxDistance: number,
+    accept?: (body: BodyHandle) => boolean,
+  ): RayHit | undefined {
     const jolt = this.jolt;
     const length = Math.hypot(direction.x, direction.y, direction.z);
     const scale = maxDistance / length;
@@ -239,7 +244,7 @@ class JoltBackend implements PhysicsBackend {
     const span = new jolt.Vec3(direction.x * scale, direction.y * scale, direction.z * scale);
     const ray = new jolt.RRayCast(start, span);
     const raySettings = new jolt.RayCastSettings();
-    const collector = new jolt.CastRayClosestHitCollisionCollector();
+    const collector = new jolt.CastRayAllHitCollisionCollector();
     const broadPhaseFilter = new jolt.DefaultBroadPhaseLayerFilter(
       this.joltInterface.GetObjectVsBroadPhaseLayerFilter(),
       LAYER_MOVING,
@@ -262,12 +267,16 @@ class JoltBackend implements PhysicsBackend {
         bodyFilter,
         shapeFilter,
       );
-    const hit = collector.HadHit()
-      ? {
-          record: this.byBodyId.get(collector.mHit.mBodyID.GetIndexAndSequenceNumber()),
-          fraction: collector.mHit.mFraction,
-        }
-      : undefined;
+    // All hits, nearest first: the first accepted one is the answer.
+    collector.Sort();
+    let hit: { record: BodyRecord; fraction: number } | undefined;
+    for (let i = 0; i < collector.mHits.size(); i++) {
+      const result = collector.mHits.at(i);
+      const record = this.byBodyId.get(result.mBodyID.GetIndexAndSequenceNumber());
+      if (record === undefined || (accept !== undefined && !accept(record.handle))) continue;
+      hit = { record, fraction: result.mFraction };
+      break;
+    }
     for (const object of [
       start,
       span,
@@ -281,7 +290,7 @@ class JoltBackend implements PhysicsBackend {
     ]) {
       jolt.destroy(object);
     }
-    if (hit?.record === undefined) return undefined;
+    if (hit === undefined) return undefined;
     return { body: hit.record.handle, distance: hit.fraction * maxDistance };
   }
 

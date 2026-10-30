@@ -73,12 +73,12 @@ Above the pallet (> 144 mm) the beam sees the load instead, if there is one.
 
 ## 4. Tests
 
-| Test | Criterion                                                                                          | Status     |
-| ---- | -------------------------------------------------------------------------------------------------- | ---------- |
-| T6   | Sensor and reflector at 2.0 m, beam in a continuous band → rising at front, falling at tail, 4.8 s | ✅ 2D test |
-| —    | Beam at 60 mm on rollers with EUR → three pulses per pallet; with `filter` 2000 ms → one           | ✅ 2D test |
-| —    | Oblique beam (different `sensorS` and `reflectorS`) → edges match the analytic intervals           | ✅ 2D test |
-| P6   | 3D and 2D edges within ±50 ms                                                                      | ⏳ phase 4 |
+| Test | Criterion                                                                                          | Status      |
+| ---- | -------------------------------------------------------------------------------------------------- | ----------- |
+| T6   | Sensor and reflector at 2.0 m, beam in a continuous band → rising at front, falling at tail, 4.8 s | ✅ 2D test  |
+| —    | Beam at 60 mm on rollers with EUR → three pulses per pallet; with `filter` 2000 ms → one           | ✅ 2D test  |
+| —    | Oblique beam (different `sensorS` and `reflectorS`) → edges match the analytic intervals           | ✅ 2D test  |
+| P6   | 3D and 2D edges within ±50 ms                                                                      | ✅ ADR-0016 |
 
 ## Related
 

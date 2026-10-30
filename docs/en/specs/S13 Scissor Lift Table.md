@@ -68,7 +68,7 @@ As [[S12 Manual Lift Table]] §3: `utilization`, `blockedShare`, `idleShare`, `p
 - Signals, and a table that waits at the exit height.
 - Entry and exit at the same end.
 - Double scissors, and a stroke limit that depends on the scissor size.
-- 3D physics (`phys.lift_station`), which arrives with spike S1.
+- 3D physics: done on 2026-10-31 (`Station3D`). The platform carries the pallet up and down by contact; the cycle is the 2D one ([[ADR-0016 Physics World Built from the Layout]]).
 
 Real lift speeds: [[Open Questions]] Q15.
 

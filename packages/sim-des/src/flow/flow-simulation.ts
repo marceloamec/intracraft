@@ -158,6 +158,8 @@ export class FlowSimulation {
     });
     this.sim.on('sink.free', () => this.settle());
     this.sim.on('station.done', (sim, event) => {
+      // The time of the step belongs to the phase that ends now (processing, lifting…).
+      this.accumulate(sim.now);
       this.stations.get(event.target)?.finishTimedStep(sim.now);
       this.settle();
     });

@@ -10,7 +10,7 @@ status: spec
 
 # S09 Source and Sink (`flow.source`, `flow.sink`)
 
-Definitions: `flow.source` (`source.json`) and `flow.sink` (`sink.json`). Implemented in 2D on 2026-10-30 ([[ADR-0007 2D Flow Model Without Accumulation]]). Not yet implemented: load mass as a distribution, the "on demand" and "list" arrival rules, sink removal by signal, and the 3D behaviour. The source's `generationMode` options today are `fixedInterval` (first pallet at time 0) and `exponential` (seeded, interval = mean). `maxPallets` 0 means unlimited.
+Definitions: `flow.source` (`source.json`) and `flow.sink` (`sink.json`). Implemented in 2D on 2026-10-30 ([[ADR-0007 2D Flow Model Without Accumulation]]). Not yet implemented: load mass as a distribution, the "on demand" and "list" arrival rules, and sink removal by signal. The 3D behaviour exists since 2026-10-31 ([[ADR-0016 Physics World Built from the Layout]]): the pallet appears moving with the conveying surface, and a receiving bed carries it into the sink. The source's `generationMode` options today are `fixedInterval` (first pallet at time 0) and `exponential` (seeded, interval = mean). `maxPallets` 0 means unlimited.
 
 ## 1. Source (pallet generator)
 

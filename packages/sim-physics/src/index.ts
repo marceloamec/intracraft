@@ -3,3 +3,4 @@ export * from './fixed-step';
 export * from './jolt-backend';
 export * from './mechanics';
 export * from './mtbh';
+export * from './world';

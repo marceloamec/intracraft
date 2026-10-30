@@ -91,7 +91,13 @@ export interface PhysicsBackend {
   setSurfaceVelocity(body: BodyHandle, velocity: Vec3): boolean;
   getPose(body: BodyHandle): Pose;
   getVelocity(body: BodyHandle): Velocity;
-  castRay(origin: Vec3, direction: Vec3, maxDistance: number): RayHit | undefined;
+  /** First body along the ray; with `accept`, the first body it accepts (beams ignore guides and frames). */
+  castRay(
+    origin: Vec3,
+    direction: Vec3,
+    maxDistance: number,
+    accept?: (body: BodyHandle) => boolean,
+  ): RayHit | undefined;
   step(dt: number): void;
   /** Impacts found since the previous call; the list is emptied. */
   takeImpacts(): Impact[];

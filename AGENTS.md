@@ -44,7 +44,7 @@ intracraft/
 │  ├─ asset-catalog/      (catálogo de modelos 3D GLB de terceros: manifiesto y consultas)
 │  ├─ geometry/           (geometría paramétrica 3D y símbolos 2D)
 │  ├─ sim-des/            (motor de eventos discretos)
-│  ├─ sim-physics/        (envoltorio del motor de física)
+│  ├─ sim-physics/        (envoltorio del motor de física y ejecución 3D del layout, ADR-0016)
 │  ├─ control/            (señales y reglas Si/Entonces)
 │  └─ scenarios/          (escenarios de prueba y resultados esperados)
 ├─ apps/

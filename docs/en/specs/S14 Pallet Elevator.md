@@ -83,7 +83,7 @@ As [[S12 Manual Lift Table]] §3: `utilization`, `blockedShare`, `idleShare`, `p
 - Three or more levels, entry from both ends, and several exits chosen by rule.
 - Waiting at the exit level, or being called by a signal.
 - A carriage that carries two pallets, and landing gates.
-- 3D physics (`phys.lift_station`), which arrives with spike S1.
+- 3D physics: done on 2026-10-31 (`Station3D`). The platform carries the pallet up and down by contact; the cycle is the 2D one ([[ADR-0016 Physics World Built from the Layout]]).
 
 Variants and real speeds: [[Open Questions]] Q15 and Q17.
 

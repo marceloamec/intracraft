@@ -93,9 +93,9 @@ Each pallet moves on its own ([[ADR-0014 Gravity Line 2D Model]]).
 ## 5. Not included yet
 
 - Signals (`pickupOccupied`, `full`) and photocells mounted on the line.
-- Brake behaviour that depends on pallet mass, and impact at the end stop. Both belong to the 3D mode.
+- Brake behaviour that depends on pallet mass (the 3D brake rollers cap the speed for any mass).
 - Handing pallets to a conveyor at the end.
-- 3D physics (`phys.gravity`, brake rollers on a slope), which arrives with spike S1.
+- 3D physics: done on 2026-10-31 (`GravityLine3D`). The rollers are kinematic and follow their pallet, capped at the brake speed. The impacts at the separator and the end stop are measured: ½·m·v², 12.6 J for 631 kg at 0.2 m/s ([[ADR-0016 Physics World Built from the Layout]]).
 
 Real slope, brake spacing, brake speed, separator delay and queue behaviour: [[Open Questions]] Q16.
 

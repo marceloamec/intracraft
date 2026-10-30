@@ -2,13 +2,18 @@
   "name": "@intracraft/sim-physics",
   "version": "0.0.0",
   "private": true,
-  "description": "Physics-mode wrapper. Isolates the physics engine (chosen in spike S1) behind a backend interface.",
+  "description": "Physics mode: wrapper of the physics engine (Jolt, ADR-0002) and the 3D run of a layout built as bodies (A07, ADR-0016).",
   "type": "module",
   "exports": {
     ".": "./src/index.ts"
   },
   "dependencies": {
+    "@intracraft/asset-catalog": "workspace:*",
+    "@intracraft/control": "workspace:*",
     "@intracraft/core-model": "workspace:*",
+    "@intracraft/geometry": "workspace:*",
+    "@intracraft/library": "workspace:*",
+    "@intracraft/sim-des": "workspace:*",
     "jolt-physics": "1.1.1"
   }
 }

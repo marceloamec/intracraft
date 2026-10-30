@@ -155,6 +155,22 @@ describe('Jolt backend: queries and determinism', () => {
     });
   });
 
+  it('skips the bodies a filter rejects, so a beam sees the pallet behind a guide', async () => {
+    await withWorld(pairs({ 'concrete|wood': [0.5, 0], 'steel-painted|wood': [0.3, 0.1] }), (world) => {
+      world.addBody(floor());
+      const wall = world.addBody(wallAt(0.5));
+      const box = world.addBody(box1000({ x: 2, y: BOX_HALF.y, z: 0 }));
+      const origin = { x: 0, y: 0.07, z: 0 };
+      const direction = { x: 1, y: 0, z: 0 };
+      expect(world.castRay(origin, direction, 5)?.body).toBe(wall);
+      expect(world.castRay(origin, direction, 5, (body) => body === box)).toEqual({
+        body: box,
+        distance: expect.closeTo(1.4, 3),
+      });
+      expect(world.castRay(origin, direction, 1, (body) => body === box)).toBeUndefined();
+    });
+  });
+
   it('gives the same state hash for the same inputs and a different one otherwise', async () => {
     const hashes: string[] = [];
     for (const speed of [0.25, 0.25, 0.26]) {
