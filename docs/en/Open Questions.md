@@ -2,7 +2,7 @@
 title: Open Questions
 lang: en
 tags: [questions, reference]
-updated: 2026-10-29
+updated: 2026-10-30
 ---
 
 🌐 **EN** · [[Preguntas abiertas|ES]] · [[Offene Fragen|DE]] · [[Home (EN)|Index]]
@@ -96,3 +96,27 @@ Each question states **what must be decided**, **why it matters** (which result 
 - **Decide:** whether your pallets match the EPAL construction used in [[S10 Pallet Types]] (bottom boards 100/145/100 mm, 78 mm blocks, 22 mm stringer boards, 5 top boards).
 - **Why:** it determines the voids the photocells see and the support on chains.
 - **Request:** if possible, measure a real pallet (block and board positions).
+
+### Q14. Pallet-jack side of the manual lift table and the gravity line
+- **Decide:** the deck height at pallet-jack level and how the jack reaches the pallet.
+- **Why:** it sets the stroke and the cycle time of [[S12 Manual Lift Table]], and the entry height of [[S15 Gravity Roller Line]].
+- **Specific questions:** (a) What is the lowest deck height at the operator side (`lowHeight`)? (b) Does the jack enter along the line (end) or from the side? (c) Is the deck rollers only, or is there a chain or fork-pocket section for the jack? (d) How long does an operator need per pallet (drive in, lift, leave, come back)?
+- **Assumed:** 0.10 m, entry from the end, rollers only; operator time is a sink `removalTime`.
+
+### Q15. Lift speeds and the elevator's rest level
+- **Decide:** real vertical speeds and what a lift does after discharging.
+- **Why:** they set the cycle time and the throughput of the scissor table, the manual table and the elevator.
+- **Specific questions:** (a) Scissor and manual tables: lifting and lowering speed, or time for the full stroke? (b) Elevator: carriage speed and acceleration? (c) Does a lift always go back to the entry level, or wait where it is until the next call?
+- **Assumed:** tables 0.05 m/s up, 0.07 m/s down, 0.2 m/s²; elevator 0.5 m/s and 0.5 m/s²; always back to the entry level ([[ADR-0013 Lift Station 2D Cycle]]).
+
+### Q16. Gravity line values and queue behaviour
+- **Decide:** slope, brake spacing, brake speed, separator delay and how a queue starts.
+- **Why:** they set the time a pallet needs to reach the operator, the line's capacity and whether the operator or the line limits throughput.
+- **Specific questions:** (a) Typical slope (%)? (b) One brake roller every how many rollers? (c) Speed held by the brakes? (d) Is the separator time-delayed, and with what delay? (e) When the separator lets go, does the whole queue move as one block, or do the pallets spread out? If they spread, roughly how far apart (that gives `startDelay` = gap / brake speed)? (f) Length of the pick-up position?
+- **Assumed:** 4 %, every 4 rollers (825 mm), 0.2 m/s, 3 s, `startDelay` 1 s (gaps of ≈ 0.2 m), pick-up 1.3 m ([[S15 Gravity Roller Line]]).
+
+### Q17. Elevator variants
+- **Decide:** which variants beyond the two-level C and Z elevator are needed, and in what order.
+- **Why:** several levels and entries from both ends need a destination rule and change the cycle ([[S14 Pallet Elevator]]).
+- **Specific questions:** (a) How many levels at most? (b) Entry from both ends? (c) How is the destination level chosen (fixed, by pallet type, by rule)?
+- **Assumed:** two levels, entry on one end, exit on the same side (C) or the opposite side (Z).

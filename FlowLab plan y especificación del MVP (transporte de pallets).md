@@ -54,10 +54,11 @@
 - Editor: colocar, conectar, parametrizar, guardar y abrir; reproducir, pausar y acelerar.
 - Estadísticas básicas por objeto, exportación a CSV/JSON y ejecución sin interfaz (CLI).
 - Librería integrada con presets y componentes propios (duplicar y editar).
+- Ampliación del 30-10-2026 (ADR-0012): mesa elevadora manual para transpaleta, mesa de tijera, elevador de dos niveles y línea de rodillos por gravedad con separador (especificaciones S12–S15 en `docs/en/specs/`).
 
 ### 2.2 Fuera del MVP (post-MVP)
 
-Curvas, elevadores, lanzaderas y desviadores; cajas y cubetas; fallos (MTBF/MTTR) y energía; scripting de usuario; traspaso de estado entre modos en mitad de la simulación; calibración automática 2D↔3D; experimentos y optimización; OPC UA/PLC; importación de CAD; trabajo en equipo.
+Curvas, elevadores de tres o más niveles, lanzaderas y desviadores; cajas y cubetas; fallos (MTBF/MTTR) y energía; scripting de usuario; traspaso de estado entre modos en mitad de la simulación; calibración automática 2D↔3D; experimentos y optimización; OPC UA/PLC; importación de CAD; trabajo en equipo.
 
 ### 2.3 Definición de “hecho” del MVP
 
@@ -311,7 +312,7 @@ Tramo recto de rodillos que transporta el pallet con las tablas inferiores en el
 
 - **Modo 2D:** el pallet acelera, cruza y frena con perfil trapezoidal. En acumulación sin presión (ZPA) cada zona arranca solo si la siguiente está libre; en acumulación con presión los pallets se empujan hasta quedar a la separación mínima.
 - **Modo 3D:** cada rodillo es un cilindro cinemático con velocidad angular ω = v / (diámetro / 2), agrupado por zona. El pallet avanza por rozamiento con sus tablas inferiores, así que puede patinar si el par de fricción es bajo o si está retenido.
-- **Rodillos libres (gravedad):** sin accionamiento; el pallet solo los cruza si lo empuja un tramo motorizado (el MVP no incluye pendiente).
+- **Rodillos libres (gravedad):** sin accionamiento; el pallet solo los cruza si lo empuja un tramo motorizado (sin pendiente; la línea de gravedad con pendiente, frenos y separador es un objeto aparte: S15).
 - **Validaciones:** regla de 3 rodillos, ancho útil frente al pallet y longitud de zona ≥ largo del pallet + 100 mm.
 
 ### 8.2 Mesa de cadenas (`transp.cadenas`)
@@ -640,7 +641,7 @@ Orden pensado para atacar primero el mayor riesgo (la física de las cadenas) y 
 
 1. Traspaso de estado entre modos en mitad de la simulación.
 2. Calibración automática 2D↔3D.
-3. Curvas, desviadores, elevadores y lanzaderas.
+3. Curvas, desviadores, elevadores de varios niveles y lanzaderas.
 4. Cajas y cubetas.
 5. Fallos (MTBF/MTTR) y consumo de energía.
 6. Scripting de usuario.
