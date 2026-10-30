@@ -126,3 +126,25 @@ Each question states **what must be decided**, **why it matters** (which result 
 - **Why:** in the 3D mode a pallet that enters turned 5° **wedges** between painted steel guides (μ = 0.3) with 10 mm clearance. With low-friction polyethylene strips (μ = 0.2) it is straightened ([[ADR-0002 Physics Engine Candidate]], P9). The default height of 150 mm is above the top of a EUR pallet (144 mm), so a load that overhangs the pallet hits the guides.
 - **Options:** (1) polyethylene strips as the default guide surface; (2) keep painted steel and add a warning when the entry may be turned more than about 3°; (3) guide height limited to the pallet height (about 100–140 mm), or a validation against the load overhang.
 - **Assumed:** S08 unchanged; the bench uses 100 mm polyethylene guides for S1-d.
+
+### Q19. Default values from the pallet-conveyor knowledge base
+- **Decide:** which of these defaults to change. They come from application guides of heavy pallet conveyors (indicative values, not manufacturer data in IntraCraft).
+- **Why:** they change heights, widths and speeds, so 2D results and saved layouts that rely on the defaults change. Only drawing details were applied on 2026-10-30 (`driveSide`, `driveMounting`, `runnerGuide`, `endStop`, `drivePosition`, `sideGuard`).
+
+| #   | Object                     | Parameter                         | Today                           | Proposed                                                        | Changes results |
+| --- | -------------------------- | --------------------------------- | ------------------------------- | --------------------------------------------------------------- | --------------- |
+| a   | Roller conveyor (S01)      | `surfaceHeight`                   | 600 mm                          | 520 mm (540 mm next to turntables and transfer tables)          | No (2D)         |
+| b   | Roller conveyor            | `usableWidth`                     | free, 1000 mm                   | List 969 / 1169 / 1388 mm for loads up to 800 / 1000 / 1219 mm  | No (2D)         |
+| c   | Roller conveyor            | `rollerPitch`, `rollerDiameter`   | {133, 206.3} mm, {76, 89} mm    | {126.9, 206.3} mm, Ø 89 mm only                                 | 3D only         |
+| d   | Roller conveyor            | `nominalSpeed`                    | 0.25 m/s                        | 0.3 m/s (list 0.2 / 0.3 / 0.4 / 0.5)                            | Yes             |
+| e   | Roller conveyor            | `approachSpeed`                   | 0.10 m/s                        | 0.04 m/s creep speed                                            | When used       |
+| f   | Roller conveyor            | `maxPalletLoad`                   | 1000 kg                         | 1500 kg per load                                                | Warnings only   |
+| g   | Chain conveyor (S02)       | `usableWidth`, `chainCount`       | 1300 mm, 3 (2–6)                | Track gauge 700 / 870 / 1050 mm (default 1050) with 2–4 strands | 3D only         |
+| h   | Chain conveyor             | `chainPitch`, `surfaceHeight`     | 38.1 mm, 600 mm                 | 15.875 mm, 510 mm                                               | 3D only         |
+| i   | Chain conveyor             | length check                      | —                               | Warn above 9 m (centre drive) or 6 m (head drive)               | Warnings only   |
+| j   | Turntables (S03, S04)      | `maxAngularSpeed`, `angularAccel` | 15 °/s, 30 °/s² (6.5 s per 90°) | 45 °/s, 45 °/s² (3 s per 90°)                                   | Yes             |
+| k   | Turntables                 | angular range                     | unlimited                       | 0–270°, shortest path inside the range                          | Yes             |
+| l   | Turntables                 | size                              | 1400 × 1200 mm platform         | Turning circle Ø 1710 mm                                        | Yes             |
+| m   | Roller and chain conveyors | receive rule                      | receive while not blocked       | Option "receive only when empty"                                | Yes             |
+
+- **Assumed:** today's values stay until the owner ticks the rows to apply. The roller↔chain transfer (S05) is handled separately: its rewritten specification is waiting for confirmation.

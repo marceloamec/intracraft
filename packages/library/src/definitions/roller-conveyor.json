@@ -126,6 +126,30 @@
       "derived": true, "formula": "floor(length / rollerPitch)",
       "label": { "en": "Number of rollers", "es": "Número de rodillos", "de": "Anzahl Rollen" },
       "description": { "en": "Derived from length and pitch", "es": "Derivado de la longitud y el paso", "de": "Abgeleitet aus Länge und Teilung" }
+    },
+    {
+      "key": "driveSide", "type": "enum", "options": ["right", "left"],
+      "default": "right", "group": "drive", "affects": "geometry",
+      "label": { "en": "Drive side", "es": "Lado del accionamiento", "de": "Antriebsseite" },
+      "description": { "en": "Side of the drive and of the chain guard, seen in the direction of travel (drawing only)", "es": "Lado del accionamiento y del protector de cadena, mirando en el sentido del avance (solo dibujo)", "de": "Seite des Antriebs und des Kettenschutzes in Förderrichtung gesehen (nur Darstellung)" }
+    },
+    {
+      "key": "driveMounting", "type": "enum", "options": ["inside", "outside"],
+      "default": "inside", "group": "drive", "affects": "geometry",
+      "label": { "en": "Drive mounting", "es": "Montaje del accionamiento", "de": "Antriebsanordnung" },
+      "description": { "en": "Geared motor under the deck inside the frame, or mounted on a drive roller outside the frame (drawing only)", "es": "Motorreductor bajo la cubierta dentro del bastidor, o montado sobre un rodillo motriz por fuera del bastidor (solo dibujo)", "de": "Getriebemotor unter dem Deck innerhalb des Rahmens oder außen auf einer Antriebsrolle (nur Darstellung)" }
+    },
+    {
+      "key": "runnerGuide", "type": "enum", "options": ["none", "outerOutside", "outerInside", "centre"],
+      "default": "none", "group": "guides", "affects": "geometry",
+      "label": { "en": "Runner guide", "es": "Guiado de patines", "de": "Kufenführung" },
+      "description": { "en": "Guide disks on every third roller that guide the pallet runners: outside or inside the outer runners, or at the centre runner (drawing only)", "es": "Discos guía cada tres rodillos que guían los patines del pallet: por fuera o por dentro de los patines exteriores, o en el patín central (solo dibujo)", "de": "Führungsscheiben auf jeder dritten Rolle, die die Palettenkufen führen: außen oder innen an den äußeren Kufen oder an der mittleren Kufe (nur Darstellung)" }
+    },
+    {
+      "key": "endStop", "type": "boolean",
+      "default": false, "group": "geometry", "affects": "geometry",
+      "label": { "en": "End stop", "es": "Tope final", "de": "Endanschlag" },
+      "description": { "en": "Fixed plate at the free end of a line so that pallets cannot run off (drawing only; in 2D a pallet always stops at an open end)", "es": "Placa fija en el extremo libre de una línea para que los pallets no se salgan (solo dibujo; en 2D un pallet siempre se para en un extremo abierto)", "de": "Feste Platte am freien Ende einer Linie, damit Paletten nicht herunterfahren (nur Darstellung; in 2D hält eine Palette an einem offenen Ende immer an)" }
     }
   ],
   "ports": [

@@ -1,7 +1,7 @@
 // Shared building blocks of the parametric conveyor models (SI units, local frame: x along
 // travel, y up, z across). Our own simple geometry; no third-party models (AGENTS.md, clean-room).
-import { rollerLayout } from '@intracraft/geometry';
-import { createContext, useContext, useLayoutEffect, useMemo, useRef } from 'react';
+import { frameBracing, rollerLayout, supportPositions } from '@intracraft/geometry';
+import { Fragment, createContext, useContext, useLayoutEffect, useMemo, useRef } from 'react';
 import { type InstancedMesh, Object3D } from 'three';
 
 export const FRAME_HEIGHT = 0.12;
@@ -15,7 +15,16 @@ export const COLORS = {
   base: '#4a525d',
   deck: '#6d7782',
   sweep: '#e0b341',
+  /** Guards, end stops and guide disks. */
+  guard: '#d9a62e',
+  motor: '#3f5f7a',
 };
+const POST = 0.05;
+/** Height of the adjustable foot under each post, plate included (m). */
+const FOOT_HEIGHT = 0.06;
+const FOOT_PLATE = 0.12;
+const PLATE_THICKNESS = 0.01;
+const BRACE = 0.035;
 
 /** How a model is drawn: normal, as a drag preview (ghost), selected, or dimmed while being moved. */
 export interface ModelStyle {
@@ -145,17 +154,95 @@ export function SideFrames({ x0, length, width, top }: { x0: number; length: num
   );
 }
 
-/** Four legs under a straight section. */
+/**
+ * Supports under a straight section whose frame bottom is at `height`: pairs of posts at most 2 m
+ * apart, each on an adjustable foot with a floor plate; a cross beam from 650 mm conveying height
+ * and a diagonal brace from 850 mm (indicative, from heavy pallet conveyors).
+ */
 export function Legs({ x0, length, width, height }: { x0: number; length: number; width: number; height: number }) {
   const z = width / 2 + FRAME_THICKNESS / 2;
-  const xs = [x0 + 0.1, x0 + length - 0.1];
+  const post = height - FOOT_HEIGHT;
+  const { crossBeam, diagonal } = frameBracing(height + FRAME_HEIGHT);
+  const rise = post * 0.7;
+  const brace = Math.hypot(2 * z, rise);
+  return (
+    <>
+      {supportPositions(length).map((x) => (
+        <Fragment key={x}>
+          {[-z, z].map((zz) => (
+            <Fragment key={zz}>
+              <Box size={[POST, post, POST]} position={[x0 + x, FOOT_HEIGHT + post / 2, zz]} color={COLORS.leg} />
+              <Box size={[FOOT_PLATE, PLATE_THICKNESS, FOOT_PLATE]} position={[x0 + x, PLATE_THICKNESS / 2, zz]} color={COLORS.base} />
+              <mesh position={[x0 + x, (FOOT_HEIGHT + PLATE_THICKNESS) / 2, zz]} castShadow>
+                <cylinderGeometry args={[0.012, 0.012, FOOT_HEIGHT - PLATE_THICKNESS, 8]} />
+                <Mat color={COLORS.roller} metalness={0.7} />
+              </mesh>
+            </Fragment>
+          ))}
+          {crossBeam && <Box size={[BRACE, BRACE, 2 * z]} position={[x0 + x, FOOT_HEIGHT + post * 0.25, 0]} color={COLORS.leg} />}
+          {diagonal && (
+            <mesh position={[x0 + x, FOOT_HEIGHT + post * 0.25 + rise / 2, 0]} rotation={[-Math.atan2(rise, 2 * z), 0, 0]} castShadow>
+              <boxGeometry args={[BRACE, BRACE, brace]} />
+              <Mat color={COLORS.leg} />
+            </mesh>
+          )}
+        </Fragment>
+      ))}
+    </>
+  );
+}
+
+/** Cover over the roller drive chains on top of the frame on the drive side (`side` +1: right, −1: left). */
+export function ChainGuard({ x0, length, width, top, side }: { x0: number; length: number; width: number; top: number; side: number }) {
+  const depth = FRAME_THICKNESS + 0.04;
+  return <Box size={[length, 0.03, depth]} position={[x0 + length / 2, top + 0.015, side * (width / 2 + depth / 2)]} color={COLORS.guard} />;
+}
+
+/** Geared motor: a gearbox with the motor on one side along `axis`. */
+export function DriveUnit({ position, axis, side }: { position: [number, number, number]; axis: 'x' | 'z'; side: number }) {
+  const [x, y, z] = position;
+  const motor: [number, number, number] = axis === 'x' ? [x - 0.24, y, z] : [x, y, z + side * 0.24];
+  return (
+    <>
+      <Box size={[0.22, 0.22, 0.2]} position={position} color={COLORS.motor} />
+      <mesh position={motor} rotation={axis === 'x' ? [0, 0, Math.PI / 2] : [Math.PI / 2, 0, 0]} castShadow>
+        <cylinderGeometry args={[0.085, 0.085, 0.28, 20]} />
+        <Mat color={COLORS.motor} metalness={0.4} />
+      </mesh>
+    </>
+  );
+}
+
+/** Flanged disks on some rollers that guide the pallet runners. */
+export function GuideDisks({ xs, zs, top, diameter }: { xs: number[]; zs: number[]; top: number; diameter: number }) {
   return (
     <>
       {xs.flatMap((x) =>
-        [-z, z].map((zz) => (
-          <Box key={`${x}:${zz}`} size={[0.05, height, 0.05]} position={[x, height / 2, zz]} color={COLORS.leg} />
+        zs.map((z) => (
+          <mesh key={`${x}:${z}`} position={[x, top - diameter / 2, z]} rotation={[Math.PI / 2, 0, 0]} castShadow>
+            <cylinderGeometry args={[diameter / 2 + 0.02, diameter / 2 + 0.02, 0.012, 24]} />
+            <Mat color={COLORS.guard} metalness={0.5} />
+          </mesh>
         )),
       )}
+    </>
+  );
+}
+
+/** Fixed plate at the free end of a line, standing above the conveying surface. */
+export function EndStopPlate({ x, width, top }: { x: number; width: number; top: number }) {
+  return <Box size={[0.02, 0.15, width]} position={[x + 0.01, top + 0.045, 0]} color={COLORS.guard} />;
+}
+
+/** Rail on posts along one side, at the height of the pallet side. */
+export function SideGuard({ x0, length, z, top }: { x0: number; length: number; z: number; top: number }) {
+  const posts = supportPositions(length, 0.05, 1);
+  return (
+    <>
+      {posts.map((x) => (
+        <Box key={x} size={[0.04, 0.24, 0.04]} position={[x0 + x, top + 0.07, z]} color={COLORS.guard} />
+      ))}
+      <Box size={[length, 0.04, 0.04]} position={[x0 + length / 2, top + 0.17, z]} color={COLORS.guard} />
     </>
   );
 }
