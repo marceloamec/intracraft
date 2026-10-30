@@ -59,6 +59,7 @@ Each question states **what must be decided**, **why it matters** (which result 
 - **Why:** highest-risk component (phase 8); its cycle limits throughput.
 - **Specific questions:** (a) Is it correct: longitudinal rollers + liftable chains between rollers that rise, move 90° and lower? (b) Number of chains, lift stroke (40 mm), lift/lower times (1 s). (c) Is the adjacent chain conveyor 40 mm higher than the rollers, or do the chains lower to hand over at the same height? (d) Is there a positioning stop?
 - **Assumed:** the plan's interpretation; with Ø89/206.3 the roller gap is 117.3 mm (chains up to ~107 mm fit).
+- **2026-10-30:** the owner chose the real mechanism (the roller section lifts 100 mm over fixed chains, chains 30 mm lower). The rewritten [[S05 Roller-to-Chain Transfer]] waits for confirmation before the 2D cycle and the 3D model change.
 
 ### Q7. Photocells: type and usual heights
 - **Decide:** default type and height when placing a new photocell.
