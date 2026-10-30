@@ -16,11 +16,15 @@ All access to the physics engine goes through this package. Nothing else may imp
 
 ## 2. What exists today
 
-| Module          | Content                                                                                                                                                                                                                                                           | Tests         |
-| --------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ------------- |
-| `backend.ts`    | `PhysicsBackend` interface: `addBody`, `removeBody`, `setKinematicVelocity`, `setSurfaceVelocity` (returns false if unsupported), `getPose`, `castRay`, `step`, `stateHash`; `BodyDesc` (static/kinematic/dynamic, shapes, mass, COM, friction, restitution, CCD) | — (interface) |
-| `fixed-step.ts` | `FixedStepClock` (accumulator, max steps per frame, interpolation `alpha`), `DEFAULT_PHYSICS_DT` = 1/120 s                                                                                                                                                        | ✓             |
-| `mechanics.ts`  | `rollerAngularVelocity`, `maxTractionAccel`, `turntableRequiredFriction`, `turntableRequiredTorque`, `sweptRadius`, `boxYawInertia`                                                                                                                               | ✓             |
+| Module            | Content                                                                                                                                                                                                                                                                                       | Tests |
+| ----------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ----- |
+| `backend.ts`      | `PhysicsBackend` interface: `addBody`, `removeBody`, `setVelocity`, `setSurfaceVelocity` (plan B), `getPose`, `getVelocity`, `castRay`, `step`, `takeImpacts`, `stateHash`, `dispose`; `BodyDesc` (static/kinematic/dynamic, box and cylinder shapes, contact material, mass properties, CCD) | —     |
+| `jolt-backend.ts` | Jolt adapter (`jolt-physics` WASM): engine settings of §5, exact pair friction and restitution per contact ([[S16 Contact Materials]]), surface velocity, impacts with approach speed and energy, deterministic state hash                                                                    | ✓     |
+| `mtbh.ts`         | Pallet + load as one rigid body from the catalogue models ([[ADR-0015 MTBH Rigid Body from Pallet and Load Models]])                                                                                                                                                                          | ✓     |
+| `fixed-step.ts`   | `FixedStepClock` (accumulator, max steps per frame, interpolation `alpha`), `DEFAULT_PHYSICS_DT` = 1/120 s                                                                                                                                                                                    | ✓     |
+| `mechanics.ts`    | `rollerAngularVelocity`, `maxTractionAccel`, `turntableRequiredFriction`, `turntableRequiredTorque`, `sweptRadius`, `boxYawInertia`, `solidBoxInertia`                                                                                                                                        | ✓     |
+
+The **physics bench** (`packages/scenarios/src/physics-bench.ts`) builds small worlds with this package and measures the spike S1 criteria as reference scenarios ([[A10 CLI and Scenarios]]).
 
 ## 3. Planned world building (phase 4)
 
@@ -54,8 +58,10 @@ publish snapshot to UI
 | Setting                          | Default (engine)                 | Planned value    | Reason                                  |
 | -------------------------------- | -------------------------------- | ---------------- | --------------------------------------- |
 | Time step                        | 1/60 s (Rapier)                  | 1/120 s          | [[T10 Time Integration and Fixed Step]] |
-| Penetration slop / allowed error | 0.02 m (Jolt) / 0.005 m (Rapier) | ≈ 0.001 m        | ±5 mm stop criterion                    |
-| Min velocity for restitution     | 1 m/s (Jolt)                     | ≈ 0.01 m/s       | Impacts at 0.1–0.25 m/s                 |
+| Penetration slop / allowed error | 0.02 m (Jolt) / 0.005 m (Rapier) | 0.001 m          | ±5 mm stop criterion                    |
+| Min velocity for restitution     | 1 m/s (Jolt)                     | 0.01 m/s         | Impacts at 0.1–0.25 m/s                 |
+| Speculative contact distance     | 0.02 m (Jolt)                    | 0.005 m          | Contacts created too early at stops     |
+| Linear and angular damping       | 0.05 1/s (Jolt)                  | 0                | Air drag would slow a pallet            |
 | Friction combination             | geometric mean / average         | exact pair value | Friction table                          |
 
 Every change of these values is recorded in `docs/*/decisions/` (AGENTS.md rule).

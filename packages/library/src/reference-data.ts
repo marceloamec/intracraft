@@ -40,7 +40,7 @@ export const contactMaterialSchema = z.object({
   description: localizedTextSchema,
 });
 
-/** Contact between two materials (S12): one friction coefficient and one restitution, both orders. */
+/** Contact between two materials (S16): one friction coefficient and one restitution, both orders. */
 export const contactPairSchema = z.object({
   a: z.string(),
   b: z.string(),

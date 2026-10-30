@@ -1,4 +1,4 @@
-// MTBH (material to be handled): one rigid body made of a real pallet model and its load (ADR-0013).
+// MTBH (material to be handled): one rigid body made of a real pallet model and its load (ADR-0015).
 // Body frame: X along the pallet length (travel on rollers), Y up, Z across; origin at the centre of the
 // footprint, on the underside. The contact shape is the pallet construction of S10 fitted to the model.
 import type { Vec3 } from '@intracraft/core-model';
@@ -59,7 +59,7 @@ export interface ModelPlacement {
 
 export interface Mtbh {
   shapes: Shape[];
-  /** Inertia products are neglected: the load offset only shifts the centre of mass (ADR-0013). */
+  /** Inertia products are neglected: the load offset only shifts the centre of mass (ADR-0015). */
   massProperties: MassProperties;
   material: string;
   placement: ModelPlacement;

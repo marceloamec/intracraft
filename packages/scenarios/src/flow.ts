@@ -42,6 +42,7 @@ export function runFlowScenario({ layout, seconds, instanceId, statistic }: Flow
   const sim = new FlowSimulation(buildFlowNetwork(connected, registry), { seed: project.seed });
   sim.runUntil(secondsToSimTime(seconds));
   const value = sim.statistics()[instanceId]?.[statistic];
-  if (value === undefined) throw new Error(`Layout "${layout}" has no statistic ${instanceId}.${statistic}`);
+  if (value === undefined)
+    throw new Error(`Layout "${layout}" has no statistic ${instanceId}.${statistic}`);
   return value;
 }

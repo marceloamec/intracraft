@@ -1,7 +1,7 @@
 // Manifest of third-party 3D models. The .glb files are NOT in git: `pnpm assets:fetch` downloads
 // them into library-assets/ and checks size and hash against this manifest.
 // Assets have no ports or signals; sizes are real-world metres, Y up. The rigid-body data the models
-// carry (mass, centre of mass, inertia) is copied into `physics` (ADR-0013).
+// carry (mass, centre of mass, inertia) is copied into `physics` (ADR-0015).
 import { localizedTextSchema, vec3Schema } from '@intracraft/core-model';
 import { z } from 'zod';
 

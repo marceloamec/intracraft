@@ -8,3 +8,5 @@ docs/.obsidian/workspace*.json
 docs/.obsidian/cache
 # Third-party 3D models, downloaded by `pnpm assets:fetch` (manifest: packages/asset-catalog)
 library-assets/
+# Private knowledge base: confidential source guides and the notes derived from them (Obsidian vault)
+knowledge/

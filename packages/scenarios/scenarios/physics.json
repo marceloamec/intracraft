@@ -1,0 +1,211 @@
+[
+  {
+    "id": "P1",
+    "title": {
+      "en": "S1-a: 1000 kg pallet on 10 rollers reaches 0.25 m/s",
+      "es": "S1-a: pallet de 1000 kg sobre 10 rodillos alcanza 0,25 m/s"
+    },
+    "kind": "physics",
+    "inputs": {
+      "measure": "steadySpeed",
+      "duration": 2.5,
+      "params": { "loadMass": 968.632, "conveyorLength": 2.07, "stopEnabled": false }
+    },
+    "unit": "m/s",
+    "expected": 0.25,
+    "relativeTolerance": 0.03
+  },
+  {
+    "id": "P2-steel",
+    "title": {
+      "en": "Traction limit on steel rollers (wood, μ = 0.35): a = μ·g",
+      "es": "Límite de tracción en rodillos de acero (madera, μ = 0,35): a = μ·g"
+    },
+    "kind": "physics",
+    "inputs": {
+      "measure": "tractionAccel",
+      "duration": 0.6,
+      "params": { "speed": 1, "accel": 8, "conveyorLength": 6, "stopEnabled": false }
+    },
+    "unit": "m/s²",
+    "expected": 3.4335,
+    "relativeTolerance": 0.1
+  },
+  {
+    "id": "P2-rubber",
+    "title": {
+      "en": "Traction limit on rubber-coated rollers (wood, μ = 0.6): a = μ·g",
+      "es": "Límite de tracción en rodillos engomados (madera, μ = 0,6): a = μ·g"
+    },
+    "kind": "physics",
+    "inputs": {
+      "measure": "tractionAccel",
+      "duration": 0.6,
+      "params": {
+        "speed": 1,
+        "accel": 8,
+        "conveyorLength": 6,
+        "stopEnabled": false,
+        "rollerMaterial": "rubber"
+      }
+    },
+    "unit": "m/s²",
+    "expected": 5.886,
+    "relativeTolerance": 0.1
+  },
+  {
+    "id": "P2-plastic",
+    "title": {
+      "en": "Traction limit of a plastic pallet on steel rollers (μ = 0.25): a = μ·g",
+      "es": "Límite de tracción de un pallet de plástico en rodillos de acero (μ = 0,25): a = μ·g"
+    },
+    "kind": "physics",
+    "inputs": {
+      "measure": "tractionAccel",
+      "duration": 0.6,
+      "params": {
+        "mtbhType": "plastic",
+        "speed": 1,
+        "accel": 8,
+        "conveyorLength": 6,
+        "stopEnabled": false
+      }
+    },
+    "unit": "m/s²",
+    "expected": 2.4525,
+    "relativeTolerance": 0.1
+  },
+  {
+    "id": "P3",
+    "title": {
+      "en": "S1-c: pallet against a steel stop at 0.25 m/s, front position error",
+      "es": "S1-c: pallet contra un tope de acero a 0,25 m/s, error de posición del frente"
+    },
+    "kind": "physics",
+    "inputs": { "measure": "stopFrontError", "duration": 10, "params": {} },
+    "unit": "m",
+    "expected": 0,
+    "absoluteTolerance": 0.005
+  },
+  {
+    "id": "P3-rebound",
+    "title": {
+      "en": "S1-c: rebound distance at the steel stop",
+      "es": "S1-c: distancia de rebote en el tope de acero"
+    },
+    "kind": "physics",
+    "inputs": { "measure": "reboundDistance", "duration": 10, "params": {} },
+    "unit": "m",
+    "expected": 0,
+    "absoluteTolerance": 0.01
+  },
+  {
+    "id": "P4",
+    "title": {
+      "en": "T5 in 3D: impact energy of 1025 kg at 0.25 m/s against the stop",
+      "es": "T5 en 3D: energía de impacto de 1025 kg a 0,25 m/s contra el tope"
+    },
+    "kind": "physics",
+    "inputs": { "measure": "impactEnergy", "duration": 10, "params": { "loadMass": 993.632 } },
+    "unit": "J",
+    "expected": 32.03125,
+    "relativeTolerance": 0.02
+  },
+  {
+    "id": "P5-steel",
+    "title": {
+      "en": "Restitution measured with an empty EUR pallet at a full-height steel stop face: rebound / approach speed = 0.1",
+      "es": "Restitución medida con una europallet vacía contra una cara de tope de acero de altura completa: rebote / aproximación = 0,1"
+    },
+    "kind": "physics",
+    "inputs": {
+      "measure": "restitution",
+      "duration": 8,
+      "params": {
+        "mtbhType": "eur-wood",
+        "stopHeight": 0.141,
+        "rollerMuOverride": true,
+        "rollerMu": 0,
+        "startAtSpeed": true
+      }
+    },
+    "unit": "",
+    "expected": 0.1,
+    "relativeTolerance": 0.1
+  },
+  {
+    "id": "P5-pu",
+    "title": {
+      "en": "Restitution measured with an empty EUR pallet at a full-height polyurethane buffer: rebound / approach speed = 0.2",
+      "es": "Restitución medida con una europallet vacía contra un amortiguador de poliuretano de altura completa: rebote / aproximación = 0,2"
+    },
+    "kind": "physics",
+    "inputs": {
+      "measure": "restitution",
+      "duration": 8,
+      "params": {
+        "mtbhType": "eur-wood",
+        "stopHeight": 0.141,
+        "rollerMuOverride": true,
+        "rollerMu": 0,
+        "startAtSpeed": true,
+        "stopMaterial": "polyurethane"
+      }
+    },
+    "unit": "",
+    "expected": 0.2,
+    "relativeTolerance": 0.1
+  },
+  {
+    "id": "P5-rubber",
+    "title": {
+      "en": "Restitution measured with an empty EUR pallet at a full-height rubber buffer: rebound / approach speed = 0.35",
+      "es": "Restitución medida con una europallet vacía contra un amortiguador de goma de altura completa: rebote / aproximación = 0,35"
+    },
+    "kind": "physics",
+    "inputs": {
+      "measure": "restitution",
+      "duration": 8,
+      "params": {
+        "mtbhType": "eur-wood",
+        "stopHeight": 0.141,
+        "rollerMuOverride": true,
+        "rollerMu": 0,
+        "startAtSpeed": true,
+        "stopMaterial": "rubber"
+      }
+    },
+    "unit": "",
+    "expected": 0.35,
+    "relativeTolerance": 0.1
+  },
+  {
+    "id": "P6",
+    "title": {
+      "en": "Centre of gravity: moving the load 100 mm forward makes the pallet tip that much earlier at the conveyor end (× 600/631.4)",
+      "es": "Centro de gravedad: adelantar la carga 100 mm hace volcar el pallet antes al final del transportador (× 600/631,4)"
+    },
+    "kind": "physics",
+    "inputs": {
+      "measure": "tipShift",
+      "duration": 14,
+      "comShift": 0.1,
+      "params": { "stopEnabled": false }
+    },
+    "unit": "m",
+    "expected": 0.095032,
+    "relativeTolerance": 0.15
+  },
+  {
+    "id": "P7",
+    "title": {
+      "en": "S1-g: determinism, same state after 60 s in two runs (1 = equal)",
+      "es": "S1-g: determinismo, mismo estado tras 60 s en dos ejecuciones (1 = iguales)"
+    },
+    "kind": "physics",
+    "inputs": { "measure": "determinism", "duration": 60, "params": {} },
+    "unit": "",
+    "expected": 1,
+    "absoluteTolerance": 0
+  }
+]

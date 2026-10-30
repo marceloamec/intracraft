@@ -76,6 +76,7 @@ IntraCraft simulates pallet conveyor systems with **one layout and two modes**: 
 | S13 | [[S13 Scissor Lift Table]]       | `conveyor.scissor_lift`      |
 | S14 | [[S14 Pallet Elevator]]          | `conveyor.elevator`          |
 | S15 | [[S15 Gravity Roller Line]]      | `conveyor.gravity`           |
+| S16 | [[S16 Contact Materials]]        | `material.*` (pair table)    |
 
 ## Decisions
 
@@ -88,6 +89,7 @@ IntraCraft simulates pallet conveyor systems with **one layout and two modes**: 
 - [[ADR-0012 Scope Extension Lifts Elevator and Gravity Line]]
 - [[ADR-0013 Lift Station 2D Cycle]]
 - [[ADR-0014 Gravity Line 2D Model]]
+- [[ADR-0015 MTBH Rigid Body from Pallet and Load Models]]
 
 ## Reference
 

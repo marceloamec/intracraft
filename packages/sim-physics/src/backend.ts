@@ -44,7 +44,7 @@ export interface BodyDesc {
   motion: 'static' | 'kinematic' | 'dynamic';
   pose: Pose;
   shapes: Shape[];
-  /** Contact material (S12): each contact takes friction and restitution from the pair table. */
+  /** Contact material (S16): each contact takes friction and restitution from the pair table. */
   material: string;
   /** Required for dynamic bodies. */
   massProperties?: MassProperties;
@@ -79,7 +79,7 @@ export interface RayHit {
   distance: number;
 }
 
-/** Friction and restitution of a contact between two materials (S12 pair table). */
+/** Friction and restitution of a contact between two materials (S16 pair table). */
 export type ContactPairLookup = (a: string, b: string) => { mu: number; restitution: number };
 
 export interface PhysicsBackend {

@@ -1,6 +1,6 @@
 // Jolt adapter (ADR-0002): the only module that imports the engine. It lowers the engine defaults that
 // break the ±5 mm stop criterion (T15 §3), gives every contact the exact friction and restitution of
-// its material pair (S12), adds conveyor surface velocities (plan B) and records impacts.
+// its material pair (S16), adds conveyor surface velocities (plan B) and records impacts.
 import { GRAVITY, type Vec3 } from '@intracraft/core-model';
 import Jolt from 'jolt-physics';
 import type {

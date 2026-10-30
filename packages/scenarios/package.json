@@ -2,15 +2,17 @@
   "name": "@intracraft/scenarios",
   "version": "0.0.0",
   "private": true,
-  "description": "Reference scenarios with expected results: analytic formulas and saved layouts run in the 2D mode.",
+  "description": "Reference scenarios with expected results: analytic formulas, saved layouts run in the 2D mode and physics bench runs.",
   "type": "module",
   "exports": {
     ".": "./src/index.ts"
   },
   "dependencies": {
+    "@intracraft/asset-catalog": "workspace:*",
     "@intracraft/core-model": "workspace:*",
     "@intracraft/library": "workspace:*",
     "@intracraft/sim-des": "workspace:*",
+    "@intracraft/sim-physics": "workspace:*",
     "zod": "4.6.7"
   }
 }

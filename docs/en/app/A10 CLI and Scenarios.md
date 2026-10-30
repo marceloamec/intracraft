@@ -20,7 +20,7 @@ A **scenario** is a reproducible experiment with an expected result. Today the p
 | T4  | `transferCycle` | 1 s lift, 1 s lower, 1 m, 0.2 m/s, 0.5 m/s² | 7.4 s             |
 | T5  | `impactEnergy`  | 1025 kg, 0.25 m/s                           | 32 J              |
 
-Each scenario has a localised title (en/es/de), a unit and a relative tolerance (1 %). `runScenario` computes the result with the `sim-des` formulas and reports `{ actual, expected, relativeError, passed }`.
+Each scenario has a localised title (en/es/de), a unit and **one** tolerance: relative (1 % for the analytic ones) or absolute (for expected values of 0, such as a position error). `runScenario` computes the result and reports `{ actual, expected, error, relativeError, passed }`.
 
 **Layout scenarios** (since 2026-10-30, `scenarios/layouts.json`, `src/flow.ts`):
 - A layout scenario runs a saved project file from `scenarios/layouts/` in the 2D mode for a fixed time. It reads one statistic of one object.
@@ -28,6 +28,23 @@ Each scenario has a localised title (en/es/de), a unit and a relative tolerance 
 - `T2-2D` (`flow-t2`): sink throughput of a saturated 12 m line over 8 h ≈ 666.7 pallets/h. The empty start costs about 0.16 %.
 - `REF-5` (`reference-all-five`): source → roller → roller turntable → roller → transfer → chain → chain turntable → chain → sink. With one pallet every 30 s, the sink receives 120 pallets/h.
 - `demo-roller-line` and `demo-turntable-split` are examples to open in the editor (File → Open…).
+
+**Physics bench scenarios** (since 2026-10-30, `scenarios/physics.json`, `src/physics.ts`, `src/physics-bench.ts`):
+
+- The bench is a roller section with an optional fixed stop and one MTBH built from a real pallet model and its load ([[ADR-0015 MTBH Rigid Body from Pallet and Load Models]]). It runs with the Jolt backend at the fixed step of 1/120 s.
+- Its parameters (`scenarios/physics-bench.json`) use the same schema as a library definition; each scenario only lists the values that differ from the defaults.
+- A scenario runs the bench for a fixed time and measures one value.
+
+| Id         | Measures                                                              | Expected (tolerance)    | Criterion                 |
+| ---------- | --------------------------------------------------------------------- | ----------------------- | ------------------------- |
+| P1         | Steady pallet speed, 1000 kg on 10 rollers                            | 0.25 m/s (3 %)          | S1-a                      |
+| P2-…       | Largest acceleration the rollers give (steel, rubber, plastic pallet) | a = μ·g (10 %)          | [[S16 Contact Materials]] |
+| P3         | Pallet front against a steel stop at 0.25 m/s                         | 0 m (±5 mm)             | S1-c                      |
+| P3-rebound | Backward travel after the impact                                      | 0 m (±10 mm)            | S1-c                      |
+| P4         | Impact energy of 1025 kg at 0.25 m/s                                  | 32.03 J (2 %)           | T5 in 3D                  |
+| P5-…       | Rebound speed / approach speed (steel, polyurethane, rubber)          | 0.1 / 0.2 / 0.35 (10 %) | S16                       |
+| P6         | Earlier tipping at a conveyor end with the load 100 mm forward        | 95 mm (15 %)            | ADR-0015                  |
+| P7         | Same state hash after 60 s in two runs                                | equal                   | S1-g                      |
 
 Golden result files in `test_data/` will follow when the outputs grow beyond one number per scenario.
 
