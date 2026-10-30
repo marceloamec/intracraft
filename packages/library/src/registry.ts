@@ -2,6 +2,7 @@
 import chainConveyorJson from './definitions/chain-conveyor.json';
 import chainTurntableJson from './definitions/chain-turntable.json';
 import elevatorJson from './definitions/elevator.json';
+import gravityLineJson from './definitions/gravity-line.json';
 import liftTableManualJson from './definitions/lift-table-manual.json';
 import photoeyeJson from './definitions/photoeye.json';
 import processStationJson from './definitions/process-station.json';
@@ -22,6 +23,7 @@ const BUILT_IN_SOURCES: unknown[] = [
   liftTableManualJson,
   scissorLiftJson,
   elevatorJson,
+  gravityLineJson,
   sourceJson,
   sinkJson,
   processStationJson,

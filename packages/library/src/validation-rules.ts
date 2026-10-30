@@ -12,6 +12,8 @@ export const CHAIN_GAP_MARGIN = 0.01; // m
 export const MIN_HEIGHT_CHANGE = 0.01;
 /** Clearance of a station deck beyond the pallet along travel (m). */
 export const MIN_DECK_MARGIN = 0.1;
+/** Clearance of the gravity line's pick-up position beyond the pallet (m), S15. */
+export const PICKUP_MARGIN = 0.05;
 
 /** At least 3 rollers under the supported pallet side: pitch ≤ side / 3. */
 export function min3RollersUnderPallet(pitch: number, palletSupportLength: number): ValidationIssue[] {
@@ -91,6 +93,43 @@ export function deckTooShort(length: number, palletAlong: number): ValidationIss
       rule: 'deckTooShort',
       severity: 'warning',
       message: `Deck length ${length} m is shorter than the pallet (${palletAlong} m) plus ${MIN_DECK_MARGIN * 1000} mm`,
+    },
+  ];
+}
+
+/** Gravity line: a pallet at rest only starts rolling when the slope beats the rolling resistance (S15). */
+export function slopeTooLow(slope: number, rollingResistance: number): ValidationIssue[] {
+  if (slope > rollingResistance) return [];
+  return [
+    {
+      rule: 'slopeTooLow',
+      severity: 'error',
+      message: `Slope ${slope} is not above the rolling resistance ${rollingResistance}: a pallet at rest does not start`,
+    },
+  ];
+}
+
+/** Gravity line: brake rollers so far apart that a pallet can have none under it (S15). */
+export function brakeSpacingTooLong(brakeEvery: number, pitch: number, palletAlong: number): ValidationIssue[] {
+  const spacing = brakeEvery * pitch;
+  if (spacing <= palletAlong + 1e-9) return [];
+  return [
+    {
+      rule: 'brakeSpacingTooLong',
+      severity: 'warning',
+      message: `Brake rollers ${spacing.toFixed(3)} m apart: a ${palletAlong} m pallet can have no brake under it`,
+    },
+  ];
+}
+
+/** Gravity line: the pick-up position must hold a pallet with some clearance (S15). */
+export function pickupTooShort(pickupLength: number, palletAlong: number): ValidationIssue[] {
+  if (pickupLength >= palletAlong + PICKUP_MARGIN - 1e-9) return [];
+  return [
+    {
+      rule: 'pickupTooShort',
+      severity: 'error',
+      message: `Pick-up length ${pickupLength} m is shorter than the pallet (${palletAlong} m) plus ${PICKUP_MARGIN * 1000} mm`,
     },
   ];
 }

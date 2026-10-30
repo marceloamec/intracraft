@@ -4,7 +4,7 @@ import type { StringKey } from '../i18n/strings';
 import { useT } from '../i18n/useT';
 import { useSimStore } from '../sim-store';
 
-const PERCENT = new Set(['utilization', 'occupancy', 'blockedShare', 'idleShare']);
+const PERCENT = new Set(['utilization', 'occupancy', 'blockedShare', 'idleShare', 'fullShare', 'pickupWaitShare']);
 const SECONDS = new Set([
   'blockedTime',
   'emptyTime',

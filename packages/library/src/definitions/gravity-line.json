@@ -1,0 +1,107 @@
+{
+  "id": "conveyor.gravity",
+  "version": "0.1.0",
+  "category": "conveyors",
+  "name": { "en": "Gravity roller line", "es": "Línea de rodillos por gravedad", "de": "Schwerkraft-Rollenbahn" },
+  "description": {
+    "en": "Roller line without motors on a slope: pallets roll down on their own, held at a controlled speed by brake rollers. At the low end a separator and an end stop keep the first pallet free of the queue so an operator with a pallet jack can take it. Values are indicative.",
+    "es": "Línea de rodillos sin motores en pendiente: los pallets bajan solos, frenados a una velocidad controlada por los rodillos freno. En el extremo bajo, un separador y un tope final dejan el primer pallet libre de la cola para que un operario con transpaleta lo recoja. Valores orientativos.",
+    "de": "Rollenbahn ohne Antrieb mit Gefälle: Die Paletten rollen von selbst, von Bremsrollen auf einer kontrollierten Geschwindigkeit gehalten. Am unteren Ende halten ein Vereinzeler und ein Endanschlag die erste Palette staudruckfrei, damit ein Bediener sie mit dem Hubwagen entnehmen kann. Richtwerte."
+  },
+  "parameters": [
+    {
+      "key": "length", "type": "number", "unit": "m", "displayUnit": "mm",
+      "default": 6.0, "min": 2, "max": 30, "group": "geometry", "affects": "both",
+      "label": { "en": "Length", "es": "Longitud", "de": "Länge" },
+      "description": { "en": "Length of the line seen from above", "es": "Longitud de la línea vista desde arriba", "de": "Länge der Bahn in der Draufsicht" }
+    },
+    {
+      "key": "usableWidth", "type": "number", "unit": "m", "displayUnit": "mm",
+      "default": 1.0, "min": 0.5, "max": 1.8, "group": "geometry", "affects": "both",
+      "label": { "en": "Usable width", "es": "Ancho útil", "de": "Nutzbreite" },
+      "description": { "en": "Clear width between frames", "es": "Ancho libre entre bastidores", "de": "Lichte Breite zwischen den Rahmen" }
+    },
+    {
+      "key": "palletSideAlongTravel", "type": "enum", "options": ["long", "short"],
+      "default": "long", "group": "geometry", "affects": "both",
+      "label": { "en": "Pallet side along travel", "es": "Lado del pallet paralelo al avance", "de": "Palettenseite in Förderrichtung" },
+      "description": { "en": "Long side first on rollers (EUR 1200 mm along travel)", "es": "Lado largo primero sobre rodillos (EUR 1200 mm en el avance)", "de": "Lange Seite voraus auf Rollen (EUR 1200 mm in Förderrichtung)" }
+    },
+    {
+      "key": "slope", "type": "number", "unit": "ratio", "displayUnit": "%",
+      "default": 0.04, "min": 0.01, "max": 0.08, "group": "geometry", "affects": "both",
+      "label": { "en": "Slope", "es": "Pendiente", "de": "Gefälle" },
+      "description": { "en": "Fall per metre of length", "es": "Caída por metro de longitud", "de": "Höhenunterschied je Meter Länge" }
+    },
+    {
+      "key": "exitHeight", "type": "number", "unit": "m", "displayUnit": "mm",
+      "default": 0.1, "min": 0.05, "max": 1.5, "group": "geometry", "affects": "both",
+      "label": { "en": "Exit height", "es": "Altura de salida", "de": "Auslaufhöhe" },
+      "description": { "en": "Roller top at the pick-up end (pallet-jack level)", "es": "Parte superior de los rodillos en el extremo de recogida (nivel de transpaleta)", "de": "Rollenoberkante am Entnahmeende (Hubwagenhöhe)" }
+    },
+    {
+      "key": "entryHeight", "type": "number", "unit": "m", "displayUnit": "mm",
+      "group": "geometry", "affects": "both", "derived": true, "formula": "exitHeight + slope * length",
+      "label": { "en": "Entry height", "es": "Altura de entrada", "de": "Einlaufhöhe" },
+      "description": { "en": "Roller top at the entry; derived from the exit height, the slope and the length", "es": "Parte superior de los rodillos en la entrada; se deriva de la altura de salida, la pendiente y la longitud", "de": "Rollenoberkante am Einlauf; abgeleitet aus Auslaufhöhe, Gefälle und Länge" }
+    },
+    {
+      "key": "rollerDiameter", "type": "number", "unit": "m", "displayUnit": "mm",
+      "default": 0.089, "choices": [0.076, 0.089], "group": "rollers", "affects": "geometry",
+      "label": { "en": "Roller diameter", "es": "Diámetro de rodillo", "de": "Rollendurchmesser" },
+      "description": { "en": "Same list as the roller conveyor", "es": "La misma lista que la mesa de rodillos", "de": "Gleiche Liste wie beim Rollenförderer" }
+    },
+    {
+      "key": "rollerPitch", "type": "number", "unit": "m", "displayUnit": "mm",
+      "default": 0.2063, "choices": [0.133, 0.2063], "group": "rollers", "affects": "both",
+      "label": { "en": "Roller pitch", "es": "Paso de rodillos", "de": "Rollenteilung" },
+      "description": { "en": "Same list as the roller conveyor; at least 3 rollers under the pallet", "es": "La misma lista que la mesa de rodillos; al menos 3 rodillos bajo el pallet", "de": "Gleiche Liste wie beim Rollenförderer; mindestens 3 Rollen unter der Palette" }
+    },
+    {
+      "key": "brakeEvery", "type": "integer",
+      "default": 4, "min": 1, "max": 20, "group": "rollers", "affects": "both",
+      "label": { "en": "Brake roller every", "es": "Rodillo freno cada", "de": "Bremsrolle alle" },
+      "description": { "en": "One brake roller every N rollers; at least one must stay under each pallet", "es": "Un rodillo freno cada N rodillos; debe quedar al menos uno bajo cada pallet", "de": "Eine Bremsrolle alle N Rollen; unter jeder Palette muss mindestens eine liegen" }
+    },
+    {
+      "key": "brakeSpeed", "type": "number", "unit": "m/s", "displayUnit": "m/s",
+      "default": 0.2, "min": 0.05, "max": 0.4, "group": "motion", "affects": "both",
+      "label": { "en": "Brake speed", "es": "Velocidad de freno", "de": "Bremsgeschwindigkeit" },
+      "description": { "en": "Speed the brake rollers hold", "es": "Velocidad que mantienen los rodillos freno", "de": "Geschwindigkeit, die die Bremsrollen halten" }
+    },
+    {
+      "key": "rollingResistance", "type": "number",
+      "default": 0.02, "min": 0, "max": 0.1, "group": "motion", "affects": "both", "advanced": true,
+      "label": { "en": "Rolling resistance", "es": "Resistencia a la rodadura", "de": "Rollwiderstand" },
+      "description": { "en": "Rolling loss of the idle rollers (Crr); a pallet at rest only starts if the slope is larger", "es": "Pérdida por rodadura de los rodillos libres (Crr); un pallet parado solo arranca si la pendiente es mayor", "de": "Rollverlust der freien Rollen (Crr); eine stehende Palette rollt nur an, wenn das Gefälle größer ist" }
+    },
+    {
+      "key": "startDelay", "type": "number", "unit": "s", "displayUnit": "s",
+      "default": 1.0, "min": 0, "max": 10, "group": "motion", "affects": "both",
+      "label": { "en": "Start delay", "es": "Retardo de arranque", "de": "Anlaufverzögerung" },
+      "description": { "en": "Delay between the start of a pallet and the start of the one behind it: 0 = the queue moves as one block", "es": "Retardo entre el arranque de un pallet y el del que va detrás: 0 = la cola se mueve como un bloque", "de": "Verzögerung zwischen dem Anlaufen einer Palette und der dahinter: 0 = die Schlange bewegt sich als Block" }
+    },
+    {
+      "key": "pickupLength", "type": "number", "unit": "m", "displayUnit": "mm",
+      "default": 1.3, "min": 0.9, "max": 2.5, "group": "separator", "affects": "both",
+      "label": { "en": "Pick-up length", "es": "Longitud de recogida", "de": "Entnahmelänge" },
+      "description": { "en": "Pick-up position, from the separator to the end stop", "es": "Posición de recogida, del separador al tope final", "de": "Entnahmeplatz, vom Vereinzeler bis zum Endanschlag" }
+    },
+    {
+      "key": "separatorTime", "type": "number", "unit": "s", "displayUnit": "s",
+      "default": 3, "min": 0, "max": 30, "group": "separator", "affects": "both",
+      "label": { "en": "Separator delay", "es": "Retardo del separador", "de": "Vereinzelerverzögerung" },
+      "description": { "en": "Time from the pick-up position emptying to the separator letting the next pallet go", "es": "Tiempo desde que se vacía la posición de recogida hasta que el separador deja pasar el siguiente pallet", "de": "Zeit vom Freiwerden des Entnahmeplatzes bis der Vereinzeler die nächste Palette freigibt" }
+    }
+  ],
+  "ports": [
+    { "id": "IN", "direction": "in", "facing": "-x", "local": { "x": 0, "y": "entryHeight", "z": 0 } },
+    { "id": "OUT", "direction": "out", "facing": "+x", "local": { "x": "length", "y": "exitHeight", "z": 0 } }
+  ],
+  "signals": { "inputs": [], "outputs": [] },
+  "statistics": ["palletsDelivered", "meanQueue", "maxQueue", "fullShare", "pickupWaitShare", "meanTransitTime"],
+  "geometry": "geom.gravity_line",
+  "behaviors": { "des": "des.gravity", "physics": "phys.gravity" },
+  "validationRules": ["slopeTooLow", "brakeSpacingTooLong", "pickupTooShort", "usableWidthFitsPallet", "min3RollersUnderPallet"],
+  "presets": []
+}

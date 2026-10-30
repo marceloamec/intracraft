@@ -5,7 +5,7 @@
 import { instanceParams, num } from '@intracraft/library';
 import { useFrame } from '@react-three/fiber';
 import { useLayoutEffect, useMemo, useRef } from 'react';
-import { Color, type InstancedMesh, Matrix4, Quaternion, Vector3 } from 'three';
+import { Color, Euler, type InstancedMesh, Matrix4, Quaternion, Vector3 } from 'three';
 import { registry, useLayoutStore } from '../layout-store';
 import { liveFrame, useSimStore } from '../sim-store';
 
@@ -17,7 +17,6 @@ const COLOR_BASE = new Color('#b0865a');
 const COLOR_LOAD = new Color('#d8b77a');
 const COLOR_BLOCKED = new Color('#d0574a');
 const COLOR_STOPPED = new Color('#e0b341');
-const UP = new Vector3(0, 1, 0);
 
 interface Carrier {
   x: number;
@@ -50,7 +49,10 @@ export function PalletLayer() {
     if (load === null) return;
     for (let i = 0; i < CAPACITY; i++) load.setColorAt(i, COLOR_LOAD);
   }, []);
-  const scratch = useMemo(() => ({ matrix: new Matrix4(), rotation: new Quaternion(), position: new Vector3(), scale: new Vector3() }), []);
+  const scratch = useMemo(
+    () => ({ matrix: new Matrix4(), rotation: new Quaternion(), euler: new Euler(), position: new Vector3(), scale: new Vector3() }),
+    [],
+  );
 
   useFrame(() => {
     const base = bases.current;
@@ -62,7 +64,7 @@ export function PalletLayer() {
     const factor = liveFrame.playing && (speed === 1 || speed === 10) ? speed : 0;
     const ahead = (Math.min(performance.now() - liveFrame.receivedAt, MAX_EXTRAPOLATION_MS) / 1000) * factor;
 
-    const { matrix, rotation, position, scale } = scratch;
+    const { matrix, rotation, euler, position, scale } = scratch;
     pallets.forEach((pallet, i) => {
       const carrier = carriers.get(pallet.carrier);
       if (carrier === undefined) return;
@@ -76,9 +78,12 @@ export function PalletLayer() {
       const sin = Math.sin(carrier.yaw);
       const x = carrier.x + localX * cos + localZ * sin;
       const z = carrier.z - localX * sin + localZ * cos;
-      rotation.setFromAxisAngle(UP, carrier.yaw + pallet.heading);
+      // On a gravity line the pallet sinks along the path and tilts nose down with the slope.
+      const slope = pallet.slope ?? 0;
+      euler.set(0, carrier.yaw + pallet.heading, -Math.atan(slope), 'YXZ');
+      rotation.setFromEuler(euler);
 
-      const floor = carrier.height + pallet.pathY;
+      const floor = carrier.height + pallet.pathY - slope * along;
       position.set(x, floor + pallet.height / 2, z);
       scale.set(pallet.length, pallet.height, pallet.width);
       base.setMatrixAt(i, matrix.compose(position, rotation, scale));

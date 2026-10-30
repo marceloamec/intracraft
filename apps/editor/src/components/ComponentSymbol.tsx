@@ -98,6 +98,16 @@ const SYMBOLS: Record<string, React.JSX.Element> = {
       <path d="M44 22 V10 M41 13 L44 10 L47 13" {...STROKE} />
     </>
   ),
+  'conveyor.gravity': (
+    <>
+      <rect x="2" y="6" width="44" height="20" {...STROKE} />
+      {rollers(5, 37, 4)}
+      {/* Separator and end stop at the low end; the arrow points downhill. */}
+      <line x1="33" y1="9" x2="33" y2="23" {...STROKE} strokeWidth={2.5} />
+      <line x1="45" y1="6" x2="45" y2="26" {...STROKE} strokeWidth={3} />
+      <path d="M8 3 H30 M26 1 L30 3 L26 5" {...STROKE} strokeWidth={1} />
+    </>
+  ),
   'conveyor.transfer_rc': (
     <>
       <rect x="8" y="4" width="32" height="24" {...STROKE} />

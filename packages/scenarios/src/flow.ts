@@ -5,22 +5,26 @@ import { createBuiltInRegistry, deriveConnections } from '@intracraft/library';
 import { FlowSimulation, buildFlowNetwork } from '@intracraft/sim-des';
 import { z } from 'zod';
 import demoElevatorC from '../scenarios/layouts/demo-elevator-c.intracraft.json';
+import demoGravityLine from '../scenarios/layouts/demo-gravity-line.intracraft.json';
 import demoManualOutput from '../scenarios/layouts/demo-manual-output.intracraft.json';
 import demoProcessLine from '../scenarios/layouts/demo-process-line.intracraft.json';
 import demoRollerLine from '../scenarios/layouts/demo-roller-line.intracraft.json';
 import demoTurntableSplit from '../scenarios/layouts/demo-turntable-split.intracraft.json';
 import flowT1 from '../scenarios/layouts/flow-t1.intracraft.json';
+import flowT10 from '../scenarios/layouts/flow-t10.intracraft.json';
 import flowT2 from '../scenarios/layouts/flow-t2.intracraft.json';
 import referenceAllFive from '../scenarios/layouts/reference-all-five.intracraft.json';
 
 /** Project files by name (file name without `.intracraft.json`). */
 export const LAYOUT_FILES: Record<string, unknown> = {
   'demo-elevator-c': demoElevatorC,
+  'demo-gravity-line': demoGravityLine,
   'demo-manual-output': demoManualOutput,
   'demo-process-line': demoProcessLine,
   'demo-roller-line': demoRollerLine,
   'demo-turntable-split': demoTurntableSplit,
   'flow-t1': flowT1,
+  'flow-t10': flowT10,
   'flow-t2': flowT2,
   'reference-all-five': referenceAllFive,
 };

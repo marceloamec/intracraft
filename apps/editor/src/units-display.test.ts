@@ -18,6 +18,11 @@ describe('display units', () => {
     expect(fromDisplay(30, 'rad/s²', '°/s²')).toBeCloseTo(Math.PI / 6, 12);
   });
 
+  it('shows a slope ratio as a percentage and back', () => {
+    expect(toDisplay(0.04, 'ratio', '%')).toBeCloseTo(4, 12);
+    expect(fromDisplay(4, 'ratio', '%')).toBeCloseTo(0.04, 12);
+  });
+
   it('leaves values unchanged when the display unit equals the stored unit', () => {
     expect(toDisplay(0.25, 'm/s', 'm/s')).toBe(0.25);
     expect(fromDisplay(1000, 'kg', undefined)).toBe(1000);

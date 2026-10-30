@@ -5,11 +5,14 @@ import { type ParamValues, instanceParams, num } from './params';
 import { PALLET_TYPES } from './reference-data';
 import {
   type ValidationIssue,
+  brakeSpacingTooLong,
   chainFitsBetweenRollers,
   deckTooShort,
   heightsReversed,
   min3RollersUnderPallet,
   noHeightChange,
+  pickupTooShort,
+  slopeTooLow,
   usableWidthFitsPallet,
 } from './validation-rules';
 
@@ -31,6 +34,9 @@ const RULES: Record<string, Rule> = {
   heightsReversed: (p) => heightsReversed(num(p, 'lowHeight', 0), num(p, 'conveyorHeight', 0)),
   noHeightChange: (p) => noHeightChange(num(p, 'entryHeight', 0), num(p, 'exitHeight', 0)),
   deckTooShort: (p, along) => deckTooShort(num(p, 'length', 0), along),
+  slopeTooLow: (p) => slopeTooLow(num(p, 'slope', 0), num(p, 'rollingResistance', 0)),
+  brakeSpacingTooLong: (p, along) => brakeSpacingTooLong(num(p, 'brakeEvery', 1), num(p, 'rollerPitch', 0), along),
+  pickupTooShort: (p, along) => pickupTooShort(num(p, 'pickupLength', 0), along),
 };
 
 export function validateInstance(definition: ComponentDefinition, params: ParamValues): ValidationIssue[] {

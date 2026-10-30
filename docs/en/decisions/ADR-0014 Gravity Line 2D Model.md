@@ -2,13 +2,13 @@
 title: ADR-0014 Gravity Line 2D Model
 lang: en
 tags: [decision, des, gravity, accumulation]
-status: proposed
+status: accepted
 date: 2026-10-30
 ---
 
 # ADR-0014 Gravity Line 2D Model
 
-- **Status:** Proposed. Waiting for the owner to confirm [[S15 Gravity Roller Line]].
+- **Status:** Accepted on 2026-10-30: the owner asked for the gravity line to be built as specified. Implemented in `packages/sim-des/src/flow/gravity-line.ts`.
 - **Date:** 2026-10-30
 
 ## Context
@@ -60,4 +60,13 @@ The owner is not sure whether a queue starts moving as one block or spreads out 
   - **T11:** saturated line, operator 60 s per pallet → 60 pallets/h.
   - `startDelay` 0 compared with > 0; the separator cycle; entry blocked when full; determinism.
 - The per-pallet model can later carry `pressure` accumulation on roller conveyors ([[S01 Roller Conveyor]] §3).
-- 3D physics (`phys.gravity`, real brake rollers on a slope) waits for spike S1.
+- 3D physics (`phys.gravity`, real brake rollers on a slope) is still to come; spike S1 is closed ([[ADR-0002 Physics Engine Candidate]]).
+
+## Implementation notes (2026-10-30)
+
+- **Touching a moving pallet.** A rolling pallet that catches up with a pallet that is still accelerating does not stop: it goes on with that pallet's speed and acceleration. It only stops against a pallet at rest, the closed separator or the end stop.
+- **Queue start.** A pallet stopped behind one that starts gets a start time `startDelay` later. If the pallet ahead stops again before that, the start is cancelled until it moves again. With `startDelay` = 0 both move off at the same instant.
+- **Entry.** The feeding conveyor reserves the line like a sink once a whole pallet fits behind the last one. While it waits, the line reports `blocked` and counts the time in `fullShare`.
+- **Viewer.** Each pallet on the line carries the slope, so the 3D view lowers and tilts it along the line.
+- **Derived entry height.** The entry port's height comes from the derived parameter `entryHeight` (exit height + slope × length). Ports may now use derived parameters.
+- **Measured:** T10 = 24.000 s; T11 = 60.000 pallets/h with a largest queue of 4; gaps of 0.4 m with `startDelay` = 2 s.

@@ -76,16 +76,16 @@ Planned: turntable swept radius vs neighbours, impact speed vs limit, port heigh
 
 ## 6. MVP library contents and status
 
-| Category             | Components                                                                  | Status (2026-10-28)                                                                             |
-| -------------------- | --------------------------------------------------------------------------- | ----------------------------------------------------------------------------------------------- |
-| Conveyors            | Roller, chain, chain turntable, roller turntable, roller→chain transfer     | Roller: definition JSON; others: spec only                                                      |
-| Conveyors (ADR-0012) | Manual lift table, scissor lift table, pallet elevator, gravity roller line | Lifts: definition JSON, 2D behaviour, 3D model, symbol (S12–S14); gravity line: spec only (S15) |
-| Sensors              | Diffuse, retroreflective, through-beam photoeye                             | Spec only                                                                                       |
-| Mechanics            | Fixed stop, retractable stop, side guide (with funnel)                      | Spec only                                                                                       |
-| Flow                 | Source, sink                                                                | Spec only                                                                                       |
-| Pallets              | EUR, 1200 × 1000, GMA, custom                                               | EUR, 1200 × 1000, GMA in `pallet-types.json`                                                    |
-| Materials            | Contact materials and pair table ([[S16 Contact Materials]])                | `contact-materials.json`, `contact-pairs.json`                                                  |
-| Control              | Rule controller and templates                                               | Rule evaluator + ZPA test template                                                              |
+| Category             | Components                                                                  | Status (2026-10-28)                                                              |
+| -------------------- | --------------------------------------------------------------------------- | -------------------------------------------------------------------------------- |
+| Conveyors            | Roller, chain, chain turntable, roller turntable, roller→chain transfer     | Roller: definition JSON; others: spec only                                       |
+| Conveyors (ADR-0012) | Manual lift table, scissor lift table, pallet elevator, gravity roller line | Definition JSON, 2D behaviour, 3D model and symbol (S12–S15); 3D physics pending |
+| Sensors              | Diffuse, retroreflective, through-beam photoeye                             | Spec only                                                                        |
+| Mechanics            | Fixed stop, retractable stop, side guide (with funnel)                      | Spec only                                                                        |
+| Flow                 | Source, sink                                                                | Spec only                                                                        |
+| Pallets              | EUR, 1200 × 1000, GMA, custom                                               | EUR, 1200 × 1000, GMA in `pallet-types.json`                                     |
+| Materials            | Contact materials and pair table ([[S16 Contact Materials]])                | `contact-materials.json`, `contact-pairs.json`                                   |
+| Control              | Rule controller and templates                                               | Rule evaluator + ZPA test template                                               |
 
 ## 7. Definition of done for a library object
 

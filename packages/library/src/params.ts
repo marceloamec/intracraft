@@ -15,6 +15,7 @@ const DERIVED: Record<string, (p: ParamValues) => number> = {
   rollerCount: (p) => Math.floor(num(p, 'length', num(p, 'platformLength', 0)) / num(p, 'rollerPitch', Infinity)),
   sweptRadius: (p) =>
     0.5 * Math.hypot(num(p, 'platformLength', 0), num(p, 'platformWidth', 0)) + num(p, 'sweepClearance', 0),
+  entryHeight: (p) => num(p, 'exitHeight', 0) + num(p, 'slope', 0) * num(p, 'length', 0),
 };
 
 /** Values of the derived parameters of a definition (keys without a known computation are left out). */

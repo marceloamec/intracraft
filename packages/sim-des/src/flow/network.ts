@@ -157,6 +157,23 @@ export interface LiftNode extends NodeBase {
   exits: Record<string, { target: string; gap: number; port: string }>;
 }
 
+/** Gravity roller line (S15, ADR-0014): pallets roll down one by one to a separator and an end stop. */
+export interface GravityNode extends NodeBase {
+  kind: 'gravity';
+  /** Plan length (m). */
+  length: number;
+  palletSideAlongTravel: 'long' | 'short';
+  /** Fall per metre (ratio). */
+  slope: number;
+  /** Roller height at the entry (m), derived from the exit height and the slope. */
+  entryHeight: number;
+  brakeSpeed: number;
+  rollingResistance: number;
+  startDelay: number;
+  pickupLength: number;
+  separatorTime: number;
+}
+
 /** Photoelectric sensor mounted on a conveyor (S06); all positions in the host's frame (m). */
 export interface SensorNode extends NodeBase {
   kind: 'sensor';
@@ -190,6 +207,7 @@ export type FlowNode =
   | TransferNode
   | ProcessNode
   | LiftNode
+  | GravityNode
   | SensorNode
   | InertNode;
 
@@ -258,6 +276,7 @@ const OUTPUT_PORT: Record<FlowNode['kind'], string | undefined> = {
   transfer: undefined,
   process: 'OUT',
   lift: undefined,
+  gravity: 'OUT',
   sensor: undefined,
   inert: undefined,
 };
@@ -356,6 +375,24 @@ function createNode(definition: ComponentDefinition, base: NodeBase, params: Par
     };
   }
   if (behavior === 'des.lift_station') return liftNode(definition, base, params);
+  if (behavior === 'des.gravity') {
+    const length = num(params, 'length', 0);
+    const slope = num(params, 'slope', 0);
+    const exitHeight = num(params, 'exitHeight', 0);
+    return {
+      ...base,
+      kind: 'gravity',
+      length,
+      palletSideAlongTravel: params['palletSideAlongTravel'] === 'short' ? 'short' : 'long',
+      slope,
+      entryHeight: exitHeight + slope * length,
+      brakeSpeed: num(params, 'brakeSpeed', 0),
+      rollingResistance: num(params, 'rollingResistance', 0),
+      startDelay: Math.max(0, num(params, 'startDelay', 0)),
+      pickupLength: num(params, 'pickupLength', 0),
+      separatorTime: Math.max(0, num(params, 'separatorTime', 0)),
+    };
+  }
   if (behavior === 'des.photoeye') {
     const diffuse = params['type'] === 'diffuse';
     const sensorS = num(params, 'sensorS', 0);
@@ -453,6 +490,10 @@ function connectionIssues(node: FlowNode, byId: Map<string, FlowNode>, nodes: Fl
   if (node.kind === 'transfer') return transferIssues(node);
   if (node.kind === 'process') return processIssues(node, next);
   if (node.kind === 'lift') return liftIssues(node, byId, nodes);
+  if (node.kind === 'gravity') {
+    if (next === undefined) return [issue(node, 'noExit', 'OUT is not connected: place a sink for the operator there')];
+    if (next.kind !== 'sink') return [issue(node, 'exitNotSink', 'OUT can only hand pallets to a sink (the operator) for now')];
+  }
   if (node.kind === 'sensor') return sensorIssues(node, byId.get(node.host));
   if (node.kind === 'source' && next?.kind !== 'line' && next?.kind !== 'lift') {
     return [issue(node, 'sourceNotConnected', 'must be connected to the entry of a conveyor; it creates no pallets')];

@@ -6,6 +6,7 @@ import { registry } from '../../layout-store';
 import { ChainConveyorModel } from './ChainConveyorModel';
 import { ElevatorModel } from './ElevatorModel';
 import { FlowEndModel } from './FlowEndModel';
+import { GravityLineModel } from './GravityLineModel';
 import { LiftTableModel } from './LiftTableModel';
 import { PhotoeyeModel } from './PhotoeyeModel';
 import { ProcessStationModel } from './ProcessStationModel';
@@ -30,6 +31,7 @@ const MODELS: Record<string, (props: ModelProps) => React.JSX.Element> = {
   'conveyor.lift_table_manual': (props) => <LiftTableModel {...props} variant="manual" />,
   'conveyor.scissor_lift': (props) => <LiftTableModel {...props} variant="scissor" />,
   'conveyor.elevator': ElevatorModel,
+  'conveyor.gravity': GravityLineModel,
   'flow.source': (props) => <FlowEndModel {...props} kind="source" />,
   'flow.sink': (props) => <FlowEndModel {...props} kind="sink" />,
   'flow.process_station': ProcessStationModel,

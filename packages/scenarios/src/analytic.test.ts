@@ -17,6 +17,8 @@ describe('reference scenarios', () => {
       'PROC-1',
       'LIFT-C',
       'LIFT-OUT',
+      'T10',
+      'T11',
       'P1',
       'P2-steel',
       'P2-rubber',

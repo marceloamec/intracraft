@@ -31,6 +31,8 @@ Each scenario has a localised title (en/es/de), a unit and **one** tolerance: re
 - `REF-5` (`reference-all-five`): source → roller → roller turntable → roller → transfer → chain → chain turntable → chain → sink. With one pallet every 30 s, the sink receives 120 pallets/h.
 - `LIFT-C` (`demo-elevator-c`): a C elevator takes one pallet a minute from the floor (0.6 m) to a conveyor on a 4 m mezzanine; all 60 pallets/h get through.
 - `LIFT-OUT` (`demo-manual-output`): a manual output table hands the pallets to an operator who needs 60 s per pallet; with the 5.05 s run-out the line gives 3600 / 65.05 ≈ 55.3 pallets/h.
+- `T10` (`flow-t10`): one pallet rolls down a 6 m gravity line at 0.2 m/s; it reaches the end stop 24 s after it is fully on the line.
+- `T11` (`demo-gravity-line`): a saturated gravity line whose operator needs 60 s per pallet delivers 60 pallets/h; the line holds 4 pallets and blocks the feeder.
 - `demo-roller-line` and `demo-turntable-split` are examples to open in the editor (File → Open…).
 
 **Physics bench scenarios** (since 2026-10-30, `scenarios/physics.json`, `src/physics.ts`, `src/physics-bench.ts`):

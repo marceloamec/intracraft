@@ -3,7 +3,7 @@ title: S15 Gravity Roller Line
 lang: en
 tags: [spec, conveyor, gravity, accumulation]
 library-id: conveyor.gravity
-status: spec
+status: implemented (2D)
 updated: 2026-10-30
 ---
 
@@ -101,8 +101,8 @@ Real slope, brake spacing, brake speed, separator delay and queue behaviour: [[O
 
 ## 6. Reference tests
 
-- **T10:** one pallet, defaults, entering at 0.2 m/s → (6.0 − 1.2) / 0.2 = **24 s** from fully on the line to the end stop (error < 1 %).
-- **T11:** saturated supply, operator `removalTime` 60 s → **60 pallets/h**; the line fills to 4 pallets and the feeder is blocked. The separator cycle is 3 s + 7.01 s from rest over 1.3 m = 10.01 s, shorter than the operator, so the operator sets the rate.
+- **T10:** one pallet, defaults, entering at 0.2 m/s → (6.0 − 1.2) / 0.2 = **24 s** from fully on the line to the end stop (error < 1 %). Measured: 24.000 s (scenario T10).
+- **T11:** saturated supply, operator `removalTime` 60 s → **60 pallets/h**; the line fills to 4 pallets and the feeder is blocked. The separator cycle is 3 s + 7.01 s from rest over 1.3 m = 10.01 s, shorter than the operator, so the operator sets the rate. Measured: 60.000 pallets/h, largest queue 4 (scenario T11).
 - `startDelay` = 0: after a release the whole queue starts at the same instant. `startDelay` = 2 s: gaps of 0.4 m open while rolling and close again at the separator.
 - Separator: the second pallet stops at 4.7 m while the first is in the pick-up position.
 - Validations: `slopeTooLow`, `brakeSpacingTooLong`, `exitNotSink`. Same seed gives the same result.

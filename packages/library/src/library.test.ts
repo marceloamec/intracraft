@@ -30,6 +30,7 @@ describe('built-in registry', () => {
       'conveyor.lift_table_manual',
       'conveyor.scissor_lift',
       'conveyor.elevator',
+      'conveyor.gravity',
       'flow.source',
       'flow.sink',
       'flow.process_station',
@@ -96,6 +97,11 @@ describe('built-in registry', () => {
 });
 
 describe('derived values', () => {
+  it('derives the gravity line entry height: 0.1 m + 4 % × 6 m = 0.34 m (S15)', () => {
+    const gravity = createBuiltInRegistry().get('conveyor.gravity');
+    expect(derivedValues(gravity, defaultParams(gravity))['entryHeight']).toBeCloseTo(0.34, 12);
+  });
+
   it('counts 14 rollers on a 3 m conveyor at 206.3 mm pitch and 22 at 133 mm', () => {
     const roller = createBuiltInRegistry().get('conveyor.roller');
     expect(derivedValues(roller, defaultParams(roller))).toEqual({ rollerCount: 14 });
@@ -145,6 +151,23 @@ describe('validateInstance', () => {
     expect(validateInstance(elevator, sparse).map((i) => i.rule)).toEqual(['min3RollersUnderPallet']);
     const chains = { ...sparse, deckType: 'chains', palletSideAlongTravel: 'short', usableWidth: 1.3 };
     expect(validateInstance(elevator, chains)).toEqual([]);
+  });
+
+  it('flags a gravity line whose slope does not beat the rolling resistance (S15)', () => {
+    const gravity = createBuiltInRegistry().get('conveyor.gravity');
+    expect(validateInstance(gravity, { slope: 0.02, rollingResistance: 0.02 }).map((i) => i.rule)).toEqual(['slopeTooLow']);
+  });
+
+  it('flags brake rollers so far apart that a pallet can have none under it (S15)', () => {
+    const gravity = createBuiltInRegistry().get('conveyor.gravity');
+    // 6 × 206.3 mm = 1.238 m > 1.2 m.
+    expect(validateInstance(gravity, { brakeEvery: 6 }).map((i) => i.rule)).toEqual(['brakeSpacingTooLong']);
+    expect(validateInstance(gravity, { brakeEvery: 5 })).toEqual([]);
+  });
+
+  it('flags a pick-up position shorter than the pallet plus 50 mm (S15)', () => {
+    const gravity = createBuiltInRegistry().get('conveyor.gravity');
+    expect(validateInstance(gravity, { pickupLength: 1.24 }).map((i) => i.rule)).toEqual(['pickupTooShort']);
   });
 
   it('lets the operator source and sink go down to 50 mm (S12)', () => {
