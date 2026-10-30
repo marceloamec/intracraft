@@ -8,6 +8,7 @@
     ".": "./src/index.ts"
   },
   "dependencies": {
-    "@intracraft/core-model": "workspace:*"
+    "@intracraft/core-model": "workspace:*",
+    "jolt-physics": "1.1.1"
   }
 }

@@ -173,6 +173,9 @@ importers:
       '@intracraft/core-model':
         specifier: workspace:*
         version: link:../core-model
+      jolt-physics:
+        specifier: 1.1.1
+        version: 1.1.1
 
 packages:
 
@@ -1003,6 +1006,9 @@ packages:
     resolution: {integrity: sha512-C5ZoVkeqSt0Aje0tzESO+iT/EQpNFNL39GkP7mCACtoZUFD6GcyerFCr6kp0ZtiII4W9HoYkY48Soy5xE/uHKw==}
     peerDependencies:
       react: ^19.0.0
+
+  jolt-physics@1.1.1:
+    resolution: {integrity: sha512-kMCQu/b4wbHwy7EgZWaSbUyDthIKZUvAGGqta4pBF4Pdq+ljWaNvQoa5hPr/PkVCUVsqcoLwXITUm6975mQhiQ==}
 
   js-tokens@4.0.0:
     resolution: {integrity: sha512-RdJUflcE3cUzKiMqQgsCu06FPu9UdIJO0beYbPhHN4k6apgJtifcoCtT9bcxOpYBtpD2kCM6Sbzg4CausW/PKQ==}
@@ -2189,6 +2195,8 @@ snapshots:
       react: 19.3.1
     transitivePeerDependencies:
       - '@types/react'
+
+  jolt-physics@1.1.1: {}
 
   js-tokens@4.0.0: {}
 
