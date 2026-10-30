@@ -1,5 +1,5 @@
 // Closed-form mechanics used to configure and validate the physics mode (SI units).
-import { GRAVITY } from '@intracraft/core-model';
+import { GRAVITY, type Vec3 } from '@intracraft/core-model';
 
 /** Angular speed of a kinematic roller whose surface moves at `surfaceSpeed`: ω = v / r. */
 export function rollerAngularVelocity(surfaceSpeed: number, diameter: number): number {
@@ -42,4 +42,13 @@ export function sweptRadius(length: number, width: number, clearance: number): n
 /** Moment of inertia of a solid box about its vertical axis: m·(a² + b²) / 12. */
 export function boxYawInertia(mass: number, length: number, width: number): number {
   return (mass * (length * length + width * width)) / 12;
+}
+
+/** Principal moments of a solid box of side lengths `size` about its centre: I_x = m·(y² + z²) / 12… */
+export function solidBoxInertia(mass: number, size: Vec3): Vec3 {
+  return {
+    x: boxYawInertia(mass, size.y, size.z),
+    y: boxYawInertia(mass, size.x, size.z),
+    z: boxYawInertia(mass, size.x, size.y),
+  };
 }
