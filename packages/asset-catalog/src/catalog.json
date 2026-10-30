@@ -17,6 +17,33 @@
         "y": 0.209,
         "z": 0.8
       },
+      "bounds": {
+        "min": {
+          "x": -0.6021,
+          "y": 0,
+          "z": -0.4002
+        },
+        "max": {
+          "x": 0.6021,
+          "y": 0.2086,
+          "z": 0.4002
+        }
+      },
+      "physics": {
+        "mass": 50.732,
+        "centerOfMass": {
+          "x": 0.0001,
+          "y": 0.1064,
+          "z": 0.0001
+        },
+        "inertia": {
+          "x": 3.0603,
+          "y": 6.6398,
+          "z": 4.1516
+        },
+        "density": 700,
+        "materials": ["wood"]
+      },
       "source": {
         "dataset": "codepawl/simready-glb",
         "revision": "e52172290393dde80e8d383861db94b8d0e92ec3",
@@ -43,6 +70,33 @@
         "x": 1.21,
         "y": 0.209,
         "z": 1.003
+      },
+      "bounds": {
+        "min": {
+          "x": -0.6052,
+          "y": 0,
+          "z": -0.5013
+        },
+        "max": {
+          "x": 0.6052,
+          "y": 0.2086,
+          "z": 0.5013
+        }
+      },
+      "physics": {
+        "mass": 61.626,
+        "centerOfMass": {
+          "x": 0.0002,
+          "y": 0.1106,
+          "z": 0.0008
+        },
+        "inertia": {
+          "x": 5.5953,
+          "y": 9.8392,
+          "z": 4.935
+        },
+        "density": 700,
+        "materials": ["wood"]
       },
       "source": {
         "dataset": "codepawl/simready-glb",
@@ -71,6 +125,33 @@
         "y": 0.12,
         "z": 1.2
       },
+      "bounds": {
+        "min": {
+          "x": -0.5,
+          "y": 0.0003,
+          "z": -0.5999
+        },
+        "max": {
+          "x": 0.5001,
+          "y": 0.1206,
+          "z": 0.6001
+        }
+      },
+      "physics": {
+        "mass": 51.384,
+        "centerOfMass": {
+          "x": 0,
+          "y": 0.0604,
+          "z": 0
+        },
+        "inertia": {
+          "x": 1.7716,
+          "y": 4.1085,
+          "z": 5.6408
+        },
+        "density": 700,
+        "materials": ["metal", "wood"]
+      },
       "source": {
         "dataset": "codepawl/simready-glb",
         "revision": "e52172290393dde80e8d383861db94b8d0e92ec3",
@@ -97,6 +178,32 @@
         "x": 1.194,
         "y": 0.121,
         "z": 0.905
+      },
+      "bounds": {
+        "min": {
+          "x": -0.597,
+          "y": 0,
+          "z": -0.4523
+        },
+        "max": {
+          "x": 0.597,
+          "y": 0.1211,
+          "z": 0.4523
+        }
+      },
+      "physics": {
+        "mass": 28.505,
+        "centerOfMass": {
+          "x": 0.0044,
+          "y": 0.087,
+          "z": 0.0069
+        },
+        "inertia": {
+          "x": 0,
+          "y": 0,
+          "z": 0
+        },
+        "materials": ["metal", "wood"]
       },
       "source": {
         "dataset": "codepawl/simready-glb",
@@ -125,6 +232,33 @@
         "y": 0.148,
         "z": 1.02
       },
+      "bounds": {
+        "min": {
+          "x": -0.61,
+          "y": 0,
+          "z": -0.51
+        },
+        "max": {
+          "x": 0.61,
+          "y": 0.1478,
+          "z": 0.51
+        }
+      },
+      "physics": {
+        "mass": 16.944,
+        "centerOfMass": {
+          "x": 0,
+          "y": 0.0666,
+          "z": 0
+        },
+        "inertia": {
+          "x": 1.6361,
+          "y": 3.8757,
+          "z": 2.3441
+        },
+        "density": 950,
+        "materials": ["plastic"]
+      },
       "source": {
         "dataset": "codepawl/simready-glb",
         "revision": "e52172290393dde80e8d383861db94b8d0e92ec3",
@@ -151,6 +285,33 @@
         "x": 1.219,
         "y": 0.119,
         "z": 1.221
+      },
+      "bounds": {
+        "min": {
+          "x": -0.6096,
+          "y": 0,
+          "z": -0.6103
+        },
+        "max": {
+          "x": 0.6096,
+          "y": 0.1193,
+          "z": 0.6103
+        }
+      },
+      "physics": {
+        "mass": 25,
+        "centerOfMass": {
+          "x": -0.0081,
+          "y": 0.0824,
+          "z": -0.0031
+        },
+        "inertia": {
+          "x": 20.1339,
+          "y": 32.453,
+          "z": 13.0529
+        },
+        "density": 8000,
+        "materials": ["metal"]
       },
       "source": {
         "dataset": "codepawl/simready-glb",
@@ -179,10 +340,199 @@
         "y": 0.505,
         "z": 0.904
       },
+      "bounds": {
+        "min": {
+          "x": -0.4507,
+          "y": 0,
+          "z": -0.4518
+        },
+        "max": {
+          "x": 0.4507,
+          "y": 0.5052,
+          "z": 0.4518
+        }
+      },
+      "physics": {
+        "mass": 32.694,
+        "centerOfMass": {
+          "x": 0.0359,
+          "y": 0.3212,
+          "z": 0.043
+        },
+        "inertia": {
+          "x": 5.8882,
+          "y": 8.074,
+          "z": 6.0722
+        },
+        "density": 900,
+        "materials": ["cardboard", "metal", "nylon", "wood"]
+      },
       "source": {
         "dataset": "codepawl/simready-glb",
         "revision": "e52172290393dde80e8d383861db94b8d0e92ec3",
         "name": "pallet_assembly_a02"
+      },
+      "license": {
+        "id": "CC-BY-4.0",
+        "attribution": "Model from NVIDIA SimReady Assets (nvidia/simready-assets), licensed CC BY 4.0",
+        "url": "https://creativecommons.org/licenses/by/4.0/"
+      }
+    },
+    {
+      "id": "asset.pallets.pallet_block_a07",
+      "category": "pallets",
+      "name": {
+        "en": "EUR pallet (wood)",
+        "es": "Europallet (madera)"
+      },
+      "tags": ["wood", "block", "pallet", "eur", "epal"],
+      "file": "models/pallets/pallet_block_a07.glb",
+      "bytes": 194236,
+      "sha256": "dacf8dbe5cd3a0e7b0cb5f692bc713fb7eab9f4ecfd6de422b3fe35095ea34a2",
+      "dimensions": {
+        "x": 0.798,
+        "y": 0.141,
+        "z": 1.2
+      },
+      "bounds": {
+        "min": {
+          "x": -0.3991,
+          "y": 0,
+          "z": -0.6
+        },
+        "max": {
+          "x": 0.3991,
+          "y": 0.1408,
+          "z": 0.6
+        }
+      },
+      "physics": {
+        "mass": 31.368,
+        "centerOfMass": {
+          "x": 0.0006,
+          "y": 0.0846,
+          "z": 0.001
+        },
+        "inertia": {
+          "x": 2.0337,
+          "y": 3.8501,
+          "z": 1.9923
+        },
+        "density": 700,
+        "materials": ["metal", "wood"]
+      },
+      "source": {
+        "dataset": "codepawl/simready-glb",
+        "revision": "e52172290393dde80e8d383861db94b8d0e92ec3",
+        "name": "pallet_block_a07"
+      },
+      "license": {
+        "id": "CC-BY-4.0",
+        "attribution": "Model from NVIDIA SimReady Assets (nvidia/simready-assets), licensed CC BY 4.0",
+        "url": "https://creativecommons.org/licenses/by/4.0/"
+      }
+    },
+    {
+      "id": "asset.pallets.pallet_rough_black_a02",
+      "category": "pallets",
+      "name": {
+        "en": "Plastic pallet 1200 × 800",
+        "es": "Pallet de plástico 1200 × 800"
+      },
+      "tags": ["plastic", "pallet", "eur"],
+      "file": "models/pallets/pallet_rough_black_a02.glb",
+      "bytes": 579536,
+      "sha256": "eeae03504b75b745e52fb601d7187efc930d86ef251c89d32337e6e4217a9aa6",
+      "dimensions": {
+        "x": 1.2,
+        "y": 0.145,
+        "z": 0.8
+      },
+      "bounds": {
+        "min": {
+          "x": -0.6,
+          "y": 0,
+          "z": -0.4
+        },
+        "max": {
+          "x": 0.6,
+          "y": 0.1447,
+          "z": 0.4
+        }
+      },
+      "physics": {
+        "mass": 6.477,
+        "centerOfMass": {
+          "x": 0,
+          "y": 0.1239,
+          "z": 0
+        },
+        "inertia": {
+          "x": 0.4455,
+          "y": 1.3832,
+          "z": 0.9674
+        },
+        "density": 950,
+        "materials": ["plastic"]
+      },
+      "source": {
+        "dataset": "codepawl/simready-glb",
+        "revision": "e52172290393dde80e8d383861db94b8d0e92ec3",
+        "name": "pallet_rough_black_a02"
+      },
+      "license": {
+        "id": "CC-BY-4.0",
+        "attribution": "Model from NVIDIA SimReady Assets (nvidia/simready-assets), licensed CC BY 4.0",
+        "url": "https://creativecommons.org/licenses/by/4.0/"
+      }
+    },
+    {
+      "id": "asset.pallets.pallet_composition_a59",
+      "category": "pallets",
+      "name": {
+        "en": "EUR pallet with mixed cartons",
+        "es": "Europallet con cajas mixtas"
+      },
+      "tags": ["wood", "pallet", "eur", "load", "cardboard", "loaded"],
+      "file": "models/pallets/pallet_composition_a59.glb",
+      "bytes": 1824780,
+      "sha256": "b313366692d8f250bcdb9afe3f92d696794470c0541ca433cdc78c9a8f99b783",
+      "dimensions": {
+        "x": 0.828,
+        "y": 0.723,
+        "z": 1.2
+      },
+      "bounds": {
+        "min": {
+          "x": -0.4286,
+          "y": 0,
+          "z": -0.6
+        },
+        "max": {
+          "x": 0.3991,
+          "y": 0.723,
+          "z": 0.6
+        }
+      },
+      "physics": {
+        "mass": 37.999,
+        "centerOfMass": {
+          "x": 0.016,
+          "y": 0.2981,
+          "z": -0.0775
+        },
+        "inertia": {
+          "x": 10.1028,
+          "y": 11.7481,
+          "z": 6.9852
+        },
+        "density": 7800,
+        "materials": ["cardboard", "metal", "paper", "wood"]
+      },
+      "source": {
+        "dataset": "codepawl/simready-glb",
+        "revision": "e52172290393dde80e8d383861db94b8d0e92ec3",
+        "name": "pallet_composition_a59"
       },
       "license": {
         "id": "CC-BY-4.0",
@@ -205,6 +555,33 @@
         "x": 0.699,
         "y": 0.51,
         "z": 0.521
+      },
+      "bounds": {
+        "min": {
+          "x": -0.3497,
+          "y": 0,
+          "z": -0.2606
+        },
+        "max": {
+          "x": 0.3497,
+          "y": 0.5099,
+          "z": 0.2606
+        }
+      },
+      "physics": {
+        "mass": 1,
+        "centerOfMass": {
+          "x": -0.0013,
+          "y": 0.2753,
+          "z": 0.0013
+        },
+        "inertia": {
+          "x": 0.062,
+          "y": 0.0604,
+          "z": 0.0708
+        },
+        "density": 689,
+        "materials": ["cardboard"]
       },
       "source": {
         "dataset": "codepawl/simready-glb",
@@ -233,6 +610,33 @@
         "y": 0.26,
         "z": 0.511
       },
+      "bounds": {
+        "min": {
+          "x": -0.2566,
+          "y": 0.0001,
+          "z": -0.2553
+        },
+        "max": {
+          "x": 0.2566,
+          "y": 0.2597,
+          "z": 0.2553
+        }
+      },
+      "physics": {
+        "mass": 0.536,
+        "centerOfMass": {
+          "x": 0,
+          "y": 0.1759,
+          "z": 0.0602
+        },
+        "inertia": {
+          "x": 0.0179,
+          "y": 0.0238,
+          "z": 0.0178
+        },
+        "density": 689,
+        "materials": ["cardboard"]
+      },
       "source": {
         "dataset": "codepawl/simready-glb",
         "revision": "e52172290393dde80e8d383861db94b8d0e92ec3",
@@ -259,6 +663,33 @@
         "x": 1.004,
         "y": 0.681,
         "z": 1.202
+      },
+      "bounds": {
+        "min": {
+          "x": -0.5018,
+          "y": 0,
+          "z": -0.6011
+        },
+        "max": {
+          "x": 0.5018,
+          "y": 0.6814,
+          "z": 0.6011
+        }
+      },
+      "physics": {
+        "mass": 45.25,
+        "centerOfMass": {
+          "x": -0.0143,
+          "y": 0.2045,
+          "z": -0.0214
+        },
+        "inertia": {
+          "x": 5.0885,
+          "y": 9.3509,
+          "z": 7.3446
+        },
+        "density": 689,
+        "materials": ["cardboard", "metal", "paper", "plastic", "wood"]
       },
       "source": {
         "dataset": "codepawl/simready-glb",
@@ -287,6 +718,33 @@
         "y": 0.105,
         "z": 0.105
       },
+      "bounds": {
+        "min": {
+          "x": -0.0529,
+          "y": 0,
+          "z": -0.0526
+        },
+        "max": {
+          "x": 0.0529,
+          "y": 0.1053,
+          "z": 0.0526
+        }
+      },
+      "physics": {
+        "mass": 0.104,
+        "centerOfMass": {
+          "x": 0.0033,
+          "y": 0.0524,
+          "z": 0.0039
+        },
+        "inertia": {
+          "x": 0.0006,
+          "y": 0.0007,
+          "z": 0.0007
+        },
+        "density": 689,
+        "materials": ["cardboard"]
+      },
       "source": {
         "dataset": "codepawl/simready-glb",
         "revision": "e52172290393dde80e8d383861db94b8d0e92ec3",
@@ -313,6 +771,33 @@
         "x": 0.15,
         "y": 0.058,
         "z": 0.16
+      },
+      "bounds": {
+        "min": {
+          "x": -0.0733,
+          "y": 0,
+          "z": -0.0809
+        },
+        "max": {
+          "x": 0.0768,
+          "y": 0.0579,
+          "z": 0.0791
+        }
+      },
+      "physics": {
+        "mass": 0.117,
+        "centerOfMass": {
+          "x": 0.0066,
+          "y": 0.0346,
+          "z": -0.0122
+        },
+        "inertia": {
+          "x": 0.0007,
+          "y": 0.0009,
+          "z": 0.0005
+        },
+        "density": 689,
+        "materials": ["cardboard"]
       },
       "source": {
         "dataset": "codepawl/simready-glb",
@@ -341,6 +826,33 @@
         "y": 0.08,
         "z": 0.156
       },
+      "bounds": {
+        "min": {
+          "x": -0.0401,
+          "y": 0,
+          "z": -0.0779
+        },
+        "max": {
+          "x": 0.0401,
+          "y": 0.0797,
+          "z": 0.0779
+        }
+      },
+      "physics": {
+        "mass": 0.083,
+        "centerOfMass": {
+          "x": -0.0011,
+          "y": 0.0457,
+          "z": -0.0112
+        },
+        "inertia": {
+          "x": 0.0008,
+          "y": 0.0008,
+          "z": 0.0004
+        },
+        "density": 689,
+        "materials": ["cardboard", "paper"]
+      },
       "source": {
         "dataset": "codepawl/simready-glb",
         "revision": "e52172290393dde80e8d383861db94b8d0e92ec3",
@@ -367,6 +879,33 @@
         "x": 0.202,
         "y": 0.206,
         "z": 0.204
+      },
+      "bounds": {
+        "min": {
+          "x": -0.1008,
+          "y": 0,
+          "z": -0.1032
+        },
+        "max": {
+          "x": 0.1009,
+          "y": 0.2063,
+          "z": 0.1005
+        }
+      },
+      "physics": {
+        "mass": 0.132,
+        "centerOfMass": {
+          "x": 0.0293,
+          "y": 0.1354,
+          "z": 0.0243
+        },
+        "inertia": {
+          "x": 0.0051,
+          "y": 0.0033,
+          "z": 0.0047
+        },
+        "density": 689,
+        "materials": ["cardboard", "paper"]
       },
       "source": {
         "dataset": "codepawl/simready-glb",
@@ -395,6 +934,33 @@
         "y": 0.253,
         "z": 0.405
       },
+      "bounds": {
+        "min": {
+          "x": -0.3026,
+          "y": 0.0001,
+          "z": -0.2026
+        },
+        "max": {
+          "x": 0.3026,
+          "y": 0.2533,
+          "z": 0.2026
+        }
+      },
+      "physics": {
+        "mass": 2.837,
+        "centerOfMass": {
+          "x": -0.0003,
+          "y": 0.0706,
+          "z": 0.0001
+        },
+        "inertia": {
+          "x": 0.0904,
+          "y": 0.2011,
+          "z": 0.1569
+        },
+        "density": 950,
+        "materials": ["plastic"]
+      },
       "source": {
         "dataset": "codepawl/simready-glb",
         "revision": "e52172290393dde80e8d383861db94b8d0e92ec3",
@@ -421,6 +987,33 @@
         "x": 0.605,
         "y": 0.17,
         "z": 0.405
+      },
+      "bounds": {
+        "min": {
+          "x": -0.3026,
+          "y": 0.0001,
+          "z": -0.2026
+        },
+        "max": {
+          "x": 0.3026,
+          "y": 0.1704,
+          "z": 0.2026
+        }
+      },
+      "physics": {
+        "mass": 2.252,
+        "centerOfMass": {
+          "x": 0,
+          "y": 0.0404,
+          "z": -0.0002
+        },
+        "inertia": {
+          "x": 0.0611,
+          "y": 0.1528,
+          "z": 0.1092
+        },
+        "density": 950,
+        "materials": ["plastic"]
       },
       "source": {
         "dataset": "codepawl/simready-glb",
@@ -449,6 +1042,33 @@
         "y": 0.253,
         "z": 0.405
       },
+      "bounds": {
+        "min": {
+          "x": -0.3026,
+          "y": 0.0015,
+          "z": -0.2026
+        },
+        "max": {
+          "x": 0.3026,
+          "y": 0.2547,
+          "z": 0.2026
+        }
+      },
+      "physics": {
+        "mass": 2.837,
+        "centerOfMass": {
+          "x": -0.0003,
+          "y": 0.072,
+          "z": 0.0001
+        },
+        "inertia": {
+          "x": 0.0904,
+          "y": 0.2011,
+          "z": 0.1569
+        },
+        "density": 950,
+        "materials": ["plastic"]
+      },
       "source": {
         "dataset": "codepawl/simready-glb",
         "revision": "e52172290393dde80e8d383861db94b8d0e92ec3",
@@ -475,6 +1095,33 @@
         "x": 1.002,
         "y": 1.017,
         "z": 1.009
+      },
+      "bounds": {
+        "min": {
+          "x": -0.5011,
+          "y": 0,
+          "z": -0.5044
+        },
+        "max": {
+          "x": 0.5011,
+          "y": 1.0165,
+          "z": 0.5044
+        }
+      },
+      "physics": {
+        "mass": 87.527,
+        "centerOfMass": {
+          "x": 0.002,
+          "y": 0.5478,
+          "z": 0.002
+        },
+        "inertia": {
+          "x": 21.458,
+          "y": 20.1999,
+          "z": 20.2456
+        },
+        "density": 8000,
+        "materials": ["metal", "wood"]
       },
       "source": {
         "dataset": "codepawl/simready-glb",
@@ -503,6 +1150,33 @@
         "y": 0.749,
         "z": 0.621
       },
+      "bounds": {
+        "min": {
+          "x": -0.3597,
+          "y": 0,
+          "z": -0.3103
+        },
+        "max": {
+          "x": 0.3597,
+          "y": 0.7489,
+          "z": 0.3103
+        }
+      },
+      "physics": {
+        "mass": 8.39,
+        "centerOfMass": {
+          "x": 0.0001,
+          "y": 0.3316,
+          "z": -0.0013
+        },
+        "inertia": {
+          "x": 0.8557,
+          "y": 0.5017,
+          "z": 0.8949
+        },
+        "density": 900,
+        "materials": ["plastic"]
+      },
       "source": {
         "dataset": "codepawl/simready-glb",
         "revision": "e52172290393dde80e8d383861db94b8d0e92ec3",
@@ -529,6 +1203,33 @@
         "x": 0.201,
         "y": 0.114,
         "z": 0.271
+      },
+      "bounds": {
+        "min": {
+          "x": -0.1006,
+          "y": 0,
+          "z": -0.1353
+        },
+        "max": {
+          "x": 0.1006,
+          "y": 0.1144,
+          "z": 0.1353
+        }
+      },
+      "physics": {
+        "mass": 0.142,
+        "centerOfMass": {
+          "x": 0,
+          "y": 0.0574,
+          "z": 0
+        },
+        "inertia": {
+          "x": 0.0064,
+          "y": 0.0087,
+          "z": 0.0046
+        },
+        "density": 950,
+        "materials": ["plastic"]
       },
       "source": {
         "dataset": "codepawl/simready-glb",
@@ -557,6 +1258,33 @@
         "y": 1.202,
         "z": 1.256
       },
+      "bounds": {
+        "min": {
+          "x": -0.524,
+          "y": 0,
+          "z": -0.6273
+        },
+        "max": {
+          "x": 0.524,
+          "y": 1.2022,
+          "z": 0.6283
+        }
+      },
+      "physics": {
+        "mass": 180.548,
+        "centerOfMass": {
+          "x": -0.0006,
+          "y": 0.5941,
+          "z": 0.0567
+        },
+        "inertia": {
+          "x": 82.476,
+          "y": 65.7989,
+          "z": 66.8907
+        },
+        "density": 950,
+        "materials": ["metal", "plastic"]
+      },
       "source": {
         "dataset": "codepawl/simready-glb",
         "revision": "e52172290393dde80e8d383861db94b8d0e92ec3",
@@ -583,6 +1311,33 @@
         "x": 0.642,
         "y": 0.868,
         "z": 0.657
+      },
+      "bounds": {
+        "min": {
+          "x": -0.3209,
+          "y": 0,
+          "z": -0.3209
+        },
+        "max": {
+          "x": 0.3209,
+          "y": 0.8683,
+          "z": 0.3361
+        }
+      },
+      "physics": {
+        "mass": 102.3,
+        "centerOfMass": {
+          "x": -0.0022,
+          "y": 0.5327,
+          "z": 0.0158
+        },
+        "inertia": {
+          "x": 13.6471,
+          "y": 9.317,
+          "z": 13.7805
+        },
+        "density": 8000,
+        "materials": ["metal"]
       },
       "source": {
         "dataset": "codepawl/simready-glb",
@@ -611,6 +1366,33 @@
         "y": 0.387,
         "z": 0.284
       },
+      "bounds": {
+        "min": {
+          "x": -0.1414,
+          "y": 0.0003,
+          "z": -0.1421
+        },
+        "max": {
+          "x": 0.1414,
+          "y": 0.3869,
+          "z": 0.1421
+        }
+      },
+      "physics": {
+        "mass": 0.175,
+        "centerOfMass": {
+          "x": 0,
+          "y": 0.241,
+          "z": 0.0118
+        },
+        "inertia": {
+          "x": 0.0045,
+          "y": 0.0027,
+          "z": 0.0044
+        },
+        "density": 900,
+        "materials": ["plastic"]
+      },
       "source": {
         "dataset": "codepawl/simready-glb",
         "revision": "e52172290393dde80e8d383861db94b8d0e92ec3",
@@ -637,6 +1419,33 @@
         "x": 0.578,
         "y": 0.907,
         "z": 0.586
+      },
+      "bounds": {
+        "min": {
+          "x": -0.2888,
+          "y": 0,
+          "z": -0.2888
+        },
+        "max": {
+          "x": 0.2888,
+          "y": 0.9072,
+          "z": 0.2973
+        }
+      },
+      "physics": {
+        "mass": 17.041,
+        "centerOfMass": {
+          "x": 0.0036,
+          "y": 0.8233,
+          "z": 0.0023
+        },
+        "inertia": {
+          "x": 1.0101,
+          "y": 0.8941,
+          "z": 0.9668
+        },
+        "density": 689,
+        "materials": ["cardboard", "metal"]
       },
       "source": {
         "dataset": "codepawl/simready-glb",
@@ -665,6 +1474,33 @@
         "y": 0.962,
         "z": 0.511
       },
+      "bounds": {
+        "min": {
+          "x": -0.25,
+          "y": 0.0003,
+          "z": -0.2613
+        },
+        "max": {
+          "x": 0.25,
+          "y": 0.9621,
+          "z": 0.25
+        }
+      },
+      "physics": {
+        "mass": 6.42,
+        "centerOfMass": {
+          "x": -0.0015,
+          "y": 0.4932,
+          "z": -0.0006
+        },
+        "inertia": {
+          "x": 0.6668,
+          "y": 0.2765,
+          "z": 0.6636
+        },
+        "density": 950,
+        "materials": ["metal", "plastic"]
+      },
       "source": {
         "dataset": "codepawl/simready-glb",
         "revision": "e52172290393dde80e8d383861db94b8d0e92ec3",
@@ -691,6 +1527,33 @@
         "x": 4,
         "y": 3.01,
         "z": 2.067
+      },
+      "bounds": {
+        "min": {
+          "x": -2,
+          "y": -0.0001,
+          "z": -1.0334
+        },
+        "max": {
+          "x": 2,
+          "y": 3.0101,
+          "z": 1.0334
+        }
+      },
+      "physics": {
+        "mass": 1170.493,
+        "centerOfMass": {
+          "x": 0,
+          "y": 1.4321,
+          "z": 0
+        },
+        "inertia": {
+          "x": 2997.2925,
+          "y": 5365.5425,
+          "z": 6402.4053
+        },
+        "density": 8000,
+        "materials": ["metal"]
       },
       "source": {
         "dataset": "codepawl/simready-glb",
@@ -719,6 +1582,33 @@
         "y": 3.01,
         "z": 1.081
       },
+      "bounds": {
+        "min": {
+          "x": -2,
+          "y": -0.0001,
+          "z": -0.5404
+        },
+        "max": {
+          "x": 2,
+          "y": 3.0101,
+          "z": 0.5404
+        }
+      },
+      "physics": {
+        "mass": 745.434,
+        "centerOfMass": {
+          "x": 0.002,
+          "y": 1.4607,
+          "z": 0
+        },
+        "inertia": {
+          "x": 1583.2705,
+          "y": 2889.667,
+          "z": 4140.3496
+        },
+        "density": 8000,
+        "materials": ["metal"]
+      },
       "source": {
         "dataset": "codepawl/simready-glb",
         "revision": "e52172290393dde80e8d383861db94b8d0e92ec3",
@@ -745,6 +1635,33 @@
         "x": 2.454,
         "y": 2.431,
         "z": 1.226
+      },
+      "bounds": {
+        "min": {
+          "x": -1.2272,
+          "y": 0,
+          "z": -0.6129
+        },
+        "max": {
+          "x": 1.2272,
+          "y": 2.4311,
+          "z": 0.6129
+        }
+      },
+      "physics": {
+        "mass": 1961.55,
+        "centerOfMass": {
+          "x": 0,
+          "y": 1.2308,
+          "z": 0.0001
+        },
+        "inertia": {
+          "x": 3007.9443,
+          "y": 2061.3586,
+          "z": 4948.063
+        },
+        "density": 8000,
+        "materials": ["metal", "wood"]
       },
       "source": {
         "dataset": "codepawl/simready-glb",
@@ -773,6 +1690,33 @@
         "y": 0.934,
         "z": 1.093
       },
+      "bounds": {
+        "min": {
+          "x": -0.6498,
+          "y": 0,
+          "z": -0.5467
+        },
+        "max": {
+          "x": 0.6498,
+          "y": 0.9336,
+          "z": 0.5467
+        }
+      },
+      "physics": {
+        "mass": 414.721,
+        "centerOfMass": {
+          "x": 0.0001,
+          "y": 0.3986,
+          "z": 0.0001
+        },
+        "inertia": {
+          "x": 73.584,
+          "y": 112.2098,
+          "z": 84.0421
+        },
+        "density": 7800,
+        "materials": ["metal"]
+      },
       "source": {
         "dataset": "codepawl/simready-glb",
         "revision": "e52172290393dde80e8d383861db94b8d0e92ec3",
@@ -799,6 +1743,33 @@
         "x": 0.92,
         "y": 2.438,
         "z": 0.615
+      },
+      "bounds": {
+        "min": {
+          "x": -0.4598,
+          "y": 0,
+          "z": -0.3074
+        },
+        "max": {
+          "x": 0.4598,
+          "y": 2.4384,
+          "z": 0.3074
+        }
+      },
+      "physics": {
+        "mass": 502.519,
+        "centerOfMass": {
+          "x": 0,
+          "y": 1.2145,
+          "z": 0
+        },
+        "inertia": {
+          "x": 698.1039,
+          "y": 119.5951,
+          "z": 736.9659
+        },
+        "density": 7800,
+        "materials": ["metal"]
       },
       "source": {
         "dataset": "codepawl/simready-glb",
@@ -827,6 +1798,33 @@
         "y": 1.957,
         "z": 1.885
       },
+      "bounds": {
+        "min": {
+          "x": -0.4114,
+          "y": 0.0076,
+          "z": -0.3511
+        },
+        "max": {
+          "x": 0.4114,
+          "y": 1.9651,
+          "z": 1.5341
+        }
+      },
+      "physics": {
+        "mass": 274.667,
+        "centerOfMass": {
+          "x": 0.019,
+          "y": 0.3176,
+          "z": 0.2741
+        },
+        "inertia": {
+          "x": 107.1283,
+          "y": 65.5512,
+          "z": 76.9092
+        },
+        "density": 7800,
+        "materials": ["glass", "paper", "plastic"]
+      },
       "source": {
         "dataset": "codepawl/simready-glb",
         "revision": "e52172290393dde80e8d383861db94b8d0e92ec3",
@@ -853,6 +1851,33 @@
         "x": 1.129,
         "y": 2.933,
         "z": 3.031
+      },
+      "bounds": {
+        "min": {
+          "x": -0.5646,
+          "y": 0.0001,
+          "z": -0.8851
+        },
+        "max": {
+          "x": 0.5646,
+          "y": 2.9333,
+          "z": 2.1461
+        }
+      },
+      "physics": {
+        "mass": 1349.235,
+        "centerOfMass": {
+          "x": 0.0004,
+          "y": 1.2107,
+          "z": 0.2412
+        },
+        "inertia": {
+          "x": 1419.714,
+          "y": 478.7393,
+          "z": 1302.6518
+        },
+        "density": 950,
+        "materials": ["glass", "metal", "paper", "plastic", "rubber"]
       },
       "source": {
         "dataset": "codepawl/simready-glb",
@@ -881,6 +1906,33 @@
         "y": 1.201,
         "z": 1.601
       },
+      "bounds": {
+        "min": {
+          "x": -0.3403,
+          "y": 0,
+          "z": -0.1364
+        },
+        "max": {
+          "x": 0.3403,
+          "y": 1.201,
+          "z": 1.4648
+        }
+      },
+      "physics": {
+        "mass": 167.726,
+        "centerOfMass": {
+          "x": -0.0002,
+          "y": 0.1999,
+          "z": 0.5346
+        },
+        "inertia": {
+          "x": 50.8258,
+          "y": 45.8501,
+          "z": 20.2399
+        },
+        "density": 1200,
+        "materials": ["paper", "rubber"]
+      },
       "source": {
         "dataset": "codepawl/simready-glb",
         "revision": "e52172290393dde80e8d383861db94b8d0e92ec3",
@@ -907,6 +1959,33 @@
         "x": 0.653,
         "y": 1.274,
         "z": 1.63
+      },
+      "bounds": {
+        "min": {
+          "x": -0.3264,
+          "y": 0,
+          "z": -0.1801
+        },
+        "max": {
+          "x": 0.3267,
+          "y": 1.2738,
+          "z": 1.4496
+        }
+      },
+      "physics": {
+        "mass": 163.87,
+        "centerOfMass": {
+          "x": -0.0009,
+          "y": 0.2172,
+          "z": 0.436
+        },
+        "inertia": {
+          "x": 45.8659,
+          "y": 41.2487,
+          "z": 15.865
+        },
+        "density": 1200,
+        "materials": ["paper", "rubber"]
       },
       "source": {
         "dataset": "codepawl/simready-glb",
@@ -935,6 +2014,33 @@
         "y": 1.166,
         "z": 2.071
       },
+      "bounds": {
+        "min": {
+          "x": -0.0032,
+          "y": 0.0001,
+          "z": -2.0714
+        },
+        "max": {
+          "x": 2.0975,
+          "y": 1.1665,
+          "z": 0.0001
+        }
+      },
+      "physics": {
+        "mass": 127.857,
+        "centerOfMass": {
+          "x": 1.2729,
+          "y": 0.1885,
+          "z": -1.0866
+        },
+        "inertia": {
+          "x": 223.7609,
+          "y": 368.0786,
+          "z": 239.0616
+        },
+        "density": 900,
+        "materials": ["metal", "paper", "plastic", "rubber"]
+      },
       "source": {
         "dataset": "codepawl/simready-glb",
         "revision": "e52172290393dde80e8d383861db94b8d0e92ec3",
@@ -961,6 +2067,33 @@
         "x": 1.151,
         "y": 1.166,
         "z": 2
+      },
+      "bounds": {
+        "min": {
+          "x": -0.0741,
+          "y": -0.0001,
+          "z": -0.0001
+        },
+        "max": {
+          "x": 1.077,
+          "y": 1.1664,
+          "z": 2
+        }
+      },
+      "physics": {
+        "mass": 112.524,
+        "centerOfMass": {
+          "x": 0.4689,
+          "y": 0.5492,
+          "z": 0.7167
+        },
+        "inertia": {
+          "x": 241.1284,
+          "y": 196.0523,
+          "z": 181.3849
+        },
+        "density": 950,
+        "materials": ["metal", "paper", "plastic", "rubber"]
       },
       "source": {
         "dataset": "codepawl/simready-glb",
@@ -989,6 +2122,33 @@
         "y": 1.072,
         "z": 0.23
       },
+      "bounds": {
+        "min": {
+          "x": -0.1149,
+          "y": 0,
+          "z": -0.115
+        },
+        "max": {
+          "x": 1.1149,
+          "y": 1.0719,
+          "z": 0.115
+        }
+      },
+      "physics": {
+        "mass": 45.41,
+        "centerOfMass": {
+          "x": 0.5,
+          "y": 0.2347,
+          "z": 0
+        },
+        "inertia": {
+          "x": 9.4975,
+          "y": 6.8732,
+          "z": 16.2367
+        },
+        "density": 7800,
+        "materials": ["metal"]
+      },
       "source": {
         "dataset": "codepawl/simready-glb",
         "revision": "e52172290393dde80e8d383861db94b8d0e92ec3",
@@ -1015,6 +2175,33 @@
         "x": 3.162,
         "y": 1.143,
         "z": 0.148
+      },
+      "bounds": {
+        "min": {
+          "x": -0.0679,
+          "y": 0.0002,
+          "z": -0.0824
+        },
+        "max": {
+          "x": 3.0937,
+          "y": 1.1429,
+          "z": 0.0654
+        }
+      },
+      "physics": {
+        "mass": 45.91,
+        "centerOfMass": {
+          "x": 2.7379,
+          "y": 0.1066,
+          "z": -0.0172
+        },
+        "inertia": {
+          "x": 22.0948,
+          "y": 119.0184,
+          "z": 141.0607
+        },
+        "density": 200,
+        "materials": ["metal", "rubber"]
       },
       "source": {
         "dataset": "codepawl/simready-glb",
@@ -1043,6 +2230,33 @@
         "y": 2.036,
         "z": 0.472
       },
+      "bounds": {
+        "min": {
+          "x": -0.9163,
+          "y": 0,
+          "z": -0.2354
+        },
+        "max": {
+          "x": 0.9126,
+          "y": 2.0365,
+          "z": 0.2362
+        }
+      },
+      "physics": {
+        "mass": 6.803,
+        "centerOfMass": {
+          "x": -0.0033,
+          "y": 1.3262,
+          "z": 0.0018
+        },
+        "inertia": {
+          "x": 5.9696,
+          "y": 2.1149,
+          "z": 7.8624
+        },
+        "density": 900,
+        "materials": ["metal", "plastic"]
+      },
       "source": {
         "dataset": "codepawl/simready-glb",
         "revision": "e52172290393dde80e8d383861db94b8d0e92ec3",
@@ -1069,6 +2283,33 @@
         "x": 2.241,
         "y": 0.501,
         "z": 0.348
+      },
+      "bounds": {
+        "min": {
+          "x": -1.1204,
+          "y": 0.0001,
+          "z": -0.1742
+        },
+        "max": {
+          "x": 1.1204,
+          "y": 0.5012,
+          "z": 0.1742
+        }
+      },
+      "physics": {
+        "mass": 89.302,
+        "centerOfMass": {
+          "x": 0,
+          "y": 0.2836,
+          "z": 0.0462
+        },
+        "inertia": {
+          "x": 2.2751,
+          "y": 62.8404,
+          "z": 63.1173
+        },
+        "density": 7850,
+        "materials": ["metal"]
       },
       "source": {
         "dataset": "codepawl/simready-glb",

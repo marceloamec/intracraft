@@ -1,4 +1,4 @@
-// Shared helpers for the asset scripts: download with hash check and GLB bounding-box measurement.
+// Shared helpers for the asset scripts: download with hash check, GLB bounding box and rigid-body data.
 import { createHash } from 'node:crypto';
 import { mkdir, readFile, rename, stat, writeFile } from 'node:fs/promises';
 import { dirname, resolve } from 'node:path';
@@ -35,37 +35,88 @@ export async function fileMatches(path, bytes, hash) {
   }
 }
 
-/** Axis-aligned size [x, y, z] in metres of the default scene of a GLB (node transforms applied). */
+/** Axis-aligned bounds { min, max } ([x, y, z] in metres) of the default scene of a GLB. */
 export function measureGlb(buffer) {
-  if (buffer.readUInt32LE(0) !== 0x46546c67) throw new Error('Not a GLB file');
-  const jsonLength = buffer.readUInt32LE(12);
-  const gltf = JSON.parse(buffer.toString('utf8', 20, 20 + jsonLength));
+  const gltf = readGltfJson(buffer);
   const min = [Infinity, Infinity, Infinity];
   const max = [-Infinity, -Infinity, -Infinity];
-  const roots = gltf.scenes?.[gltf.scene ?? 0]?.nodes ?? [];
-
-  const visit = (index, parent) => {
-    const node = gltf.nodes[index];
-    const world = multiply(parent, localMatrix(node));
-    if (node.mesh !== undefined) {
-      for (const primitive of gltf.meshes[node.mesh].primitives) {
-        const accessor = gltf.accessors[primitive.attributes.POSITION];
-        const scale = normalizationFactor(accessor);
-        const lo = accessor.min.map((v) => v * scale);
-        const hi = accessor.max.map((v) => v * scale);
-        for (const corner of corners(lo, hi)) {
-          const p = transformPoint(world, corner);
-          for (let i = 0; i < 3; i++) {
-            min[i] = Math.min(min[i], p[i]);
-            max[i] = Math.max(max[i], p[i]);
-          }
+  visitScene(gltf, (node, world) => {
+    if (node.mesh === undefined) return;
+    for (const primitive of gltf.meshes[node.mesh].primitives) {
+      const accessor = gltf.accessors[primitive.attributes.POSITION];
+      const scale = normalizationFactor(accessor);
+      const lo = accessor.min.map((v) => v * scale);
+      const hi = accessor.max.map((v) => v * scale);
+      for (const corner of corners(lo, hi)) {
+        const p = transformPoint(world, corner);
+        for (let i = 0; i < 3; i++) {
+          min[i] = Math.min(min[i], p[i]);
+          max[i] = Math.max(max[i], p[i]);
         }
       }
     }
-    for (const child of node.children ?? []) visit(child, world);
+  });
+  return { min, max };
+}
+
+/**
+ * Rigid-body data declared with glTF `KHR_physics_rigid_bodies`: total mass, combined centre of mass
+ * and principal inertia (parallel-axis sum, body axes assumed aligned with the model), density and
+ * the material families named by the surfaces ("opaque__wood__new_a" → "wood").
+ * Returns undefined when no node declares a mass.
+ */
+export function readGlbPhysics(buffer) {
+  const gltf = readGltfJson(buffer);
+  const bodies = [];
+  visitScene(gltf, (node, world) => {
+    const motion = node.extensions?.KHR_physics_rigid_bodies?.motion;
+    if (motion?.mass === undefined) return;
+    bodies.push({
+      mass: motion.mass,
+      center: transformPoint(world, motion.centerOfMass ?? [0, 0, 0]),
+      inertia: motion.inertiaDiagonal ?? [0, 0, 0],
+      density: node.extras?.density,
+    });
+  });
+  if (bodies.length === 0) return undefined;
+
+  const mass = bodies.reduce((sum, b) => sum + b.mass, 0);
+  const center = [0, 1, 2].map(
+    (i) => bodies.reduce((sum, b) => sum + b.mass * b.center[i], 0) / mass,
+  );
+  const inertia = [0, 0, 0];
+  for (const b of bodies) {
+    const d = b.center.map((v, i) => v - center[i]);
+    inertia[0] += b.inertia[0] + b.mass * (d[1] ** 2 + d[2] ** 2);
+    inertia[1] += b.inertia[1] + b.mass * (d[0] ** 2 + d[2] ** 2);
+    inertia[2] += b.inertia[2] + b.mass * (d[0] ** 2 + d[1] ** 2);
+  }
+  const density = bodies.find((b) => b.density !== undefined)?.density;
+  const families = (gltf.materials ?? []).map((m) => m.name?.split('__')[1]).filter(Boolean);
+  return {
+    mass,
+    centerOfMass: center,
+    inertia,
+    ...(density === undefined ? {} : { density }),
+    materials: [...new Set(families)].sort(),
   };
-  for (const root of roots) visit(root, IDENTITY);
-  return max.map((value, i) => value - min[i]);
+}
+
+function readGltfJson(buffer) {
+  if (buffer.readUInt32LE(0) !== 0x46546c67) throw new Error('Not a GLB file');
+  const jsonLength = buffer.readUInt32LE(12);
+  return JSON.parse(buffer.toString('utf8', 20, 20 + jsonLength));
+}
+
+/** Calls `visit(node, worldMatrix)` for every node of the default scene. */
+function visitScene(gltf, visit) {
+  const walk = (index, parent) => {
+    const node = gltf.nodes[index];
+    const world = multiply(parent, localMatrix(node));
+    visit(node, world);
+    for (const child of node.children ?? []) walk(child, world);
+  };
+  for (const root of gltf.scenes?.[gltf.scene ?? 0]?.nodes ?? []) walk(root, IDENTITY);
 }
 
 /** Quantized meshes (KHR_mesh_quantization) store normalized integers; node scale restores metres. */
