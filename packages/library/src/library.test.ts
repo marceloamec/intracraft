@@ -20,13 +20,16 @@ describe('built-in registry', () => {
     expect(roller.ports.map((p) => p.id)).toEqual(['A', 'B']);
   });
 
-  it('contains the five MVP conveyors, the source, the sink, the process station and the photocell', () => {
+  it('contains the five MVP conveyors, the lifts, the source, the sink, the process station and the photocell', () => {
     expect(createBuiltInRegistry().list().map((d) => d.id)).toEqual([
       'conveyor.roller',
       'conveyor.chain',
       'conveyor.chain_turntable',
       'conveyor.roller_turntable',
       'conveyor.transfer_rc',
+      'conveyor.lift_table_manual',
+      'conveyor.scissor_lift',
+      'conveyor.elevator',
       'flow.source',
       'flow.sink',
       'flow.process_station',
@@ -115,6 +118,40 @@ describe('validateInstance', () => {
     const transfer = createBuiltInRegistry().get('conveyor.transfer_rc');
     const issues = validateInstance(transfer, { rollerPitch: 0.133, rollerDiameter: 0.089, transferChainWidth: 0.08 });
     expect(issues.map((i) => i.rule)).toEqual(['chainFitsBetweenRollers']);
+  });
+
+  it('flags a manual lift table whose low height is not below the conveyor height (S12)', () => {
+    const table = createBuiltInRegistry().get('conveyor.lift_table_manual');
+    expect(validateInstance(table, { lowHeight: 0.4, conveyorHeight: 0.4 }).map((i) => i.rule)).toEqual(['heightsReversed']);
+  });
+
+  it('flags a scissor table or an elevator that does not change height (S13, S14)', () => {
+    const registry = createBuiltInRegistry();
+    for (const id of ['conveyor.scissor_lift', 'conveyor.elevator']) {
+      const issues = validateInstance(registry.get(id), { entryHeight: 0.6, exitHeight: 0.605 });
+      expect(issues.map((i) => i.rule), id).toEqual(['noHeightChange']);
+    }
+  });
+
+  it('flags a lift deck shorter than the pallet plus 100 mm', () => {
+    const scissor = createBuiltInRegistry().get('conveyor.scissor_lift');
+    expect(validateInstance(scissor, { length: 1.25 }).map((i) => i.rule)).toEqual(['deckTooShort']);
+    expect(validateInstance(scissor, { length: 1.3 })).toEqual([]);
+  });
+
+  it('checks the rollers under the pallet only on an elevator with a roller deck', () => {
+    const elevator = createBuiltInRegistry().get('conveyor.elevator');
+    const sparse = { rollerPitch: 0.5 };
+    expect(validateInstance(elevator, sparse).map((i) => i.rule)).toEqual(['min3RollersUnderPallet']);
+    const chains = { ...sparse, deckType: 'chains', palletSideAlongTravel: 'short', usableWidth: 1.3 };
+    expect(validateInstance(elevator, chains)).toEqual([]);
+  });
+
+  it('lets the operator source and sink go down to 50 mm (S12)', () => {
+    const registry = createBuiltInRegistry();
+    for (const id of ['flow.source', 'flow.sink']) {
+      expect(registry.get(id).parameters.find((p) => p.key === 'surfaceHeight')?.min, id).toBe(0.05);
+    }
   });
 });
 

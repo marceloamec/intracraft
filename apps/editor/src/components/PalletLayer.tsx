@@ -34,7 +34,13 @@ export function PalletLayer() {
     const map = new Map<string, Carrier>();
     for (const instance of layout.instances) {
       const params = instanceParams(registry.get(instance.definitionId), instance.params);
-      map.set(instance.id, { x: instance.position.x, z: instance.position.z, yaw: instance.yaw, height: num(params, 'surfaceHeight', 0) });
+      // A lift's deck height comes with each pallet (pathY); objects on a raised base add its height.
+      map.set(instance.id, {
+        x: instance.position.x,
+        z: instance.position.z,
+        yaw: instance.yaw,
+        height: instance.position.y + num(params, 'surfaceHeight', 0),
+      });
     }
     return map;
   }, [layout]);

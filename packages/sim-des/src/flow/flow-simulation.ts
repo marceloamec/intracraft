@@ -1,5 +1,6 @@
 // 2D (discrete-event) run of a layout: sources, conveyors without accumulation, stations
-// (turntables, transfer tables), sinks and photoelectric sensors.
+// (turntables, transfer tables, process stations, lift tables and elevators), sinks and photoelectric
+// sensors.
 //
 // Every event "settles" the plant at the current time:
 //   1. pallets whose tail cleared a conveyor end move to the next object;
@@ -20,12 +21,14 @@ import type {
   FlowIssue,
   FlowNetwork,
   FlowNode,
+  LiftNode,
   LineNode,
   ProcessNode,
   SourceNode,
   TransferNode,
   TurntableNode,
 } from './network';
+import { LiftStation } from './lift-station';
 import type { Pallet } from './pallet';
 import { Photoeye } from './photoeye';
 import { ProcessStation } from './process-station';
@@ -88,6 +91,8 @@ export interface FlowSnapshot {
   signals: Record<string, boolean>;
   /** Deck heading of every turntable (rad, its own frame), following the platform while it turns. */
   angles: Record<string, number>;
+  /** Deck height of every lift table and elevator (m above its base), following the vertical move. */
+  heights: Record<string, number>;
 }
 
 /** Statistics per instance id, keyed like the definition's `statistics` list (times in s). */
@@ -130,7 +135,7 @@ export class FlowSimulation {
         this.sinks.set(node.id, new PalletSink(node));
       } else if (node.kind === 'sensor') {
         this.sensors.push(new Photoeye(node));
-      } else if (node.kind === 'turntable' || node.kind === 'transfer' || node.kind === 'process') {
+      } else if (node.kind === 'turntable' || node.kind === 'transfer' || node.kind === 'process' || node.kind === 'lift') {
         const station = createStation(node, options.seed, index + 1);
         this.stations.set(node.id, station);
         for (const deck of station.decks) {
@@ -216,12 +221,14 @@ export class FlowSimulation {
     for (const source of this.sources) status[source.node.id] = source.dueSince === undefined ? 'idle' : 'waiting';
     for (const sink of this.sinks.values()) status[sink.node.id] = this.sim.now < sink.busyUntil ? 'busy' : 'idle';
     const angles: Record<string, number> = {};
+    const heights: Record<string, number> = {};
     for (const sensor of this.sensors) status[sensor.node.id] = sensor.detecting ? 'detecting' : 'clear';
     for (const station of this.stations.values()) {
       status[station.id] = station.busyStatus ?? deckStatus(station.decks);
       if (station instanceof Turntable) angles[station.id] = station.angleAt(this.sim.now);
+      if (station instanceof LiftStation) heights[station.id] = station.heightAt(this.sim.now);
     }
-    return { time: this.sim.now, pallets, status, signals: Object.fromEntries(this.signals), angles };
+    return { time: this.sim.now, pallets, status, signals: Object.fromEntries(this.signals), angles, heights };
   }
 
   statistics(): FlowStatistics {
@@ -325,7 +332,11 @@ export class FlowSimulation {
       if (source.dueSince === undefined || line === undefined || this.signals.get(`${source.node.id}.enable`) === false) continue;
       const { palletType, orientation } = source.node;
       const length = alongLength(source.node);
-      if (this.canEnter(line, length + line.node.minGap)) {
+      // A source can feed a station directly (the operator at a manual lift table, S12).
+      const station = this.deckOwner.get(line);
+      const accepts = station === undefined || station.canReceive(source.node.downstreamPort);
+      if (accepts && this.canEnter(line, length + line.node.minGap)) {
+        station?.receive(source.node.downstreamPort, length, now);
         const pallet: Pallet = {
           id: this.nextPalletId++,
           typeId: palletType.id,
@@ -671,8 +682,13 @@ export class FlowSimulation {
   }
 }
 
-function createStation(node: TurntableNode | TransferNode | ProcessNode, seed: number, stream: number): Station {
+function createStation(
+  node: TurntableNode | TransferNode | ProcessNode | LiftNode,
+  seed: number,
+  stream: number,
+): Station {
   if (node.kind === 'turntable') return new Turntable(node, seed, stream);
+  if (node.kind === 'lift') return new LiftStation(node);
   return node.kind === 'transfer' ? new Transfer(node) : new ProcessStation(node, seed, stream);
 }
 

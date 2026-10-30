@@ -130,6 +130,12 @@ function InstanceProperties({ instance, definition }: { instance: Instance; defi
           onCommit={(z) => move({ ...instance.position, z: z / 1000 }, instance.yaw)}
         />
         <NumberInput
+          label={t('baseHeight')}
+          unit="mm"
+          value={instance.position.y * 1000}
+          onCommit={(y) => move({ ...instance.position, y: y / 1000 }, instance.yaw)}
+        />
+        <NumberInput
           label={t('rotation')}
           unit="°"
           value={radToDeg(instance.yaw)}

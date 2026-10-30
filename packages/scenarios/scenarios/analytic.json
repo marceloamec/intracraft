@@ -68,5 +68,31 @@
     "unit": "J",
     "expected": 32,
     "relativeTolerance": 0.01
+  },
+  {
+    "id": "T8",
+    "title": {
+      "en": "Scissor lift table: 0.6 → 1.2 m at 0.05 m/s with 0.2 m/s²",
+      "es": "Mesa de tijera: 0,6 → 1,2 m a 0,05 m/s con 0,2 m/s²",
+      "de": "Scherenhubtisch: 0,6 → 1,2 m mit 0,05 m/s und 0,2 m/s²"
+    },
+    "kind": "profileTime",
+    "inputs": { "distance": 0.6, "maxSpeed": 0.05, "accel": 0.2, "decel": 0.2 },
+    "unit": "s",
+    "expected": 12.25,
+    "relativeTolerance": 0.01
+  },
+  {
+    "id": "T9",
+    "title": {
+      "en": "Pallet elevator: 0.6 → 4.6 m at 0.5 m/s with 0.5 m/s²",
+      "es": "Elevador de pallets: 0,6 → 4,6 m a 0,5 m/s con 0,5 m/s²",
+      "de": "Palettenheber: 0,6 → 4,6 m mit 0,5 m/s und 0,5 m/s²"
+    },
+    "kind": "profileTime",
+    "inputs": { "distance": 4, "maxSpeed": 0.5, "accel": 0.5, "decel": 0.5 },
+    "unit": "s",
+    "expected": 9,
+    "relativeTolerance": 0.01
   }
 ]

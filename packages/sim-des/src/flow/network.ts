@@ -2,12 +2,14 @@
 // the instance connected to its output port. Built from the layout and the library definitions.
 import type { Layout, RuleData, Vec3 } from '@intracraft/core-model';
 import {
+  type ComponentDefinition,
   type DefinitionRegistry,
   PALLET_TYPES,
   type ParamValues,
   type PalletType,
   instanceParams,
   num,
+  resolvePorts,
 } from '@intracraft/library';
 
 /** Behaviours of the 2D mode, keyed by the definition's `behaviors.des`. */
@@ -125,6 +127,36 @@ export interface ProcessNode extends NodeBase {
   processingStdDev: number;
 }
 
+/** A port of a lift station: its id, which deck end it is at and the deck height there (m). */
+export interface LiftPort {
+  portId: string;
+  /** At x = length (the far end); otherwise at x = 0. */
+  atEnd: boolean;
+  height: number;
+}
+
+/**
+ * Manual lift table, scissor lift table or pallet elevator (S12–S14, ADR-0013): one deck takes a
+ * pallet at the entry height, the station moves it to the exit height and gives it out.
+ */
+export interface LiftNode extends NodeBase {
+  kind: 'lift';
+  length: number;
+  nominalSpeed: number;
+  accel: number;
+  palletSideAlongTravel: 'long' | 'short';
+  entry: LiftPort;
+  /** Exit ports in order of preference (the elevator prefers OUT_NEAR, S14 §1). */
+  exitPorts: LiftPort[];
+  upSpeed: number;
+  downSpeed: number;
+  verticalAccel: number;
+  /** Operator side of a manual lift table (S12): checked for a source or sink there. */
+  operatorPort?: string;
+  /** Connected ports leading out of the station, and what they lead to. */
+  exits: Record<string, { target: string; gap: number; port: string }>;
+}
+
 /** Photoelectric sensor mounted on a conveyor (S06); all positions in the host's frame (m). */
 export interface SensorNode extends NodeBase {
   kind: 'sensor';
@@ -157,6 +189,7 @@ export type FlowNode =
   | TurntableNode
   | TransferNode
   | ProcessNode
+  | LiftNode
   | SensorNode
   | InertNode;
 
@@ -182,7 +215,7 @@ export function buildFlowNetwork(layout: Layout, registry: DefinitionRegistry): 
         surfaceHeight: num(params, 'surfaceHeight', 0),
         downstreamGap: 0,
       };
-      return createNode(definition.behaviors.des, base, params, issues);
+      return createNode(definition, base, params, issues);
     });
 
   const byId = new Map(nodes.map((n) => [n.id, n]));
@@ -203,13 +236,17 @@ export function buildFlowNetwork(layout: Layout, registry: DefinitionRegistry): 
       from.exits[connection.from.portId] = { target: to.id, gap: connection.gap };
       continue;
     }
+    if (from.kind === 'lift') {
+      from.exits[connection.from.portId] = { target: to.id, gap: connection.gap, port: connection.to.portId };
+      continue;
+    }
     if (connection.from.portId !== OUTPUT_PORT[from.kind]) continue;
     from.downstream = connection.to.instanceId;
     from.downstreamPort = connection.to.portId;
     from.downstreamGap = connection.gap;
   }
 
-  for (const node of nodes) issues.push(...connectionIssues(node, byId));
+  for (const node of nodes) issues.push(...connectionIssues(node, byId, nodes));
   return { nodes, issues, rules: layout.rules ?? [] };
 }
 
@@ -220,11 +257,13 @@ const OUTPUT_PORT: Record<FlowNode['kind'], string | undefined> = {
   turntable: undefined,
   transfer: undefined,
   process: 'OUT',
+  lift: undefined,
   sensor: undefined,
   inert: undefined,
 };
 
-function createNode(behavior: string, base: NodeBase, params: ParamValues, issues: FlowIssue[]): FlowNode {
+function createNode(definition: ComponentDefinition, base: NodeBase, params: ParamValues, issues: FlowIssue[]): FlowNode {
+  const behavior = definition.behaviors.des;
   if (LINE_BEHAVIORS.has(behavior)) {
     if (params['accumulationMode'] !== 'none') {
       issues.push(issue(base, 'accumulationNotSimulated', `accumulation "${params['accumulationMode']}" is simulated as "none" for now`));
@@ -316,6 +355,7 @@ function createNode(behavior: string, base: NodeBase, params: ParamValues, issue
       processingStdDev: Math.max(0, num(params, 'processingStdDev', 0)),
     };
   }
+  if (behavior === 'des.lift_station') return liftNode(definition, base, params);
   if (behavior === 'des.photoeye') {
     const diffuse = params['type'] === 'diffuse';
     const sensorS = num(params, 'sensorS', 0);
@@ -345,6 +385,53 @@ function createNode(behavior: string, base: NodeBase, params: ParamValues, issue
   return { ...base, kind: 'inert', behavior };
 }
 
+/**
+ * Entry and exit ports of a lift station, with their deck heights taken from the definition's ports.
+ * The manual lift table's ports work both ways: `flowDirection` makes OP (operator) or LINE the entry.
+ */
+function liftNode(definition: ComponentDefinition, base: NodeBase, params: ParamValues): LiftNode {
+  const length = num(params, 'length', 0);
+  const ports = resolvePorts(definition, params).map((port) => ({
+    portId: port.id,
+    atEnd: port.local.x > length / 2,
+    height: port.local.y,
+    direction: port.direction,
+  }));
+  const byId = (id: string) => ports.find((port) => port.portId === id);
+  const manual = params['flowDirection'] !== undefined;
+  const operator = byId('OP');
+  const line = byId('LINE');
+  let entry = ports.find((port) => port.direction === 'in');
+  let exitPorts = ports.filter((port) => port.direction === 'out');
+  if (manual && operator !== undefined && line !== undefined) {
+    const out = params['flowDirection'] === 'out';
+    entry = out ? line : operator;
+    exitPorts = [out ? operator : line];
+  }
+  if (entry === undefined || exitPorts.length === 0) throw new Error(`${definition.id} has no entry or no exit port`);
+  // A speed per direction (tables) or one speed both ways (elevator).
+  const vertical = num(params, 'verticalSpeed', 0);
+  return {
+    ...base,
+    kind: 'lift',
+    length,
+    nominalSpeed: num(params, 'nominalSpeed', 0),
+    accel: num(params, 'accel', 0),
+    palletSideAlongTravel: params['palletSideAlongTravel'] === 'short' ? 'short' : 'long',
+    entry: liftPort(entry),
+    exitPorts: exitPorts.map(liftPort),
+    upSpeed: num(params, 'liftSpeed', vertical),
+    downSpeed: num(params, 'lowerSpeed', vertical),
+    verticalAccel: num(params, 'verticalAccel', 0),
+    ...(manual ? { operatorPort: 'OP' } : {}),
+    exits: {},
+  };
+}
+
+function liftPort({ portId, atEnd, height }: LiftPort): LiftPort {
+  return { portId, atEnd, height };
+}
+
 /** Station list such as "0, 90, 180, 270" (degrees) as angles in rad; invalid entries are skipped. */
 function parseStations(value: unknown): number[] {
   if (typeof value !== 'string') return Object.values(STATION_PORTS);
@@ -355,7 +442,7 @@ function parseStations(value: unknown): number[] {
     .map((deg) => (((deg % 360) + 360) % 360) * (Math.PI / 180));
 }
 
-function connectionIssues(node: FlowNode, byId: Map<string, FlowNode>): FlowIssue[] {
+function connectionIssues(node: FlowNode, byId: Map<string, FlowNode>, nodes: FlowNode[]): FlowIssue[] {
   const next = node.downstream === undefined ? undefined : byId.get(node.downstream);
   if (node.kind === 'line' && next === undefined) {
     return [issue(node, 'openEnd', 'output is not connected; pallets stop at its end')];
@@ -365,8 +452,9 @@ function connectionIssues(node: FlowNode, byId: Map<string, FlowNode>): FlowIssu
   }
   if (node.kind === 'transfer') return transferIssues(node);
   if (node.kind === 'process') return processIssues(node, next);
+  if (node.kind === 'lift') return liftIssues(node, byId, nodes);
   if (node.kind === 'sensor') return sensorIssues(node, byId.get(node.host));
-  if (node.kind === 'source' && next?.kind !== 'line') {
+  if (node.kind === 'source' && next?.kind !== 'line' && next?.kind !== 'lift') {
     return [issue(node, 'sourceNotConnected', 'must be connected to the entry of a conveyor; it creates no pallets')];
   }
   return [];
@@ -379,6 +467,34 @@ function processIssues(node: ProcessNode, next: FlowNode | undefined): FlowIssue
   const palletAlong = eur === undefined ? 0 : node.palletSideAlongTravel === 'long' ? eur.length : eur.width;
   if (node.length < palletAlong + MIN_DECK_MARGIN) {
     issues.push(issue(node, 'deckTooShort', `the deck (${round(node.length * MM)} mm) is shorter than the pallet plus ${MIN_DECK_MARGIN * MM} mm`));
+  }
+  return issues;
+}
+
+/** Exits of a lift station (S12–S14 §4) and the operator side of a manual table. */
+function liftIssues(node: LiftNode, byId: Map<string, FlowNode>, nodes: FlowNode[]): FlowIssue[] {
+  const issues: FlowIssue[] = [];
+  const connectedExits = node.exitPorts.filter((port) => node.exits[port.portId] !== undefined);
+  const operator = node.operatorPort;
+  if (operator !== undefined) {
+    const feeder = nodes.find((n) => n.downstream === node.id && n.downstreamPort === operator);
+    const taker = node.exits[operator];
+    if (feeder === undefined && taker === undefined) {
+      issues.push(issue(node, 'noOperator', `${operator} is not connected: place a source (input) or a sink (output) for the operator there`));
+    }
+    const operatorIsEntry = node.entry.portId === operator;
+    const takerKind = taker === undefined ? undefined : byId.get(taker.target)?.kind;
+    if ((operatorIsEntry && takerKind === 'sink') || (!operatorIsEntry && feeder?.kind === 'source')) {
+      issues.push(
+        issue(node, 'operatorMismatch', operatorIsEntry ? 'an input table needs a source on OP, not a sink' : 'an output table needs a sink on OP, not a source'),
+      );
+    }
+    if (!operatorIsEntry) return issues;
+  }
+  if (connectedExits.length === 0) {
+    issues.push(issue(node, 'noExit', `${node.exitPorts.map((p) => p.portId).join(' / ')} is not connected; the pallet stays on it`));
+  } else if (connectedExits.length > 1) {
+    issues.push(issue(node, 'twoExits', `${connectedExits.map((p) => p.portId).join(' and ')} are both connected; ${connectedExits[0]?.portId} is used`));
   }
   return issues;
 }

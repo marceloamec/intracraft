@@ -6,7 +6,10 @@ import { PALLET_TYPES } from './reference-data';
 import {
   type ValidationIssue,
   chainFitsBetweenRollers,
+  deckTooShort,
+  heightsReversed,
   min3RollersUnderPallet,
+  noHeightChange,
   usableWidthFitsPallet,
 } from './validation-rules';
 
@@ -18,11 +21,16 @@ const EUR = PALLET_TYPES.find((p) => p.id === 'eur');
 type Rule = (params: ParamValues, along: number, across: number) => ValidationIssue[];
 
 const RULES: Record<string, Rule> = {
-  min3RollersUnderPallet: (p, along) => min3RollersUnderPallet(num(p, 'rollerPitch', 0), along),
+  // A chain deck (elevator, S14) has no rollers to count.
+  min3RollersUnderPallet: (p, along) =>
+    p['deckType'] === 'chains' ? [] : min3RollersUnderPallet(num(p, 'rollerPitch', 0), along),
   usableWidthFitsPallet: (p, _along, across) =>
     usableWidthFitsPallet(num(p, 'usableWidth', num(p, 'platformWidth', 0)), across, GUIDE_CLEARANCE),
   chainFitsBetweenRollers: (p) =>
     chainFitsBetweenRollers(num(p, 'rollerPitch', 0), num(p, 'rollerDiameter', 0), num(p, 'transferChainWidth', 0)),
+  heightsReversed: (p) => heightsReversed(num(p, 'lowHeight', 0), num(p, 'conveyorHeight', 0)),
+  noHeightChange: (p) => noHeightChange(num(p, 'entryHeight', 0), num(p, 'exitHeight', 0)),
+  deckTooShort: (p, along) => deckTooShort(num(p, 'length', 0), along),
 };
 
 export function validateInstance(definition: ComponentDefinition, params: ParamValues): ValidationIssue[] {

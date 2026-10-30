@@ -2,17 +2,21 @@ import { describe, expect, it } from 'vitest';
 import { SCENARIOS, findScenario, runScenario, scenarioSchema } from './analytic';
 
 describe('reference scenarios', () => {
-  it('contains T1 to T5, the 2D layout runs, the five-conveyor reference, the process station and P1 to P11', () => {
+  it('contains T1 to T5, T8, T9, the 2D layout runs, the five-conveyor reference, the process station and P1 to P11', () => {
     expect(SCENARIOS.map((s) => s.id)).toEqual([
       'T1',
       'T2',
       'T3',
       'T4',
       'T5',
+      'T8',
+      'T9',
       'T1-2D',
       'T2-2D',
       'REF-5',
       'PROC-1',
+      'LIFT-C',
+      'LIFT-OUT',
       'P1',
       'P2-steel',
       'P2-rubber',

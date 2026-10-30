@@ -66,5 +66,39 @@
     "unit": "pallets",
     "expected": 30,
     "relativeTolerance": 0.01
+  },
+  {
+    "id": "LIFT-C",
+    "title": {
+      "en": "C elevator to a 4 m mezzanine with one pallet a minute: every pallet gets through (60 pallets/h)",
+      "es": "Elevador en C hasta una entreplanta de 4 m con un pallet por minuto: pasan todos (60 pallets/h)"
+    },
+    "kind": "flow",
+    "inputs": {
+      "layout": "demo-elevator-c",
+      "seconds": 28800,
+      "instanceId": "sink1",
+      "statistic": "throughputPerHour"
+    },
+    "unit": "pallets/h",
+    "expected": 60,
+    "relativeTolerance": 0.01
+  },
+  {
+    "id": "LIFT-OUT",
+    "title": {
+      "en": "Manual output table: an operator taking 60 s per pallet plus the 5.05 s run-out sets the rate (3600 / 65.05 pallets/h)",
+      "es": "Mesa manual de salida: un operario que tarda 60 s por pallet más los 5,05 s de salida fija el ritmo (3600 / 65,05 pallets/h)"
+    },
+    "kind": "flow",
+    "inputs": {
+      "layout": "demo-manual-output",
+      "seconds": 28800,
+      "instanceId": "sink1",
+      "statistic": "throughputPerHour"
+    },
+    "unit": "pallets/h",
+    "expected": 55.34204458109147,
+    "relativeTolerance": 0.01
   }
 ]

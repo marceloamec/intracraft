@@ -59,14 +59,14 @@ export function snapPose(
   );
   const targets = freePorts(layout, registry, candidate.instanceId);
 
-  let best: { distance: number; moving: WorldPort; target: WorldPort; dx: number; dz: number } | null = null;
+  let best: SnapOption | null = null;
   for (const m of moving) {
     for (const t of targets) {
       if (!facesEachOther(m, t)) continue;
       const dx = t.position.x + t.facing.x * PORT_GAP - m.position.x;
       const dz = t.position.z + t.facing.z * PORT_GAP - m.position.z;
-      const distance = Math.hypot(dx, dz);
-      if (distance <= radius && (best === null || distance < best.distance)) best = { distance, moving: m, target: t, dx, dz };
+      const option = { distance: Math.hypot(dx, dz), moving: m, target: t, dx, dz };
+      if (option.distance <= radius && (best === null || better(option, best))) best = option;
     }
   }
 
@@ -86,29 +86,42 @@ export function snapPose(
   };
 }
 
-/** Connections implied by the geometry: facing ports PORT_GAP apart, from an out port to an in port. */
+/**
+ * Connections implied by the geometry: facing ports PORT_GAP apart, from an out port to an in port.
+ * When a port has several candidates at one position seen from above (the C elevator, ADR-0013 §7),
+ * the one with the closest height wins.
+ */
 export function deriveConnections(layout: Layout, registry: DefinitionRegistry): Connection[] {
   const ports = allPorts(layout, registry).sort((a, b) => portKey(a).localeCompare(portKey(b)));
-  const used = new Set<string>();
-  const connections: Connection[] = [];
+  const candidates: { a: WorldPort; b: WorldPort; order: number; dy: number }[] = [];
   for (const [i, a] of ports.entries()) {
-    for (const b of ports.slice(i + 1)) {
-      if (a.instanceId === b.instanceId || used.has(portKey(a)) || used.has(portKey(b))) continue;
+    for (const [j, b] of ports.entries()) {
+      if (j <= i || a.instanceId === b.instanceId) continue;
       if (!facesEachOther(a, b) || !directionsCompatible(a, b)) continue;
       const dx = a.position.x + a.facing.x * PORT_GAP - b.position.x;
       const dz = a.position.z + a.facing.z * PORT_GAP - b.position.z;
       if (Math.hypot(dx, dz) > CONNECT_TOLERANCE) continue;
-      const [from, to] = a.direction === 'in' || b.direction === 'out' ? [b, a] : [a, b];
-      connections.push({
-        from: { instanceId: from.instanceId, portId: from.portId },
-        to: { instanceId: to.instanceId, portId: to.portId },
-        gap: Math.hypot(a.position.x - b.position.x, a.position.z - b.position.z),
-      });
-      used.add(portKey(a));
-      used.add(portKey(b));
+      candidates.push({ a, b, order: candidates.length, dy: Math.abs(a.position.y - b.position.y) });
     }
   }
-  return connections;
+  const used = new Set<string>();
+  const chosen = candidates
+    .sort((p, q) => p.dy - q.dy || p.order - q.order)
+    .filter(({ a, b }) => {
+      if (used.has(portKey(a)) || used.has(portKey(b))) return false;
+      used.add(portKey(a));
+      used.add(portKey(b));
+      return true;
+    })
+    .sort((p, q) => p.order - q.order);
+  return chosen.map(({ a, b }) => {
+    const [from, to] = a.direction === 'in' || b.direction === 'out' ? [b, a] : [a, b];
+    return {
+      from: { instanceId: from.instanceId, portId: from.portId },
+      to: { instanceId: to.instanceId, portId: to.portId },
+      gap: Math.hypot(a.position.x - b.position.x, a.position.z - b.position.z),
+    };
+  });
 }
 
 /** Warnings about existing connections (support heights that do not match), optionally of one instance. */
@@ -141,6 +154,27 @@ function pairIssues(a: WorldPort, b: WorldPort): ValidationIssue[] {
     });
   }
   return issues;
+}
+
+interface SnapOption {
+  distance: number;
+  moving: WorldPort;
+  target: WorldPort;
+  dx: number;
+  dz: number;
+}
+
+/**
+ * The nearer option wins. At practically the same distance (two ports at one position seen from
+ * above) a pair whose directions fit wins, then the one with the closest height.
+ */
+function better(option: SnapOption, best: SnapOption): boolean {
+  if (Math.abs(option.distance - best.distance) > CONNECT_TOLERANCE) return option.distance < best.distance;
+  const fits = (o: SnapOption) => directionsCompatible(o.moving, o.target);
+  if (fits(option) !== fits(best)) return fits(option);
+  const dy = (o: SnapOption) => Math.abs(o.moving.position.y - o.target.position.y);
+  if (dy(option) !== dy(best)) return dy(option) < dy(best);
+  return option.distance < best.distance;
 }
 
 function freePorts(layout: Layout, registry: DefinitionRegistry, movingId: string | undefined): WorldPort[] {

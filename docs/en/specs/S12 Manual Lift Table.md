@@ -3,7 +3,7 @@ title: S12 Manual Lift Table
 lang: en
 tags: [spec, conveyor, lift, manual]
 library-id: conveyor.lift_table_manual
-status: spec
+status: implemented (2D)
 updated: 2026-10-30
 ---
 
@@ -110,4 +110,5 @@ The real pallet-jack height and how the jack enters are open: [[Open Questions]]
 - With the defaults: **up 10.25 s, down 7.49 s** (error < 1 %). The full cycle adds the centring and discharge times from T04.
 - `in`: source on `OP` → pallets reach the conveyor, one per cycle; the table is blocked while the conveyor is full.
 - `out`: sink with `removalTime` 60 s on `OP` → at most 60 pallets/h; the table is blocked while the operator is busy.
+  - Measured (scenario LIFT-OUT): **55.3 pallets/h**. While the operator is busy, the next pallet already waits at the deck end. When the operator is free it needs 1.2 m from rest to clear the deck (1.2 / 0.25 + 0.25 / (2 × 0.5) = 5.05 s), so one cycle is 60 + 5.05 s.
 - Validations: `noOperator`, `operatorMismatch`, `heightsReversed`.

@@ -3,7 +3,7 @@ title: S13 Scissor Lift Table
 lang: en
 tags: [spec, conveyor, lift]
 library-id: conveyor.scissor_lift
-status: spec
+status: implemented (2D)
 updated: 2026-10-30
 ---
 

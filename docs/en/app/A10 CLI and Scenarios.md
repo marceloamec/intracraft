@@ -10,15 +10,17 @@ tags: [app, cli, scenarios]
 
 ## 1. Scenarios (`packages/scenarios`)
 
-A **scenario** is a reproducible experiment with an expected result. Today the package holds the five **analytic** scenarios of the plan in `scenarios/analytic.json`:
+A **scenario** is a reproducible experiment with an expected result. Today the package holds the **analytic** scenarios of the plan (T1–T5) and of the lifts (T8, T9) in `scenarios/analytic.json`:
 
-| Id  | Kind            | Inputs (SI)                                 | Expected          |
-| --- | --------------- | ------------------------------------------- | ----------------- |
-| T1  | `profileTime`   | 3 m, 0.25 m/s, 0.5 m/s², no braking         | 12.25 s           |
-| T2  | `throughput`    | 0.25 m/s, 1.2 m pallet, 0.15 m gap          | 0.18519 pallets/s |
-| T3  | `profileTime`   | π/2 rad, 15 °/s, 30 °/s² (in rad)           | 6.5 s             |
-| T4  | `transferCycle` | 1 s lift, 1 s lower, 1 m, 0.2 m/s, 0.5 m/s² | 7.4 s             |
-| T5  | `impactEnergy`  | 1025 kg, 0.25 m/s                           | 32 J              |
+| Id  | Kind            | Inputs (SI)                                           | Expected          |
+| --- | --------------- | ----------------------------------------------------- | ----------------- |
+| T1  | `profileTime`   | 3 m, 0.25 m/s, 0.5 m/s², no braking                   | 12.25 s           |
+| T2  | `throughput`    | 0.25 m/s, 1.2 m pallet, 0.15 m gap                    | 0.18519 pallets/s |
+| T3  | `profileTime`   | π/2 rad, 15 °/s, 30 °/s² (in rad)                     | 6.5 s             |
+| T4  | `transferCycle` | 1 s lift, 1 s lower, 1 m, 0.2 m/s, 0.5 m/s²           | 7.4 s             |
+| T5  | `impactEnergy`  | 1025 kg, 0.25 m/s                                     | 32 J              |
+| T8  | `profileTime`   | 0.6 m, 0.05 m/s, 0.2 m/s² up and down (scissor table) | 12.25 s           |
+| T9  | `profileTime`   | 4 m, 0.5 m/s, 0.5 m/s² up and down (elevator)         | 9 s               |
 
 Each scenario has a localised title (en/es/de), a unit and **one** tolerance: relative (1 % for the analytic ones) or absolute (for expected values of 0, such as a position error). `runScenario` computes the result and reports `{ actual, expected, error, relativeError, passed }`.
 
@@ -27,6 +29,8 @@ Each scenario has a localised title (en/es/de), a unit and **one** tolerance: re
 - `T1-2D` (`flow-t1`): the transit time of one pallet on a 3 m roller conveyor = 12.25 s.
 - `T2-2D` (`flow-t2`): sink throughput of a saturated 12 m line over 8 h ≈ 666.7 pallets/h. The empty start costs about 0.16 %.
 - `REF-5` (`reference-all-five`): source → roller → roller turntable → roller → transfer → chain → chain turntable → chain → sink. With one pallet every 30 s, the sink receives 120 pallets/h.
+- `LIFT-C` (`demo-elevator-c`): a C elevator takes one pallet a minute from the floor (0.6 m) to a conveyor on a 4 m mezzanine; all 60 pallets/h get through.
+- `LIFT-OUT` (`demo-manual-output`): a manual output table hands the pallets to an operator who needs 60 s per pallet; with the 5.05 s run-out the line gives 3600 / 65.05 ≈ 55.3 pallets/h.
 - `demo-roller-line` and `demo-turntable-split` are examples to open in the editor (File → Open…).
 
 **Physics bench scenarios** (since 2026-10-30, `scenarios/physics.json`, `src/physics.ts`, `src/physics-bench.ts`):

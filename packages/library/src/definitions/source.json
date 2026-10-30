@@ -71,7 +71,7 @@
     },
     {
       "key": "surfaceHeight", "type": "number", "unit": "m", "displayUnit": "mm",
-      "default": 0.6, "min": 0.2, "max": 1.5, "group": "geometry", "affects": "geometry",
+      "default": 0.6, "min": 0.05, "max": 1.5, "group": "geometry", "affects": "geometry",
       "label": { "en": "Port height", "es": "Altura del puerto", "de": "Anschlusshöhe" },
       "description": { "en": "Height of the output port; match the conveyor surface height", "es": "Altura del puerto de salida; debe coincidir con la del transportador", "de": "Höhe des Ausgangs; muss zur Förderhöhe passen" }
     }

@@ -2,13 +2,13 @@
 title: ADR-0013 Lift Station 2D Cycle
 lang: en
 tags: [decision, des, lift, elevator]
-status: proposed
+status: accepted
 date: 2026-10-30
 ---
 
 # ADR-0013 Lift Station 2D Cycle
 
-- **Status:** Proposed. Waiting for the owner to confirm [[S12 Manual Lift Table]], [[S13 Scissor Lift Table]] and [[S14 Pallet Elevator]].
+- **Status:** Accepted on 2026-10-30: the owner asked for the three objects to be built as specified. Implemented in `packages/sim-des/src/flow/lift-station.ts`.
 - **Date:** 2026-10-30
 
 ## Context
@@ -74,4 +74,19 @@ They differ in stroke, speeds, drawing, and which ends the pallet enters and lea
   - **T8:** scissor, 0.6 → 1.2 m at 0.05 m/s and 0.2 m/s² → 12.25 s.
   - **T9:** elevator, 0.6 → 4.6 m at 0.5 m/s and 0.5 m/s² → 9 s.
   - Blocked discharge; one pallet per cycle; down moves; C and Z exits; the manual table in both directions.
-- 3D physics (`phys.lift_station`) waits for spike S1.
+- 3D physics (`phys.lift_station`) is still to come; spike S1 is closed ([[ADR-0002 Physics Engine Candidate]]).
+
+## Implementation notes (2026-10-30)
+
+- **Ports from the definition.** The entry and exit heights and ends are read from each definition's ports. In-ports are entries and out-ports exits. The manual table's two ports work both ways, and `flowDirection` picks which one is the entry.
+- **The operator feeds the deck directly.** A source connected to a station's entry now places its pallet on the deck. Before that, a station could only be fed by a conveyor.
+- **Hand-over to a busy operator.** In the output mode, the lowered pallet runs to the deck end and waits there, as on any conveyor ([[ADR-0007 2D Flow Model Without Accumulation]]). When the operator is free, it needs 1.2 m from rest to leave: 5.05 s with the defaults. A 60 s operator then gives 55.3 pallets/h (scenario LIFT-OUT), within the "at most 60/h" of [[S12 Manual Lift Table]] §6.
+- **Ports at one spot.**
+  - Connection detection first keeps the pairs whose directions fit. Among those, the closest height wins.
+  - Snapping prefers, at the same distance, a pair whose directions fit and then the closest height.
+  - A conveyor on the 4 m mezzanine therefore snaps to `OUT_NEAR`, not to `IN`.
+- **Raised base.** The properties panel shows "Base height" (the instance's vertical position, moved with `layout.move`). Objects above the floor are drawn on a mezzanine plate, and their pallets are drawn at that height.
+- **Reference scenarios:**
+  - T8 (12.25 s) and T9 (9 s);
+  - LIFT-C: a C elevator to a 4 m mezzanine passes 60 pallets/h;
+  - LIFT-OUT: 55.3 pallets/h.

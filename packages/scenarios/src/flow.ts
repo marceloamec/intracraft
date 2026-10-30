@@ -4,6 +4,8 @@ import { readProjectFile, secondsToSimTime } from '@intracraft/core-model';
 import { createBuiltInRegistry, deriveConnections } from '@intracraft/library';
 import { FlowSimulation, buildFlowNetwork } from '@intracraft/sim-des';
 import { z } from 'zod';
+import demoElevatorC from '../scenarios/layouts/demo-elevator-c.intracraft.json';
+import demoManualOutput from '../scenarios/layouts/demo-manual-output.intracraft.json';
 import demoProcessLine from '../scenarios/layouts/demo-process-line.intracraft.json';
 import demoRollerLine from '../scenarios/layouts/demo-roller-line.intracraft.json';
 import demoTurntableSplit from '../scenarios/layouts/demo-turntable-split.intracraft.json';
@@ -13,6 +15,8 @@ import referenceAllFive from '../scenarios/layouts/reference-all-five.intracraft
 
 /** Project files by name (file name without `.intracraft.json`). */
 export const LAYOUT_FILES: Record<string, unknown> = {
+  'demo-elevator-c': demoElevatorC,
+  'demo-manual-output': demoManualOutput,
   'demo-process-line': demoProcessLine,
   'demo-roller-line': demoRollerLine,
   'demo-turntable-split': demoTurntableSplit,

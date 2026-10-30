@@ -1,0 +1,104 @@
+{
+  "id": "conveyor.lift_table_manual",
+  "version": "0.1.0",
+  "category": "conveyors",
+  "name": { "en": "Manual lift table", "es": "Mesa elevadora manual", "de": "Manueller Hubtisch" },
+  "description": {
+    "en": "Roller deck on a lift table where an operator with a pallet jack puts pallets into the line or takes them out. It goes down to pallet-jack level on the operator side and up to the conveyor height on the line side. Values are indicative.",
+    "es": "Cubierta de rodillos sobre una mesa elevadora donde un operario con transpaleta mete pallets en la línea o los saca. Baja al nivel de la transpaleta en el lado del operario y sube a la altura del transportador en el lado de la línea. Valores orientativos.",
+    "de": "Rollendeck auf einem Hubtisch, an dem ein Bediener mit Hubwagen Paletten in die Anlage gibt oder entnimmt. Auf der Bedienerseite senkt er sich auf Hubwagenhöhe, auf der Anlagenseite hebt er auf Förderhöhe. Richtwerte."
+  },
+  "parameters": [
+    {
+      "key": "length", "type": "number", "unit": "m", "displayUnit": "mm",
+      "default": 1.6, "min": 1.3, "max": 2.5, "group": "geometry", "affects": "both",
+      "label": { "en": "Length", "es": "Longitud", "de": "Länge" },
+      "description": { "en": "Deck length; at least the pallet length plus margins", "es": "Longitud de la cubierta; como mínimo la del pallet más holguras", "de": "Decklänge; mindestens Palettenlänge plus Spiel" }
+    },
+    {
+      "key": "usableWidth", "type": "number", "unit": "m", "displayUnit": "mm",
+      "default": 1.0, "min": 0.5, "max": 1.8, "group": "geometry", "affects": "geometry",
+      "label": { "en": "Usable width", "es": "Ancho útil", "de": "Nutzbreite" },
+      "description": { "en": "Clear width between frames", "es": "Ancho libre entre bastidores", "de": "Lichte Breite zwischen den Rahmen" }
+    },
+    {
+      "key": "palletSideAlongTravel", "type": "enum", "options": ["long", "short"],
+      "default": "long", "group": "geometry", "affects": "both",
+      "label": { "en": "Pallet side along travel", "es": "Lado del pallet paralelo al avance", "de": "Palettenseite in Förderrichtung" },
+      "description": { "en": "Long side first on rollers (EUR 1200 mm along travel)", "es": "Lado largo primero sobre rodillos (EUR 1200 mm en el avance)", "de": "Lange Seite voraus auf Rollen (EUR 1200 mm in Förderrichtung)" }
+    },
+    {
+      "key": "rollerDiameter", "type": "number", "unit": "m", "displayUnit": "mm",
+      "default": 0.089, "choices": [0.076, 0.089], "group": "rollers", "affects": "geometry",
+      "label": { "en": "Roller diameter", "es": "Diámetro de rodillo", "de": "Rollendurchmesser" },
+      "description": { "en": "Same list as the roller conveyor", "es": "La misma lista que la mesa de rodillos", "de": "Gleiche Liste wie beim Rollenförderer" }
+    },
+    {
+      "key": "rollerPitch", "type": "number", "unit": "m", "displayUnit": "mm",
+      "default": 0.2063, "choices": [0.133, 0.2063], "group": "rollers", "affects": "geometry",
+      "label": { "en": "Roller pitch", "es": "Paso de rodillos", "de": "Rollenteilung" },
+      "description": { "en": "Same list as the roller conveyor; at least 3 rollers under the pallet", "es": "La misma lista que la mesa de rodillos; al menos 3 rodillos bajo el pallet", "de": "Gleiche Liste wie beim Rollenförderer; mindestens 3 Rollen unter der Palette" }
+    },
+    {
+      "key": "nominalSpeed", "type": "number", "unit": "m/s", "displayUnit": "m/s",
+      "default": 0.25, "min": 0.05, "max": 0.6, "group": "motion", "affects": "both",
+      "label": { "en": "Nominal speed", "es": "Velocidad nominal", "de": "Nenngeschwindigkeit" },
+      "description": { "en": "Roller speed while a pallet moves on or off", "es": "Velocidad de los rodillos al entrar o salir un pallet", "de": "Rollengeschwindigkeit beim Ein- und Ausfahren einer Palette" }
+    },
+    {
+      "key": "accel", "type": "number", "unit": "m/s²", "displayUnit": "m/s²",
+      "default": 0.5, "min": 0.05, "max": 2.0, "group": "motion", "affects": "both",
+      "label": { "en": "Acceleration", "es": "Aceleración", "de": "Beschleunigung" },
+      "description": { "en": "Start and stop ramp of the rollers", "es": "Rampa de arranque y parada de los rodillos", "de": "Anfahr- und Bremsrampe der Rollen" }
+    },
+    {
+      "key": "flowDirection", "type": "enum", "options": ["in", "out"],
+      "default": "in", "group": "lift", "affects": "both",
+      "label": { "en": "Flow direction", "es": "Sentido del flujo", "de": "Flussrichtung" },
+      "description": { "en": "in: the operator puts pallets into the line; out: the line hands pallets to the operator", "es": "in: el operario mete pallets en la línea; out: la línea entrega pallets al operario", "de": "in: der Bediener gibt Paletten in die Anlage; out: die Anlage übergibt Paletten an den Bediener" }
+    },
+    {
+      "key": "lowHeight", "type": "number", "unit": "m", "displayUnit": "mm",
+      "default": 0.1, "min": 0.05, "max": 0.4, "group": "lift", "affects": "both",
+      "label": { "en": "Low height", "es": "Altura baja", "de": "Untere Höhe" },
+      "description": { "en": "Deck height on the operator side (pallet-jack level)", "es": "Altura de la cubierta en el lado del operario (nivel de la transpaleta)", "de": "Deckhöhe auf der Bedienerseite (Hubwagenhöhe)" }
+    },
+    {
+      "key": "conveyorHeight", "type": "number", "unit": "m", "displayUnit": "mm",
+      "default": 0.6, "min": 0.2, "max": 1.5, "group": "lift", "affects": "both",
+      "label": { "en": "Conveyor height", "es": "Altura del transportador", "de": "Förderhöhe" },
+      "description": { "en": "Deck height on the line side; match the conveyor", "es": "Altura de la cubierta en el lado de la línea; debe coincidir con el transportador", "de": "Deckhöhe auf der Anlagenseite; muss zum Förderer passen" }
+    },
+    {
+      "key": "liftSpeed", "type": "number", "unit": "m/s", "displayUnit": "m/s",
+      "default": 0.05, "min": 0.01, "max": 0.3, "group": "lift", "affects": "both",
+      "label": { "en": "Lift speed", "es": "Velocidad de subida", "de": "Hubgeschwindigkeit" },
+      "description": { "en": "Up speed of the table", "es": "Velocidad de subida de la mesa", "de": "Hebegeschwindigkeit des Tisches" }
+    },
+    {
+      "key": "lowerSpeed", "type": "number", "unit": "m/s", "displayUnit": "m/s",
+      "default": 0.07, "min": 0.01, "max": 0.3, "group": "lift", "affects": "both",
+      "label": { "en": "Lowering speed", "es": "Velocidad de bajada", "de": "Senkgeschwindigkeit" },
+      "description": { "en": "Down speed of the table", "es": "Velocidad de bajada de la mesa", "de": "Senkgeschwindigkeit des Tisches" }
+    },
+    {
+      "key": "verticalAccel", "type": "number", "unit": "m/s²", "displayUnit": "m/s²",
+      "default": 0.2, "min": 0.05, "max": 2.0, "group": "lift", "affects": "both", "advanced": true,
+      "label": { "en": "Vertical acceleration", "es": "Aceleración vertical", "de": "Vertikale Beschleunigung" },
+      "description": { "en": "Start and stop of the vertical move", "es": "Arranque y parada del movimiento vertical", "de": "Anfahren und Anhalten der Vertikalbewegung" }
+    }
+  ],
+  "ports": [
+    { "id": "OP", "direction": "inout", "facing": "-x", "local": { "x": 0, "y": "lowHeight", "z": 0 } },
+    { "id": "LINE", "direction": "inout", "facing": "+x", "local": { "x": "length", "y": "conveyorHeight", "z": 0 } }
+  ],
+  "signals": { "inputs": [], "outputs": [] },
+  "statistics": ["utilization", "blockedShare", "idleShare", "palletsMoved", "meanCycleTime"],
+  "geometry": "geom.lift_table_manual",
+  "behaviors": { "des": "des.lift_station", "physics": "phys.lift_station" },
+  "validationRules": ["heightsReversed", "deckTooShort", "min3RollersUnderPallet"],
+  "presets": [
+    { "name": { "en": "Manual input", "es": "Entrada manual", "de": "Manuelle Aufgabe" }, "values": { "flowDirection": "in" } },
+    { "name": { "en": "Manual output", "es": "Salida manual", "de": "Manuelle Abgabe" }, "values": { "flowDirection": "out" } }
+  ]
+}

@@ -1,0 +1,99 @@
+{
+  "id": "conveyor.elevator",
+  "version": "0.1.0",
+  "category": "conveyors",
+  "name": { "en": "Pallet elevator", "es": "Elevador de pallets", "de": "Palettenheber" },
+  "description": {
+    "en": "Carriage with a roller or chain deck on a mast that moves one pallet between two levels, for example from the floor to a mezzanine. The pallet leaves on the same side it came in (C) or on the opposite side (Z), whichever exit is connected. Values are indicative.",
+    "es": "Carro con cubierta de rodillos o de cadenas sobre un mástil que mueve un pallet entre dos niveles, por ejemplo del suelo a una entreplanta. El pallet sale por el mismo lado por el que entró (C) o por el lado opuesto (Z), según la salida conectada. Valores orientativos.",
+    "de": "Hubwagen mit Rollen- oder Kettendeck an einem Mast, der eine Palette zwischen zwei Ebenen bewegt, zum Beispiel vom Boden auf eine Bühne. Die Palette verlässt ihn auf der Einlaufseite (C) oder auf der Gegenseite (Z), je nach angeschlossenem Ausgang. Richtwerte."
+  },
+  "parameters": [
+    {
+      "key": "deckType", "type": "enum", "options": ["rollers", "chains"],
+      "default": "rollers", "group": "geometry", "affects": "both",
+      "label": { "en": "Deck type", "es": "Tipo de cubierta", "de": "Decktyp" },
+      "description": { "en": "Carriage deck: rollers carry EUR long side first, chains short side first", "es": "Cubierta del carro: los rodillos llevan el EUR por el lado largo, las cadenas por el corto", "de": "Deck des Hubwagens: Rollen fördern EUR mit der langen Seite voraus, Ketten mit der kurzen" }
+    },
+    {
+      "key": "length", "type": "number", "unit": "m", "displayUnit": "mm",
+      "default": 1.6, "min": 1.0, "max": 3.0, "group": "geometry", "affects": "both",
+      "label": { "en": "Length", "es": "Longitud", "de": "Länge" },
+      "description": { "en": "Deck length along travel", "es": "Longitud de la cubierta en el avance", "de": "Decklänge in Förderrichtung" }
+    },
+    {
+      "key": "usableWidth", "type": "number", "unit": "m", "displayUnit": "mm",
+      "default": 1.0, "min": 0.5, "max": 1.8, "group": "geometry", "affects": "geometry",
+      "label": { "en": "Usable width", "es": "Ancho útil", "de": "Nutzbreite" },
+      "description": { "en": "Clear width on the deck (chains with transverse EUR: 1.3 m)", "es": "Ancho libre en la cubierta (cadenas con EUR transversal: 1,3 m)", "de": "Lichte Breite auf dem Deck (Ketten mit querliegender EUR: 1,3 m)" }
+    },
+    {
+      "key": "palletSideAlongTravel", "type": "enum", "options": ["long", "short"],
+      "default": "long", "group": "geometry", "affects": "both",
+      "label": { "en": "Pallet side along travel", "es": "Lado del pallet paralelo al avance", "de": "Palettenseite in Förderrichtung" },
+      "description": { "en": "Pallet side along the deck's travel", "es": "Lado del pallet en el sentido de avance de la cubierta", "de": "Palettenseite in Förderrichtung des Decks" }
+    },
+    {
+      "key": "rollerDiameter", "type": "number", "unit": "m", "displayUnit": "mm",
+      "default": 0.089, "choices": [0.076, 0.089], "group": "rollers", "affects": "geometry", "dependsOn": "deckType=rollers",
+      "label": { "en": "Roller diameter", "es": "Diámetro de rodillo", "de": "Rollendurchmesser" },
+      "description": { "en": "Rollers deck only; same list as the roller conveyor", "es": "Solo cubierta de rodillos; la misma lista que la mesa de rodillos", "de": "Nur Rollendeck; gleiche Liste wie beim Rollenförderer" }
+    },
+    {
+      "key": "rollerPitch", "type": "number", "unit": "m", "displayUnit": "mm",
+      "default": 0.2063, "choices": [0.133, 0.2063], "group": "rollers", "affects": "geometry", "dependsOn": "deckType=rollers",
+      "label": { "en": "Roller pitch", "es": "Paso de rodillos", "de": "Rollenteilung" },
+      "description": { "en": "Rollers deck only; at least 3 rollers under the pallet", "es": "Solo cubierta de rodillos; al menos 3 rodillos bajo el pallet", "de": "Nur Rollendeck; mindestens 3 Rollen unter der Palette" }
+    },
+    {
+      "key": "nominalSpeed", "type": "number", "unit": "m/s", "displayUnit": "m/s",
+      "default": 0.25, "min": 0.05, "max": 0.6, "group": "motion", "affects": "both",
+      "label": { "en": "Nominal speed", "es": "Velocidad nominal", "de": "Nenngeschwindigkeit" },
+      "description": { "en": "Deck speed while a pallet moves on or off", "es": "Velocidad de la cubierta al entrar o salir un pallet", "de": "Deckgeschwindigkeit beim Ein- und Ausfahren einer Palette" }
+    },
+    {
+      "key": "accel", "type": "number", "unit": "m/s²", "displayUnit": "m/s²",
+      "default": 0.5, "min": 0.05, "max": 2.0, "group": "motion", "affects": "both",
+      "label": { "en": "Acceleration", "es": "Aceleración", "de": "Beschleunigung" },
+      "description": { "en": "Start and stop ramp of the deck", "es": "Rampa de arranque y parada de la cubierta", "de": "Anfahr- und Bremsrampe des Decks" }
+    },
+    {
+      "key": "entryHeight", "type": "number", "unit": "m", "displayUnit": "mm",
+      "default": 0.6, "min": 0.2, "max": 12, "group": "lift", "affects": "both",
+      "label": { "en": "Entry height", "es": "Altura de entrada", "de": "Einlaufhöhe" },
+      "description": { "en": "Deck height where the pallet enters", "es": "Altura de la cubierta donde entra el pallet", "de": "Deckhöhe, auf der die Palette einfährt" }
+    },
+    {
+      "key": "exitHeight", "type": "number", "unit": "m", "displayUnit": "mm",
+      "default": 4.6, "min": 0.2, "max": 12, "group": "lift", "affects": "both",
+      "label": { "en": "Exit height", "es": "Altura de salida", "de": "Auslaufhöhe" },
+      "description": { "en": "Deck height where the pallet leaves (default: mezzanine floor at 4.0 m + 0.6 m conveyor)", "es": "Altura de la cubierta donde sale el pallet (por defecto: entreplanta a 4,0 m + transportador de 0,6 m)", "de": "Deckhöhe, auf der die Palette ausfährt (Standard: Bühne auf 4,0 m + 0,6 m Förderer)" }
+    },
+    {
+      "key": "verticalSpeed", "type": "number", "unit": "m/s", "displayUnit": "m/s",
+      "default": 0.5, "min": 0.1, "max": 2.0, "group": "lift", "affects": "both",
+      "label": { "en": "Vertical speed", "es": "Velocidad vertical", "de": "Hubgeschwindigkeit" },
+      "description": { "en": "Carriage speed, up and down", "es": "Velocidad del carro, subiendo y bajando", "de": "Geschwindigkeit des Hubwagens, auf und ab" }
+    },
+    {
+      "key": "verticalAccel", "type": "number", "unit": "m/s²", "displayUnit": "m/s²",
+      "default": 0.5, "min": 0.1, "max": 2.0, "group": "lift", "affects": "both",
+      "label": { "en": "Vertical acceleration", "es": "Aceleración vertical", "de": "Vertikale Beschleunigung" },
+      "description": { "en": "Carriage start and stop", "es": "Arranque y parada del carro", "de": "Anfahren und Anhalten des Hubwagens" }
+    }
+  ],
+  "ports": [
+    { "id": "IN", "direction": "in", "facing": "-x", "local": { "x": 0, "y": "entryHeight", "z": 0 } },
+    { "id": "OUT_NEAR", "direction": "out", "facing": "-x", "local": { "x": 0, "y": "exitHeight", "z": 0 } },
+    { "id": "OUT_FAR", "direction": "out", "facing": "+x", "local": { "x": "length", "y": "exitHeight", "z": 0 } }
+  ],
+  "signals": { "inputs": [], "outputs": [] },
+  "statistics": ["utilization", "blockedShare", "idleShare", "palletsMoved", "meanCycleTime"],
+  "geometry": "geom.elevator",
+  "behaviors": { "des": "des.lift_station", "physics": "phys.lift_station" },
+  "validationRules": ["noHeightChange", "deckTooShort", "usableWidthFitsPallet", "min3RollersUnderPallet"],
+  "presets": [
+    { "name": { "en": "Rollers, EUR long side", "es": "Rodillos, EUR por el lado largo", "de": "Rollen, EUR lange Seite" }, "values": { "deckType": "rollers", "palletSideAlongTravel": "long", "usableWidth": 1.0 } },
+    { "name": { "en": "Chains, EUR transverse", "es": "Cadenas, EUR transversal", "de": "Ketten, EUR quer" }, "values": { "deckType": "chains", "palletSideAlongTravel": "short", "usableWidth": 1.3 } }
+  ]
+}
