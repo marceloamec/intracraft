@@ -1,5 +1,7 @@
-// Reference data: pallet types and friction pairs. Indicative starting values, not manufacturer data.
-import frictionJson from './definitions/friction-pairs.json';
+// Reference data: pallet types, contact materials and their pairs. Indicative starting values, not
+// manufacturer data.
+import materialsJson from './definitions/contact-materials.json';
+import pairsJson from './definitions/contact-pairs.json';
 import palletTypesJson from './definitions/pallet-types.json';
 import { localizedTextSchema } from '@intracraft/core-model';
 import { z } from 'zod';
@@ -32,15 +34,38 @@ export const palletTypeSchema = z.object({
   }),
 });
 
-export const frictionPairSchema = z.object({
+export const contactMaterialSchema = z.object({
   id: z.string(),
   name: localizedTextSchema,
-  mu: z.number(),
+  description: localizedTextSchema,
+});
+
+/** Contact between two materials (S12): one friction coefficient and one restitution, both orders. */
+export const contactPairSchema = z.object({
+  a: z.string(),
+  b: z.string(),
+  mu: z.number().nonnegative(),
   range: z.tuple([z.number(), z.number()]),
+  restitution: z.number().min(0).max(1),
 });
 
 export type PalletType = z.infer<typeof palletTypeSchema>;
-export type FrictionPair = z.infer<typeof frictionPairSchema>;
+export type ContactMaterial = z.infer<typeof contactMaterialSchema>;
+export type ContactPair = z.infer<typeof contactPairSchema>;
 
 export const PALLET_TYPES: PalletType[] = z.array(palletTypeSchema).parse(palletTypesJson);
-export const FRICTION_PAIRS: FrictionPair[] = z.array(frictionPairSchema).parse(frictionJson);
+export const CONTACT_MATERIALS: ContactMaterial[] = z.array(contactMaterialSchema).parse(materialsJson);
+export const CONTACT_PAIRS: ContactPair[] = z.array(contactPairSchema).parse(pairsJson);
+
+const PAIRS_BY_KEY = new Map(CONTACT_PAIRS.map((p) => [pairKey(p.a, p.b), p]));
+
+/** The pair for materials `a` and `b` in either order; throws if the table has no such pair. */
+export function contactPair(a: string, b: string): ContactPair {
+  const pair = PAIRS_BY_KEY.get(pairKey(a, b));
+  if (pair === undefined) throw new Error(`No contact pair for materials "${a}" and "${b}"`);
+  return pair;
+}
+
+function pairKey(a: string, b: string): string {
+  return a < b ? `${a}|${b}` : `${b}|${a}`;
+}

@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import { validateInstance } from './instance-validation';
 import { derivedValues } from './params';
-import { FRICTION_PAIRS, PALLET_TYPES } from './reference-data';
+import { CONTACT_MATERIALS, CONTACT_PAIRS, PALLET_TYPES, contactPair } from './reference-data';
 import { createBuiltInRegistry, defaultParams } from './registry';
 import {
   chainFitsBetweenRollers,
@@ -140,11 +140,52 @@ describe('reference data', () => {
     }
   });
 
-  it('keeps each friction default inside its usual range', () => {
-    for (const pair of FRICTION_PAIRS) {
+});
+
+describe('contact materials and pairs', () => {
+  it('refers only to known materials, once per unordered pair', () => {
+    const materials = new Set(CONTACT_MATERIALS.map((m) => m.id));
+    const seen = new Set<string>();
+    for (const pair of CONTACT_PAIRS) {
+      expect(materials.has(pair.a), pair.a).toBe(true);
+      expect(materials.has(pair.b), pair.b).toBe(true);
+      const key = [pair.a, pair.b].sort().join('|');
+      expect(seen.has(key), key).toBe(false);
+      seen.add(key);
+    }
+  });
+
+  it('keeps each friction default inside its usual range and restitution in [0, 1]', () => {
+    for (const pair of CONTACT_PAIRS) {
       expect(pair.mu).toBeGreaterThanOrEqual(pair.range[0]);
       expect(pair.mu).toBeLessThanOrEqual(pair.range[1]);
+      expect(pair.restitution).toBeGreaterThanOrEqual(0);
+      expect(pair.restitution).toBeLessThanOrEqual(1);
     }
+  });
+
+  it('pairs every pallet material with every surface it can touch', () => {
+    for (const pallet of ['wood', 'plastic']) {
+      for (const surface of CONTACT_MATERIALS) {
+        expect(() => contactPair(pallet, surface.id), `${pallet}–${surface.id}`).not.toThrow();
+      }
+    }
+  });
+
+  it('looks pairs up in either order (wood on a steel roller: μ = 0.35)', () => {
+    expect(contactPair('wood', 'steel-zinc').mu).toBe(0.35);
+    expect(contactPair('steel-zinc', 'wood')).toBe(contactPair('wood', 'steel-zinc'));
+  });
+
+  it('grips better on rubber-coated than on steel rollers and bounces more on rubber buffers', () => {
+    expect(contactPair('wood', 'rubber').mu).toBeGreaterThan(contactPair('wood', 'steel-zinc').mu);
+    expect(contactPair('wood', 'rubber').restitution).toBeGreaterThan(
+      contactPair('wood', 'steel-painted').restitution,
+    );
+  });
+
+  it('rejects a pair that is not in the table', () => {
+    expect(() => contactPair('rubber', 'concrete')).toThrow(/rubber.*concrete/);
   });
 });
 

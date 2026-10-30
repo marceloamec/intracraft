@@ -1,0 +1,47 @@
+[
+  {
+    "id": "wood",
+    "name": { "en": "Wood", "es": "Madera", "de": "Holz" },
+    "description": { "en": "Wooden pallets", "es": "Pallets de madera", "de": "Holzpaletten" }
+  },
+  {
+    "id": "plastic",
+    "name": { "en": "Plastic (HDPE)", "es": "Plástico (PEAD)", "de": "Kunststoff (HDPE)" },
+    "description": { "en": "Plastic pallets", "es": "Pallets de plástico", "de": "Kunststoffpaletten" }
+  },
+  {
+    "id": "steel-zinc",
+    "name": { "en": "Zinc-plated steel", "es": "Acero cincado", "de": "Verzinkter Stahl" },
+    "description": { "en": "Plain roller tubes", "es": "Tubos de rodillo sin recubrimiento", "de": "Rollenrohre ohne Beschichtung" }
+  },
+  {
+    "id": "steel-painted",
+    "name": { "en": "Painted steel", "es": "Acero pintado", "de": "Lackierter Stahl" },
+    "description": { "en": "Side guides, stop plates, frames", "es": "Guías laterales, placas de tope, bastidores", "de": "Seitenführungen, Anschlagplatten, Rahmen" }
+  },
+  {
+    "id": "steel-chain",
+    "name": { "en": "Steel chain", "es": "Cadena de acero", "de": "Stahlkette" },
+    "description": { "en": "Conveyor chain strands", "es": "Ramales de cadena del transportador", "de": "Förderkettenstränge" }
+  },
+  {
+    "id": "rubber",
+    "name": { "en": "Rubber", "es": "Goma", "de": "Gummi" },
+    "description": { "en": "Roller coating, stop buffers", "es": "Recubrimiento de rodillos, amortiguadores de tope", "de": "Rollenbeschichtung, Anschlagpuffer" }
+  },
+  {
+    "id": "polyurethane",
+    "name": { "en": "Polyurethane", "es": "Poliuretano", "de": "Polyurethan" },
+    "description": { "en": "Roller coating, stop buffers", "es": "Recubrimiento de rodillos, amortiguadores de tope", "de": "Rollenbeschichtung, Anschlagpuffer" }
+  },
+  {
+    "id": "polyethylene",
+    "name": { "en": "UHMW polyethylene", "es": "Polietileno UHMW", "de": "UHMW-Polyethylen" },
+    "description": { "en": "Low-friction guide and wear strips", "es": "Perfiles de guía y deslizamiento de bajo rozamiento", "de": "Reibungsarme Führungs- und Gleitleisten" }
+  },
+  {
+    "id": "concrete",
+    "name": { "en": "Concrete", "es": "Hormigón", "de": "Beton" },
+    "description": { "en": "Floor", "es": "Suelo", "de": "Boden" }
+  }
+]
