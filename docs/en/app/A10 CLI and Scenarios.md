@@ -35,16 +35,25 @@ Each scenario has a localised title (en/es/de), a unit and **one** tolerance: re
 - Its parameters (`scenarios/physics-bench.json`) use the same schema as a library definition; each scenario only lists the values that differ from the defaults.
 - A scenario runs the bench for a fixed time and measures one value.
 
-| Id         | Measures                                                              | Expected (tolerance)    | Criterion                 |
-| ---------- | --------------------------------------------------------------------- | ----------------------- | ------------------------- |
-| P1         | Steady pallet speed, 1000 kg on 10 rollers                            | 0.25 m/s (3 %)          | S1-a                      |
-| P2-…       | Largest acceleration the rollers give (steel, rubber, plastic pallet) | a = μ·g (10 %)          | [[S16 Contact Materials]] |
-| P3         | Pallet front against a steel stop at 0.25 m/s                         | 0 m (±5 mm)             | S1-c                      |
-| P3-rebound | Backward travel after the impact                                      | 0 m (±10 mm)            | S1-c                      |
-| P4         | Impact energy of 1025 kg at 0.25 m/s                                  | 32.03 J (2 %)           | T5 in 3D                  |
-| P5-…       | Rebound speed / approach speed (steel, polyurethane, rubber)          | 0.1 / 0.2 / 0.35 (10 %) | S16                       |
-| P6         | Earlier tipping at a conveyor end with the load 100 mm forward        | 95 mm (15 %)            | ADR-0015                  |
-| P7         | Same state hash after 60 s in two runs                                | equal                   | S1-g                      |
+| Id         | Measures                                                                  | Expected (tolerance)    | Criterion                                   |
+| ---------- | ------------------------------------------------------------------------- | ----------------------- | ------------------------------------------- |
+| P1         | Steady pallet speed, 1000 kg on 10 rollers                                | 0.25 m/s (3 %)          | S1-a                                        |
+| P2-…       | Largest acceleration the rollers give (steel, rubber, plastic pallet)     | a = μ·g (10 %)          | [[S16 Contact Materials]]                   |
+| P3         | Pallet front against a steel stop at 0.25 m/s                             | 0 m (±5 mm)             | S1-c                                        |
+| P3-rebound | Backward travel after the impact                                          | 0 m (±10 mm)            | S1-c                                        |
+| P4         | Impact energy of 1025 kg at 0.25 m/s                                      | 32.03 J (2 %)           | T5 in 3D                                    |
+| P5-…       | Rebound speed / approach speed (steel, polyurethane, rubber)              | 0.1 / 0.2 / 0.35 (10 %) | S16                                         |
+| P6         | Earlier tipping at a conveyor end with the load 100 mm forward            | 95 mm (15 %)            | ADR-0015                                    |
+| P7         | Same state hash after 60 s in two runs                                    | equal                   | S1-g                                        |
+| P8         | EUR pallet across 3 chain strands, plan B: steady speed                   | 0.25 m/s (3 %)          | S1-b                                        |
+| P8-jitter  | Spread of the pallet height on the chains                                 | 0 m (±1 mm)             | S1-b                                        |
+| P8-planA   | Same on strips of small driven rollers (plan A)                           | 0.25 m/s (3 %)          | S1-b                                        |
+| P9         | Lateral error after guides with a funnel (50 mm, 5°, polyethylene strips) | 0 m (±10 mm)            | S1-d                                        |
+| P9-yaw     | Angle error after the same guides                                         | 0° (±1°)                | S1-d                                        |
+| P9-steel   | Angle error with painted steel guides, pallet turned 3°                   | 0° (±1°)                | S1-d, [[ADR-0002 Physics Engine Candidate]] |
+| P10        | Pallet shift on a platform turning 90° (T3 profile)                       | 0 m (±5 mm)             | S1-e                                        |
+| P10-fast   | Same at 45 °/s and 120 °/s²                                               | 0 m (±5 mm)             | S1-e                                        |
+| P11        | Mean step time, 20 conveyors and 10 pallets (wall clock)                  | ≤ 4.17 ms               | S1-f                                        |
 
 Golden result files in `test_data/` will follow when the outputs grow beyond one number per scenario.
 

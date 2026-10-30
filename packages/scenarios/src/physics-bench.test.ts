@@ -79,3 +79,105 @@ describe('physics bench layout', () => {
     }
   });
 });
+
+describe('physics bench variants', () => {
+  it('lays three chain strands at a 1050 mm gauge and turns the EUR pallet across them', async () => {
+    const bench = await PhysicsBench.create({ deck: 'chains', palletSideAlongTravel: 'short' });
+    try {
+      const { rollers, strands, mtbh } = bench.layout;
+      expect(rollers).toHaveLength(0);
+      expect(strands.map((s) => s.z)).toEqual([-0.525, 0, 0.525]);
+      expect(mtbh.start.yaw).toBeCloseTo(Math.PI / 2, 12);
+      expect(bench.frame().front).toBeCloseTo(0.05 + 0.8, 2);
+      expect(bench.run(0.2).pallet.pose.position.y).toBeCloseTo(BENCH_SURFACE_HEIGHT, 2);
+    } finally {
+      bench.dispose();
+    }
+  });
+
+  it('carries the strands on small rollers for chain plan A', async () => {
+    const bench = await PhysicsBench.create({
+      deck: 'chainsPlanA',
+      palletSideAlongTravel: 'short',
+    });
+    try {
+      const { rollers, strands } = bench.layout;
+      expect(strands).toHaveLength(3);
+      expect(rollers.length).toBeGreaterThan(3 * 70);
+      expect(new Set(rollers.map((r) => r.z))).toEqual(new Set([-0.525, 0, 0.525]));
+    } finally {
+      bench.dispose();
+    }
+  });
+
+  it('adds two guide rails and a funnel whose mouth captures clearance + length · tan(angle)', async () => {
+    const bench = await PhysicsBench.create({
+      guidesEnabled: true,
+      guideClearance: 0.01,
+      funnelAngle: (15 * Math.PI) / 180,
+      funnelLength: 0.5,
+    });
+    try {
+      const { guides, mtbh } = bench.layout;
+      expect(guides).toHaveLength(4);
+      const rails = guides.filter((g) => g.yaw === 0);
+      // Inner faces at half the pallet width (the model is 798 mm wide) + clearance.
+      const inner = mtbh.width / 2 + 0.01;
+      expect(rails.map((g) => Math.abs(g.center.z) - g.halfExtents.z)).toEqual([
+        expect.closeTo(inner, 9),
+        expect.closeTo(inner, 9),
+      ]);
+      expect(funnelMouth(bench.layout.guides)).toBeCloseTo(inner + 0.5 * Math.tan(Math.PI / 12), 9);
+    } finally {
+      bench.dispose();
+    }
+  });
+
+  it('starts the pallet off-centre and turned when asked', async () => {
+    const yaw = (5 * Math.PI) / 180;
+    const bench = await PhysicsBench.create({ startOffsetZ: 0.05, startYaw: yaw });
+    try {
+      const frame = bench.frame();
+      expect(frame.pallet.pose.position.z).toBeCloseTo(0.05, 6);
+      expect(frame.yaw).toBeCloseTo(yaw, 6);
+    } finally {
+      bench.dispose();
+    }
+  });
+
+  it('turns the platform 90° with the T3 profile and holds the pallet on its locked rollers', async () => {
+    const bench = await PhysicsBench.create({ turntable: true, conveyorLength: 1.4 });
+    try {
+      expect(bench.layout.platform?.center.x).toBeCloseTo(0.7, 9);
+      const start = bench.frame();
+      expect(start.pallet.pose.position.x).toBeCloseTo(0.7, 6);
+      const frame = bench.run(0.5 + 6.5 + 0.2);
+      expect(frame.platformAngle).toBeCloseTo(Math.PI / 2, 2);
+      expect(frame.rollerAngle).toBe(0);
+    } finally {
+      bench.dispose();
+    }
+  });
+
+  it('builds 20 lanes of 14 rollers with a pallet on the first 10', async () => {
+    const bench = await PhysicsBench.create({ lanes: 20, loadedLanes: 10, stopEnabled: false });
+    try {
+      expect(bench.layout.laneOffsets).toHaveLength(20);
+      expect(bench.bodyCount).toEqual({ rollers: 280, pallets: 10 });
+    } finally {
+      bench.dispose();
+    }
+  });
+});
+
+/** Distance from the lane axis to the funnel's upstream end (inner face). */
+function funnelMouth(
+  guides: { center: { z: number }; halfExtents: { x: number; z: number }; yaw: number }[],
+) {
+  const plate = guides.find((g) => g.yaw !== 0 && g.center.z > 0);
+  if (plate === undefined) throw new Error('No funnel plate');
+  // Inner face end: centre − normal · t/2 + direction · (−length/2), direction (cos, −sin), normal (sin, cos).
+  const c = Math.cos(plate.yaw);
+  const s = Math.sin(plate.yaw);
+  return plate.center.z - c * plate.halfExtents.z + s * plate.halfExtents.x;
+}

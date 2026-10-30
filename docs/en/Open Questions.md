@@ -120,3 +120,9 @@ Each question states **what must be decided**, **why it matters** (which result 
 - **Why:** several levels and entries from both ends need a destination rule and change the cycle ([[S14 Pallet Elevator]]).
 - **Specific questions:** (a) How many levels at most? (b) Entry from both ends? (c) How is the destination level chosen (fixed, by pallet type, by rule)?
 - **Assumed:** two levels, entry on one end, exit on the same side (C) or the opposite side (Z).
+
+### Q18. Side guides: material and height
+- **Decide:** the default guide surface and height of [[S08 Side Guide]].
+- **Why:** in the 3D mode a pallet that enters turned 5° **wedges** between painted steel guides (μ = 0.3) with 10 mm clearance. With low-friction polyethylene strips (μ = 0.2) it is straightened ([[ADR-0002 Physics Engine Candidate]], P9). The default height of 150 mm is above the top of a EUR pallet (144 mm), so a load that overhangs the pallet hits the guides.
+- **Options:** (1) polyethylene strips as the default guide surface; (2) keep painted steel and add a warning when the entry may be turned more than about 3°; (3) guide height limited to the pallet height (about 100–140 mm), or a validation against the load overhang.
+- **Assumed:** S08 unchanged; the bench uses 100 mm polyethylene guides for S1-d.
