@@ -1,7 +1,8 @@
 // Pallets of the running simulation, drawn from the latest worker frame. Each pallet is a wooden
 // base plus a load block, as two InstancedMeshes (one draw call each); the load is red while its
 // conveyor is blocked and amber while the controller has it switched off. Between frames the position
-// is extrapolated with the pallet's speed and acceleration so the motion looks smooth.
+// is extrapolated with the pallet's speed and acceleration so the motion looks smooth. A 3D run sends
+// each pallet's real pose (ADR-0016): it is drawn as it is, turned or tilted by the physics.
 import { instanceParams, num } from '@intracraft/library';
 import { useFrame } from '@react-three/fiber';
 import { useLayoutEffect, useMemo, useRef } from 'react';
@@ -50,7 +51,14 @@ export function PalletLayer() {
     for (let i = 0; i < CAPACITY; i++) load.setColorAt(i, COLOR_LOAD);
   }, []);
   const scratch = useMemo(
-    () => ({ matrix: new Matrix4(), rotation: new Quaternion(), euler: new Euler(), position: new Vector3(), scale: new Vector3() }),
+    () => ({
+      matrix: new Matrix4(),
+      rotation: new Quaternion(),
+      euler: new Euler(),
+      position: new Vector3(),
+      scale: new Vector3(),
+      up: new Vector3(),
+    }),
     [],
   );
 
@@ -62,10 +70,42 @@ export function PalletLayer() {
     const pallets = snapshot?.pallets.slice(0, CAPACITY) ?? [];
     const speed = useSimStore.getState().speed;
     const factor = liveFrame.playing && (speed === 1 || speed === 10) ? speed : 0;
-    const ahead = (Math.min(performance.now() - liveFrame.receivedAt, MAX_EXTRAPOLATION_MS) / 1000) * factor;
+    const ahead =
+      (Math.min(performance.now() - liveFrame.receivedAt, MAX_EXTRAPOLATION_MS) / 1000) * factor;
 
-    const { matrix, rotation, euler, position, scale } = scratch;
+    const { matrix, rotation, euler, position, scale, up } = scratch;
+    const poses = snapshot?.poses;
     pallets.forEach((pallet, i) => {
+      const status = snapshot?.status[pallet.carrier];
+      load.setColorAt(
+        i,
+        status === 'blocked' ? COLOR_BLOCKED : status === 'stopped' ? COLOR_STOPPED : COLOR_LOAD,
+      );
+      const pose = poses?.[pallet.id];
+      if (pose !== undefined) {
+        // Body frame: X along the pallet's long side, origin at the footprint centre on the underside.
+        const long = Math.max(pallet.length, pallet.width);
+        const short = Math.min(pallet.length, pallet.width);
+        const loadHeight = Math.max(pallet.loadHeight, 0.01);
+        rotation.set(pose.rotation.x, pose.rotation.y, pose.rotation.z, pose.rotation.w);
+        up.set(0, pallet.height / 2, 0).applyQuaternion(rotation);
+        position.set(pose.position.x + up.x, pose.position.y + up.y, pose.position.z + up.z);
+        base.setMatrixAt(
+          i,
+          matrix.compose(position, rotation, scale.set(long, pallet.height, short)),
+        );
+        up.set(0, pallet.height + loadHeight / 2, 0).applyQuaternion(rotation);
+        position.set(pose.position.x + up.x, pose.position.y + up.y, pose.position.z + up.z);
+        load.setMatrixAt(
+          i,
+          matrix.compose(
+            position,
+            rotation,
+            scale.set(long * LOAD_INSET, loadHeight, short * LOAD_INSET),
+          ),
+        );
+        return;
+      }
       const carrier = carriers.get(pallet.carrier);
       if (carrier === undefined) return;
       const dt = pallet.accel < 0 ? Math.min(ahead, pallet.speed / -pallet.accel) : ahead;
@@ -92,8 +132,6 @@ export function PalletLayer() {
       position.set(x, floor + pallet.height + loadHeight / 2, z);
       scale.set(pallet.length * LOAD_INSET, loadHeight, pallet.width * LOAD_INSET);
       load.setMatrixAt(i, matrix.compose(position, rotation, scale));
-      const status = snapshot?.status[pallet.carrier];
-      load.setColorAt(i, status === 'blocked' ? COLOR_BLOCKED : status === 'stopped' ? COLOR_STOPPED : COLOR_LOAD);
     });
     base.count = pallets.length;
     load.count = pallets.length;
@@ -104,11 +142,23 @@ export function PalletLayer() {
 
   return (
     <group userData={{ noPick: true }}>
-      <instancedMesh ref={bases} args={[undefined, undefined, CAPACITY]} count={0} castShadow frustumCulled={false}>
+      <instancedMesh
+        ref={bases}
+        args={[undefined, undefined, CAPACITY]}
+        count={0}
+        castShadow
+        frustumCulled={false}
+      >
         <boxGeometry args={[1, 1, 1]} />
         <meshStandardMaterial color={COLOR_BASE} roughness={0.9} />
       </instancedMesh>
-      <instancedMesh ref={loads} args={[undefined, undefined, CAPACITY]} count={0} castShadow frustumCulled={false}>
+      <instancedMesh
+        ref={loads}
+        args={[undefined, undefined, CAPACITY]}
+        count={0}
+        castShadow
+        frustumCulled={false}
+      >
         <boxGeometry args={[1, 1, 1]} />
         <meshStandardMaterial roughness={0.8} />
       </instancedMesh>

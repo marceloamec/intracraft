@@ -115,7 +115,6 @@ const EN = {
   speedMax: 'max',
   simTime: 'Time',
   palletsInModel: '{count} pallets in the model',
-  physicsNotAvailable: '3D physics is not available yet; the run uses the 2D discrete mode.',
   runStoppedByEdit: 'The layout changed: the run was reset.',
   statistics: 'Statistics',
   status: 'Status',

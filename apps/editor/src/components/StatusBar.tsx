@@ -3,7 +3,6 @@
 import { useT } from '../i18n/useT';
 import { useLayoutStore } from '../layout-store';
 import { useSimStore } from '../sim-store';
-import { useEditorStore } from '../store';
 
 const STATUS_LABEL = { snap: 'snapped', saved: 'savedAs', opened: 'opened' } as const;
 
@@ -15,7 +14,6 @@ export function StatusBar() {
   const runState = useSimStore((s) => s.run);
   const time = useSimStore((s) => s.time);
   const pallets = useSimStore((s) => s.pallets);
-  const physics = useEditorStore((s) => s.simMode === 'physics');
 
   const live =
     preview === null
@@ -42,7 +40,6 @@ export function StatusBar() {
       )}
       {runState !== 'stopped' && (
         <span className="status-run">
-          {physics && <span className="status-issue warning">{t('physicsNotAvailable')}</span>}
           {t('simTime')} <strong>{formatClock(time)}</strong> ·{' '}
           {t('palletsInModel').replace('{count}', String(pallets))}
         </span>
