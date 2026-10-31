@@ -5,3 +5,5 @@ spikes/r5b-viewer/package/*.txt text eol=crlf
 # The Rust platform (ADR-0020): vendored crates are kept byte for byte (their checksums cover every file),
 # never diffed and never counted as our code.
 platform/vendor/** -text -diff linguist-vendored
+# BIMCraft's translation catalogues are compared byte for byte with what its extractor writes (`cargo i18n check`): LF everywhere.
+platform/translations/** text eol=lf

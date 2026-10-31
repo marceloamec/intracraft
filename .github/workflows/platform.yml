@@ -63,7 +63,7 @@ jobs:
 
       - name: Translation catalogs
         if: runner.os == 'Linux'
-        run: cargo i18n check --offline
+        run: cargo i18n check
 
       - name: Clippy
         run: cargo clippy --workspace --all-targets --offline -- -D warnings
