@@ -39,23 +39,25 @@ IntraCraft simulates pallet conveyor systems with **one layout and two modes**: 
 
 ## Application
 
-| #   | Note                                |
-| --- | ----------------------------------- |
-| A01 | [[A01 Product Overview]]            |
-| A02 | [[A02 Architecture]]                |
-| A03 | [[A03 Monorepo and Stack]]          |
-| A04 | [[A04 Data Model and Project File]] |
-| A05 | [[A05 Component Library]]           |
-| A06 | [[A06 DES Engine]]                  |
-| A07 | [[A07 Physics Engine Wrapper]]      |
-| A08 | [[A08 Controller]]                  |
-| A09 | [[A09 Editor and Viewer]]           |
-| A10 | [[A10 CLI and Scenarios]]           |
-| A11 | [[A11 Testing and Validation]]      |
-| A12 | [[A12 Roadmap]]                     |
-| A13 | [[A13 Conventions]]                 |
-| A14 | [[A14 API Reference]]               |
-| A15 | [[A15 AI Agent Integration]]        |
+| #   | Note                                  |
+| --- | ------------------------------------- |
+| A01 | [[A01 Product Overview]]              |
+| A02 | [[A02 Architecture]]                  |
+| A03 | [[A03 Monorepo and Stack]]            |
+| A04 | [[A04 Data Model and Project File]]   |
+| A05 | [[A05 Component Library]]             |
+| A06 | [[A06 DES Engine]]                    |
+| A07 | [[A07 Physics Engine Wrapper]]        |
+| A08 | [[A08 Controller]]                    |
+| A09 | [[A09 Editor and Viewer]]             |
+| A10 | [[A10 CLI and Scenarios]]             |
+| A11 | [[A11 Testing and Validation]]        |
+| A12 | [[A12 Roadmap]]                       |
+| A13 | [[A13 Conventions]]                   |
+| A14 | [[A14 API Reference]]                 |
+| A15 | [[A15 AI Agent Integration]]          |
+| A17 | [[A17 BIMCraft Integration Analysis]] |
+| A18 | [[A18 Rust Implementation Plan]]      |
 
 ## Specifications (library objects)
 
@@ -93,6 +95,7 @@ IntraCraft simulates pallet conveyor systems with **one layout and two modes**: 
 - [[ADR-0015 MTBH Rigid Body from Pallet and Load Models]]
 - [[ADR-0016 Physics World Built from the Layout]]
 - [[ADR-0017 Scenery Assets in the Layout and Live Spawn]]
+- [[ADR-0018 Pivot to a Simulation Module on a Rust BIM Platform]] (proposed)
 
 ## Reference
 
