@@ -41,7 +41,7 @@ intracraft/
 │  ├─ core-model/         (layout, puertos, conexiones, unidades, validación)
 │  ├─ library/            (definiciones JSON y comportamientos registrados)
 │  ├─ commands/           (capa de comandos: sesión, deshacer, registro; ADR-0006)
-│  ├─ asset-catalog/      (catálogo de modelos 3D GLB de terceros: manifiesto y consultas)
+│  ├─ asset-catalog/      (catálogo de modelos 3D GLB de terceros: manifiesto, formas de colisión y consultas)
 │  ├─ geometry/           (geometría paramétrica 3D y símbolos 2D)
 │  ├─ sim-des/            (motor de eventos discretos)
 │  ├─ sim-physics/        (envoltorio del motor de física y ejecución 3D del layout, ADR-0016)

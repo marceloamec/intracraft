@@ -10,16 +10,16 @@ tags: [app, data-model, file-format]
 
 ## 1. Entities
 
-| Entity     | Content                                                                                                                                        | Status         |
-| ---------- | ---------------------------------------------------------------------------------------------------------------------------------------------- | -------------- |
-| Project    | `schemaVersion`, name, seed, layout (later: libraries used, display units)                                                                     | Schema exists  |
-| Layout     | Instances, connections (later: controllers, scenarios)                                                                                         | Schema exists  |
-| Instance   | `id`, `definitionId` + `definitionVersion`, name, position (x, y, z), yaw, params, free `attributes` (key → number/boolean/text, default `{}`) | Schema exists  |
-| Port       | Local position, direction, surface height, usable width, tolerances                                                                            | In definitions |
-| Connection | From output port of A to input port of B, with `gap` (default 0.02 m)                                                                          | Schema exists  |
-| Signal     | Boolean with name, source and target                                                                                                           | Planned        |
-| Pallet     | Type, mass, load, state and location (object + coordinate)                                                                                     | Types exist    |
-| Scenario   | Layout + sources + seed + duration + expected metrics                                                                                          | Analytic only  |
+| Entity     | Content                                                                                                                                                                                                                                      | Status         |
+| ---------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | -------------- |
+| Project    | `schemaVersion`, name, seed, layout (later: libraries used, display units)                                                                                                                                                                   | Schema exists  |
+| Layout     | Instances, connections (later: controllers, scenarios)                                                                                                                                                                                       | Schema exists  |
+| Instance   | `id`, `definitionId` + `definitionVersion`, name, position (x, y, z), yaw, params, free `attributes` (key → number/boolean/text, default `{}`). A scenery object is an instance of `scenery.asset` (S17); its y is the height of its support | Schema exists  |
+| Port       | Local position, direction, surface height, usable width, tolerances                                                                                                                                                                          | In definitions |
+| Connection | From output port of A to input port of B, with `gap` (default 0.02 m)                                                                                                                                                                        | Schema exists  |
+| Signal     | Boolean with name, source and target                                                                                                                                                                                                         | Planned        |
+| Pallet     | Type, mass, load, state and location (object + coordinate)                                                                                                                                                                                   | Types exist    |
+| Scenario   | Layout + sources + seed + duration + expected metrics                                                                                                                                                                                        | Analytic only  |
 
 Connections are not drawn by hand: after every edit command they are derived from the port geometry ([[ADR-0006 Command Package and Geometric Port Connections]]).
 
