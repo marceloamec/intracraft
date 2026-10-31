@@ -43,5 +43,10 @@
     "id": "concrete",
     "name": { "en": "Concrete", "es": "Hormigón", "de": "Beton" },
     "description": { "en": "Floor", "es": "Suelo", "de": "Boden" }
+  },
+  {
+    "id": "cardboard",
+    "name": { "en": "Cardboard", "es": "Cartón", "de": "Karton" },
+    "description": { "en": "Boxes and cartons (catalogue models)", "es": "Cajas y cartones (modelos del catálogo)", "de": "Kartons und Schachteln (Katalogmodelle)" }
   }
 ]

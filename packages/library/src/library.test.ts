@@ -224,12 +224,17 @@ describe('contact materials and pairs', () => {
     }
   });
 
-  it('pairs every pallet material with every surface it can touch', () => {
-    for (const pallet of ['wood', 'plastic']) {
-      for (const surface of CONTACT_MATERIALS) {
-        expect(() => contactPair(pallet, surface.id), `${pallet}–${surface.id}`).not.toThrow();
+  it('pairs every material with every material, so scenery can touch anything (55 pairs, ADR-0017)', () => {
+    for (const a of CONTACT_MATERIALS) {
+      for (const b of CONTACT_MATERIALS) {
+        expect(() => contactPair(a.id, b.id), `${a.id}–${b.id}`).not.toThrow();
       }
     }
+    expect(CONTACT_PAIRS).toHaveLength(55);
+  });
+
+  it('offers cardboard for the catalogue boxes (μ = 0.3 on steel rollers, no bounce on rollers)', () => {
+    expect(contactPair('cardboard', 'steel-zinc')).toMatchObject({ mu: 0.3, restitution: 0 });
   });
 
   it('looks pairs up in either order (wood on a steel roller: μ = 0.35)', () => {
@@ -244,8 +249,8 @@ describe('contact materials and pairs', () => {
     );
   });
 
-  it('rejects a pair that is not in the table', () => {
-    expect(() => contactPair('rubber', 'concrete')).toThrow(/rubber.*concrete/);
+  it('rejects a material that is not in the table', () => {
+    expect(() => contactPair('rubber', 'glass')).toThrow(/rubber.*glass/);
   });
 });
 

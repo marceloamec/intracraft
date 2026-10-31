@@ -1,4 +1,5 @@
 import { GRAVITY, type Vec3 } from '@intracraft/core-model';
+import { contactPair } from '@intracraft/library';
 import { describe, expect, it } from 'vitest';
 import type { BodyDesc, BodyHandle, ContactPairLookup, PhysicsBackend } from './backend';
 import { createJoltBackend } from './jolt-backend';
@@ -26,6 +27,16 @@ describe('Jolt backend: contacts', () => {
       world.setVelocity(box, { x: 1, y: 0, z: 0 }, ZERO);
       run(world, 1);
       expect(world.getPose(box).position.x).toBeCloseTo(1 / (2 * 0.5 * GRAVITY), 2);
+    });
+  });
+
+  it('brakes a cardboard box on steel with the S16 pair (μ = 0.3 → stops in 0.170 m)', async () => {
+    await withWorld(contactPair, (world) => {
+      world.addBody({ ...floor(), material: 'steel-zinc' });
+      const box = world.addBody({ ...box1000({ x: 0, y: BOX_HALF.y, z: 0 }), material: 'cardboard' });
+      world.setVelocity(box, { x: 1, y: 0, z: 0 }, ZERO);
+      run(world, 1);
+      expect(world.getPose(box).position.x).toBeCloseTo(1 / (2 * 0.3 * GRAVITY), 2);
     });
   });
 
