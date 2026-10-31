@@ -11,6 +11,7 @@ on:
 jobs:
   windows:
     runs-on: windows-latest
+    timeout-minutes: 120
     defaults:
       run:
         working-directory: spikes/r5b-viewer
@@ -33,17 +34,18 @@ jobs:
         continue-on-error: true
         run: node fetch-pallet.mjs package
       - run: cargo fmt --check
-      - run: cargo clippy --workspace --all-targets -- -D warnings
-      - name: Tests (with the catalogue pallet when it downloaded)
-        env:
-          R5B_GLB: ${{ github.workspace }}/spikes/r5b-viewer/package/pallet_a01.glb
-        run: cargo test --workspace
+      - run: cargo clippy --release --workspace --all-targets -- -D warnings
+      # Build first, then test in the same release profile, so Bevy is compiled once.
       - name: Build
         shell: bash
         run: |
           start=$(date +%s)
           cargo build --release --workspace
           echo "release build: $(( $(date +%s) - start )) s" | tee build-time.txt
+      - name: Tests (with the catalogue pallet when it downloaded)
+        env:
+          R5B_GLB: ${{ github.workspace }}/spikes/r5b-viewer/package/pallet_a01.glb
+        run: cargo test --release -p r5b-scene -p r5b-viewer-egui
       - name: Smoke run on the runner's software renderer (numbers do not count)
         continue-on-error: true
         shell: bash
