@@ -1,0 +1,72 @@
+# The Rust platform (ADR-0020): BIMCraft and IntraCraft's crates in platform/, built offline from platform/vendor/.
+# BIMCraft's own workflows sit in platform/.github and never run from here; this one runs its checks for the whole workspace.
+name: Platform (Rust)
+
+on:
+  push:
+    paths:
+      - 'platform/**'
+      - 'packages/library/src/**'
+      - 'packages/scenarios/scenarios/**'
+      - '.github/workflows/platform.yml'
+  pull_request:
+    paths:
+      - 'platform/**'
+      - 'packages/library/src/**'
+      - 'packages/scenarios/scenarios/**'
+      - '.github/workflows/platform.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: platform-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  check:
+    name: ${{ matrix.name }}
+    runs-on: ${{ matrix.runner }}
+    timeout-minutes: 90
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - { name: Linux, runner: ubuntu-22.04 }
+          - { name: Windows, runner: windows-latest }
+    defaults:
+      run:
+        working-directory: platform
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Linux libraries
+        if: runner.os == 'Linux'
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y --no-install-recommends libxkbcommon-dev libwayland-dev libx11-dev libxrandr-dev libxi-dev libgl1-mesa-dev
+
+      - name: Rust
+        shell: bash
+        run: rustup update stable && rustup default stable && rustup component add rustfmt clippy
+
+      - uses: actions/cache@v4
+        with:
+          path: platform/target
+          key: platform-${{ runner.os }}-${{ hashFiles('platform/Cargo.lock') }}
+          restore-keys: platform-${{ runner.os }}-
+
+      - name: Format
+        if: runner.os == 'Linux'
+        run: cargo fmt --check
+
+      - name: Translation catalogs
+        if: runner.os == 'Linux'
+        run: cargo i18n check --offline
+
+      - name: Clippy
+        run: cargo clippy --workspace --all-targets --offline -- -D warnings
+
+      - name: Test
+        run: cargo test --workspace --offline

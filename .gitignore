@@ -13,3 +13,5 @@ knowledge/
 # Spike R5b (Rust): build output and the downloaded catalogue model
 spikes/r5b-viewer/target/
 spikes/r5b-viewer/package/*.glb
+# The Rust platform (ADR-0020): build output
+platform/target/

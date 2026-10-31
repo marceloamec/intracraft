@@ -1,2 +1,12 @@
 [alias]
 i18n = "run --quiet -p bimcraft-i18n --features tooling --"
+
+# IntraCraft (ADR-0020): every crate is built from the sources kept in `vendor/`, so a build needs no network.
+# After adding or updating a dependency, run `cargo vendor --versioned-dirs vendor` (it ignores the
+# replacement below and downloads what is missing) and commit `vendor/` and `Cargo.lock` in the same change, with
+# `git add -f platform/vendor` (a few crates ship files that a .gitignore would leave out, and their checksums cover them).
+[source.crates-io]
+replace-with = "vendored-sources"
+
+[source.vendored-sources]
+directory = "vendor"

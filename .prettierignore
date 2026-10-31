@@ -5,3 +5,5 @@ test_data
 .obsidian
 *.md
 packages/asset-catalog/src/colliders.json
+platform
+spikes/r5b-viewer/target

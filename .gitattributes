@@ -1,3 +1,7 @@
 # Spike R5b: Windows files keep Windows line endings in every checkout.
 spikes/r5b-viewer/package/*.bat text eol=crlf
 spikes/r5b-viewer/package/*.txt text eol=crlf
+
+# The Rust platform (ADR-0020): vendored crates are kept byte for byte (their checksums cover every file),
+# never diffed and never counted as our code.
+platform/vendor/** -text -diff linguist-vendored

@@ -6,3 +6,9 @@ brand/
 knowledge/
 *.md
 *.pdf
+# The Rust platform (ADR-0020): vendored crates, build output and BIMCraft assets
+platform/vendor/
+platform/target/
+platform/assets/
+platform/translations/
+spikes/r5b-viewer/target/
