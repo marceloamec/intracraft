@@ -1756,6 +1756,14 @@ dependencies = [
 ]
 
 [[package]]
+name = "intracraft-library"
+version = "0.1.0"
+dependencies = [
+ "serde",
+ "serde_json",
+]
+
+[[package]]
 name = "itertools"
 version = "0.15.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"

@@ -14,3 +14,4 @@ listed here, with why, so that each change is marked as Apache-2.0 §4(b) asks a
 | File                  | Change                                                                                                                    |
 | --------------------- | ------------------------------------------------------------------------------------------------------------------------- |
 | `.cargo/config.toml`  | Builds from the vendored sources in `vendor/` (source replacement); BIMCraft's `i18n` alias is kept                         |
+| `Cargo.toml`          | `sim/*` added to the workspace members (IntraCraft's crates)                                                              |

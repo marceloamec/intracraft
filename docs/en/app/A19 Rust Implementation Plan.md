@@ -45,7 +45,7 @@ R5 and R5b can run in parallel with R1–R4; R8 in parallel with R3–R7. By mod
 
 ### R1 – Design module: library, families and the attribute table
 
-- `intracraft-library` (`platform/sim/library`): reads the same JSON definitions and reference data as the TypeScript reference (`include_str!`, one source), ports the derived values, the nine validation rules, world ports and geometric connections; its tests reproduce `library.test.ts`, `ports.test.ts` and `snap.test.ts`.
+- **Done 2026-10-31:** `intracraft-library` (`platform/sim/library`, 51 tests). It reads the same JSON definitions and reference data as the TypeScript reference (`include_str!`, one source), ports the derived values, the nine validation rules, world ports and geometric connections; its tests reproduce `library.test.ts`, `ports.test.ts` and `snap.test.ts`.
 - `platform/apps/intracraft`: the BIMCraft window with a module selector (Design, Discrete simulation, Physics simulation).
 
 - New family categories: conveyor, transfer, turntable, lift, sensor, stop, guide, source, sink, station, MTBH.
