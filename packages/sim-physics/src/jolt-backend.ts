@@ -43,6 +43,8 @@ const CYLINDER_ROTATION = {
   y: [0, 0, 0, 1],
   z: [HALF_SQRT2, 0, 0, HALF_SQRT2],
 } as const;
+/** Rounding of hull edges (m); small, so a hull rests within the 1 mm slop like a box. */
+const HULL_CONVEX_RADIUS = 0.002;
 
 type JoltApi = typeof Jolt;
 
@@ -167,8 +169,8 @@ class JoltBackend implements PhysicsBackend {
       settings.mMassPropertiesOverride.mInertia = jolt.Mat44.prototype.sScaleVec3(this.vecB);
       settings.mLinearDamping = JOLT_SETTINGS.linearDamping;
       settings.mAngularDamping = JOLT_SETTINGS.angularDamping;
-      // Sleeping is off until conveyors wake the pallets they touch (A07 §4).
-      settings.mAllowSleeping = false;
+      // Sleeping is off until conveyors wake the pallets they touch (A07 §4); scenery may sleep.
+      settings.mAllowSleeping = desc.allowSleep === true;
     }
     if (desc.ccd === true) settings.mMotionQuality = jolt.EMotionQuality_LinearCast;
 
@@ -387,6 +389,15 @@ class JoltBackend implements PhysicsBackend {
   }
 
   private baseShape(shape: Shape): Jolt.ShapeSettings {
+    if (shape.kind === 'hull') {
+      const settings = new this.jolt.ConvexHullShapeSettings();
+      for (const p of shape.points) {
+        this.vecB.Set(p.x, p.y, p.z);
+        settings.mPoints.push_back(this.vecB);
+      }
+      settings.mMaxConvexRadius = HULL_CONVEX_RADIUS;
+      return settings;
+    }
     if (shape.kind === 'box') {
       const h = shape.halfExtents;
       const halfExtents = new this.jolt.Vec3(h.x, h.y, h.z);

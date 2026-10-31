@@ -142,6 +142,68 @@ describe('Jolt backend: mass properties', () => {
   });
 });
 
+describe('Jolt backend: convex hulls and sleeping (ADR-0017)', () => {
+  it('rests a box given as a convex hull of its 8 corners like the native box (±1 mm)', async () => {
+    await withWorld(pairs({ 'concrete|wood': [0.5, 0] }), (world) => {
+      world.addBody(floor());
+      const native = world.addBody(box1000({ x: -2, y: BOX_HALF.y + 0.002, z: 0 }));
+      const hull = world.addBody({
+        ...box1000({ x: 2, y: BOX_HALF.y + 0.002, z: 0 }),
+        shapes: [{ kind: 'hull', points: corners(BOX_HALF), offset: ZERO }],
+      });
+      run(world, 1);
+      const nativeY = world.getPose(native).position.y;
+      expect(Math.abs(world.getPose(hull).position.y - nativeY)).toBeLessThan(0.001);
+    });
+  });
+
+  it('places hull pieces of a compound where their points say (an L of two slabs)', async () => {
+    await withWorld(pairs({ 'concrete|wood': [0.5, 0] }), (world) => {
+      world.addBody(floor());
+      const slab = (x0: number, x1: number, y0: number, y1: number) =>
+        corners({ x: (x1 - x0) / 2, y: (y1 - y0) / 2, z: 0.2 }).map((p) => ({
+          x: p.x + (x0 + x1) / 2,
+          y: p.y + (y0 + y1) / 2,
+          z: p.z,
+        }));
+      const body = world.addBody({
+        ...box1000({ x: 0, y: 0.002, z: 0 }),
+        shapes: [
+          { kind: 'hull', points: slab(-0.5, 0.5, 0, 0.1), offset: ZERO },
+          { kind: 'hull', points: slab(-0.5, -0.4, 0.1, 1), offset: ZERO },
+        ],
+        massProperties: {
+          mass: 50,
+          centerOfMass: { x: -0.2, y: 0.2, z: 0 },
+          inertia: { x: 5, y: 5, z: 5 },
+        },
+      });
+      // A beam cast down at x = 0.3 meets the bottom slab (top at 0.1 m), not the upright.
+      const hit = world.castRay({ x: 0.3, y: 2, z: 0 }, { x: 0, y: -1, z: 0 }, 5);
+      expect(hit?.body).toBe(body);
+      expect(hit?.distance).toBeCloseTo(2 - 0.102, 2);
+    });
+  });
+
+  it('lets a body that may sleep come to rest and keeps the state hash repeatable', async () => {
+    const hashes: string[] = [];
+    for (let i = 0; i < 2; i++) {
+      await withWorld(pairs({ 'concrete|wood': [0.5, 0] }), (world) => {
+        world.addBody(floor());
+        const box = world.addBody({
+          ...box1000({ x: 0, y: BOX_HALF.y + 0.3, z: 0 }),
+          allowSleep: true,
+        });
+        run(world, 3);
+        expect(world.getPose(box).position.y).toBeCloseTo(BOX_HALF.y, 2);
+        expect(Math.hypot(...Object.values(world.getVelocity(box).linear))).toBeLessThan(1e-3);
+        hashes.push(world.stateHash());
+      });
+    }
+    expect(hashes[1]).toBe(hashes[0]);
+  });
+});
+
 describe('Jolt backend: queries and determinism', () => {
   it('casts a ray and reports the first body and its distance', async () => {
     await withWorld(pairs({ 'concrete|wood': [0.5, 0] }), (world) => {
@@ -156,19 +218,22 @@ describe('Jolt backend: queries and determinism', () => {
   });
 
   it('skips the bodies a filter rejects, so a beam sees the pallet behind a guide', async () => {
-    await withWorld(pairs({ 'concrete|wood': [0.5, 0], 'steel-painted|wood': [0.3, 0.1] }), (world) => {
-      world.addBody(floor());
-      const wall = world.addBody(wallAt(0.5));
-      const box = world.addBody(box1000({ x: 2, y: BOX_HALF.y, z: 0 }));
-      const origin = { x: 0, y: 0.07, z: 0 };
-      const direction = { x: 1, y: 0, z: 0 };
-      expect(world.castRay(origin, direction, 5)?.body).toBe(wall);
-      expect(world.castRay(origin, direction, 5, (body) => body === box)).toEqual({
-        body: box,
-        distance: expect.closeTo(1.4, 3),
-      });
-      expect(world.castRay(origin, direction, 1, (body) => body === box)).toBeUndefined();
-    });
+    await withWorld(
+      pairs({ 'concrete|wood': [0.5, 0], 'steel-painted|wood': [0.3, 0.1] }),
+      (world) => {
+        world.addBody(floor());
+        const wall = world.addBody(wallAt(0.5));
+        const box = world.addBody(box1000({ x: 2, y: BOX_HALF.y, z: 0 }));
+        const origin = { x: 0, y: 0.07, z: 0 };
+        const direction = { x: 1, y: 0, z: 0 };
+        expect(world.castRay(origin, direction, 5)?.body).toBe(wall);
+        expect(world.castRay(origin, direction, 5, (body) => body === box)).toEqual({
+          body: box,
+          distance: expect.closeTo(1.4, 3),
+        });
+        expect(world.castRay(origin, direction, 1, (body) => body === box)).toBeUndefined();
+      },
+    );
   });
 
   it('gives the same state hash for the same inputs and a different one otherwise', async () => {
@@ -275,4 +340,11 @@ function box(halfExtents: Vec3) {
 
 function pose(position: Vec3) {
   return { position, rotation: { x: 0, y: 0, z: 0, w: 1 } };
+}
+
+function corners(half: Vec3): Vec3[] {
+  const out: Vec3[] = [];
+  for (const x of [-half.x, half.x])
+    for (const y of [-half.y, half.y]) for (const z of [-half.z, half.z]) out.push({ x, y, z });
+  return out;
 }

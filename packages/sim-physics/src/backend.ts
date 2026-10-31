@@ -31,7 +31,14 @@ export interface CylinderShape {
   offset: Vec3;
 }
 
-export type Shape = BoxShape | CylinderShape;
+/** Convex hull of the given points (body coordinates, m); the engine builds the hull (ADR-0017). */
+export interface HullShape {
+  kind: 'hull';
+  points: Vec3[];
+  offset: Vec3;
+}
+
+export type Shape = BoxShape | CylinderShape | HullShape;
 
 /** Mass (kg), centre of mass (body coordinates, m) and principal moments about it (kg·m², body axes). */
 export interface MassProperties {
@@ -56,6 +63,11 @@ export interface BodyDesc {
   restitution?: number;
   /** Continuous collision detection, used for pallets hitting stops. */
   ccd?: boolean;
+  /**
+   * The engine may put the body to sleep when it is still (scenery objects, ADR-0017). Off by default:
+   * pallets stay awake so that conveyors always move them.
+   */
+  allowSleep?: boolean;
 }
 
 export interface Velocity {
