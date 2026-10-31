@@ -55,10 +55,11 @@
 - Estadísticas básicas por objeto, exportación a CSV/JSON y ejecución sin interfaz (CLI).
 - Librería integrada con presets y componentes propios (duplicar y editar).
 - Ampliación del 30-10-2026 (ADR-0012): mesa elevadora manual para transpaleta, mesa de tijera, elevador de dos niveles y línea de rodillos por gravedad con separador (especificaciones S12–S15 en `docs/en/specs/`).
+- Ampliación del 31-10-2026 (ADR-0018): lenguaje de programación propio **IntraScript** (`docs/en/app/A17 IntraScript Language.md`) y objetos de información: variable, tabla, lista, bloque de código y zona (especificaciones S18–S22).
 
 ### 2.2 Fuera del MVP (post-MVP)
 
-Curvas, elevadores de tres o más niveles, lanzaderas y desviadores; cajas y cubetas; fallos (MTBF/MTTR) y energía; scripting de usuario; traspaso de estado entre modos en mitad de la simulación; calibración automática 2D↔3D; experimentos y optimización; OPC UA/PLC; importación de CAD; trabajo en equipo.
+Curvas, elevadores de tres o más niveles, lanzaderas y desviadores; cajas y cubetas; fallos (MTBF/MTTR) y energía; traspaso de estado entre modos en mitad de la simulación; calibración automática 2D↔3D; experimentos y optimización; OPC UA/PLC; importación de CAD; trabajo en equipo.
 
 ### 2.3 Definición de “hecho” del MVP
 
@@ -147,7 +148,7 @@ Herramientas: pnpm (espacios de trabajo), Vite, Vitest, TypeScript en modo estri
 - Señales booleanas con nombre: de sensores (entradas) y de actuadores (salidas: marcha, tope arriba, giro a estación N, elevar cadenas…).
 - **Reglas Si/Entonces** con condiciones booleanas, retardos (ms) y flancos; se evalúan por eventos en 2D y en cada ciclo de control en 3D (por defecto 10 ms).
 - Plantillas incluidas: acumulación sin presión (ZPA), parada en tope con sensor, giratoria que espera pallet centrado y transferencia con secuencia completa.
-- El scripting de usuario (por ejemplo QuickJS en sandbox) queda para después del MVP.
+- Programación de usuario con el lenguaje propio IntraScript (ampliación del 31-10-2026, ADR-0018); las reglas Si/Entonces se mantienen y se evalúan antes que el código.
 
 ### 4.4 Archivo de proyecto
 
@@ -644,7 +645,7 @@ Orden pensado para atacar primero el mayor riesgo (la física de las cadenas) y 
 3. Curvas, desviadores, elevadores de varios niveles y lanzaderas.
 4. Cajas y cubetas.
 5. Fallos (MTBF/MTTR) y consumo de energía.
-6. Scripting de usuario.
+6. ~~Scripting de usuario~~ (adelantado el 31-10-2026: IntraScript, ADR-0018).
 7. Experimentos, réplicas y optimización.
 8. Conexión OPC UA/PLC.
 9. Importación de modelos 3D de fabricantes (con licencia) y de planos DXF.

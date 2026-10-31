@@ -40,9 +40,22 @@ Phase 2 also delivers the command and query layer (every UI action is a command)
 3. ~~Spike S3: Source → roller track → Sink in the DES engine~~ (done 2026-10-30, [[ADR-0007 2D Flow Model Without Accumulation]]); T6 needs the photocell.
 4. Answer the remaining questions in [[Open Questions]] (orientation, pallet type and roller sizes answered on 2026-10-29).
 
+## IntraScript (ADR-0018)
+
+The owner brought user code forward on 2026-10-31: [[A17 IntraScript Language]] and the information objects [[S18 Variable]] to [[S22 Area]].
+
+| Step | Goal               | Deliverables                                                                                  | Exit criterion                                   | Size | Status (2026-10-31)                  |
+| ---- | ------------------ | --------------------------------------------------------------------------------------------- | ------------------------------------------------ | ---- | ------------------------------------ |
+| 1    | Specification      | A17, S18–S22, [[ADR-0018 IntraScript Scripting Language]]                                     | Owner confirms (Q20 in [[Open Questions]])       | S    | 🟡 Written, waiting for confirmation |
+| 2    | Language core      | `packages/script`: lexer, parser, type and unit checker, interpreter with waiting activations | Examples of A17 run; exact unit and wait results | M    | ⚪                                   |
+| 3    | Model and commands | `content`, `parentId`, `info.*` definitions, `script.*`, `data.*`, `layout.setParent`         | Undo, log and validations for all of them        | M    | ⚪                                   |
+| 4    | 2D execution       | Events, waits, members from definitions, pallet actions, exit decisions                       | Scenarios IS-1 to IS-3, determinism              | L    | ⚪                                   |
+| 5    | Editor             | Plan icons, code panel, table grid, console                                                   | A model with code built and run from the editor  | M    | ⚪                                   |
+| 6    | 3D execution       | Code on the controller cycle, teleport moves                                                  | IS-1 to IS-3 agree with 2D within ±50 ms         | M    | ⚪                                   |
+
 ## After the MVP (suggested order)
 
-1. Mid-run mode switch. 2. Automatic 2D↔3D calibration. 3. Curves, diverters, lifts, shuttles. 4. Boxes and totes. 5. Failures (MTBF/MTTR) and energy. 6. User scripting. 7. Experiments, replications, optimisation. 8. OPC UA / PLC. 9. Licensed manufacturer 3D models and DXF import. 10. Desktop version (Tauri).
+1. Mid-run mode switch. 2. Automatic 2D↔3D calibration. 3. Curves, diverters, lifts, shuttles. 4. Boxes and totes. 5. Failures (MTBF/MTTR) and energy. 6. ~~User scripting~~ (brought forward: IntraScript, [[ADR-0018 IntraScript Scripting Language]]). 7. Experiments, replications, optimisation. 8. OPC UA / PLC. 9. Licensed manufacturer 3D models and DXF import. 10. Desktop version (Tauri).
 
 ## Related
 

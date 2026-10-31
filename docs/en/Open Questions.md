@@ -2,7 +2,7 @@
 title: Open Questions
 lang: en
 tags: [questions, reference]
-updated: 2026-10-30
+updated: 2026-10-31
 ---
 
 🌐 **EN** · [[Preguntas abiertas|ES]] · [[Offene Fragen|DE]] · [[Home (EN)|Index]]
@@ -149,3 +149,22 @@ Each question states **what must be decided**, **why it matters** (which result 
 | m   | Roller and chain conveyors | receive rule                      | receive while not blocked       | Option "receive only when empty"                                | Yes             |
 
 - **Assumed:** today's values stay until the owner ticks the rows to apply. The roller↔chain transfer (S05) is handled separately: its rewritten specification is waiting for confirmation.
+
+### Q20. IntraScript: points to confirm
+- **Decide:** confirm or change the defaults of the language ([[A17 IntraScript Language]]) and of the information objects ([[S18 Variable]] to [[S22 Area]]), before any code is written ([[ADR-0018 IntraScript Scripting Language]]).
+- **Why:** every code block written later depends on them; changing them once models contain code means migrating that code.
+
+| #   | Point                     | Written in the specification                                                     | Main alternative                                                                             |
+| --- | ------------------------- | -------------------------------------------------------------------------------- | -------------------------------------------------------------------------------------------- |
+| a   | Upper and lower case      | Names are not case-sensitive (`Roller3` = `roller3`)                             | Case-sensitive, like most programming languages                                              |
+| b   | Counting                  | Lists and table rows start at 1                                                  | Start at 0                                                                                   |
+| c   | Assignment and comparison | `:=` assigns, `=` compares, `<>` means "not equal"                               | `=` assigns, `==` compares, `!=` for "not equal"                                             |
+| d   | Parameters during a run   | Read-only; code changes signals, attributes and information objects              | Some parameters writable (e.g. `nominalSpeed`); every component must then react in 2D and 3D |
+| e   | Rules and code            | At one instant the If/Then rules run first, then the code                        | Code first                                                                                   |
+| f   | Direct moves in 3D        | Teleport, logged, `false` when the target place is occupied                      | Refused in 3D with a run error                                                               |
+| g   | Exit decisions            | `on choose exit of` overrides `exitRule`; returning `none` falls back to it      | Code may only choose among the exits the rule would allow                                    |
+| h   | Limits                    | 1 000 000 steps, 200 nested calls, 1 000 activations per instant, 100 000 rows   | Other values                                                                                 |
+| i   | Reset                     | Variables, tables and lists start every run with their initial content           | Keep the content between runs by default                                                     |
+| j   | Area membership           | Explicit (`layout.setParent`); the editor offers it when dropping inside an area | Purely by position inside the rectangle                                                      |
+
+- **Assumed:** as written in A17 and S18–S22 until the owner answers.

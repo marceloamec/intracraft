@@ -14,6 +14,8 @@ El MVP incluye cinco transportadores: mesa de rodillos, mesa de cadenas, girator
 
 Ampliación del 30-10-2026 (`docs/en/decisions/ADR-0012 Scope Extension Lifts Elevator and Gravity Line.md`): mesa elevadora manual para transpaleta, mesa de tijera, elevador de dos niveles (rodillos o cadenas) y línea de rodillos por gravedad con separador (especificaciones S12–S15).
 
+Ampliación del 31-10-2026 (`docs/en/decisions/ADR-0018 IntraScript Scripting Language.md`, propuesta): lenguaje de programación propio **IntraScript** (`docs/en/app/A17 IntraScript Language.md`) y objetos de información en el plano 2D: variable, tabla, lista, bloque de código y zona (especificaciones S18–S22). No se escribe código del lenguaje hasta que la responsable confirme esas notas.
+
 La especificación completa está en el documento «IntraCraft: plan y especificación del MVP» (archivo `FlowLab plan y especificación del MVP (transporte de pallets).md` en la raíz). Las especificaciones por objeto viven en `docs/en/specs/` (versión de referencia; las copias en `docs/es` y `docs/de` se conservan pero pueden quedar desactualizadas). Si algo de este archivo contradice una especificación, se pregunta antes de decidir.
 
 ## Quién usa este repositorio
@@ -174,7 +176,7 @@ Creados en la Fase 0 (28-10-2026); todos funcionan.
 
 ## Qué no hacer
 
-- No ampliar el alcance del MVP: curvas, elevadores de tres o más niveles, cajas, cubetas, fallos, energía, scripting y OPC UA están fuera hasta nuevo aviso (la ampliación del 30-10-2026 está en ADR-0012).
+- No ampliar el alcance del MVP: curvas, elevadores de tres o más niveles, cajas, cubetas, fallos, energía y OPC UA están fuera hasta nuevo aviso (la ampliación del 30-10-2026 está en ADR-0012; el lenguaje IntraScript, en ADR-0018).
 - No tocar `test_data/` ni los resultados esperados para que una prueba pase.
 - No añadir dependencias pesadas sin preguntar.
 - No dejar código muerto, comentarios obsoletos ni funciones sin pruebas.

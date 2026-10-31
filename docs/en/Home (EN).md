@@ -56,6 +56,8 @@ IntraCraft simulates pallet conveyor systems with **one layout and two modes**: 
 | A13 | [[A13 Conventions]]                 |
 | A14 | [[A14 API Reference]]               |
 | A15 | [[A15 AI Agent Integration]]        |
+| A16 | [[A16 Asset Catalog]]               |
+| A17 | [[A17 IntraScript Language]]        |
 
 ## Specifications (library objects)
 
@@ -78,6 +80,11 @@ IntraCraft simulates pallet conveyor systems with **one layout and two modes**: 
 | S15 | [[S15 Gravity Roller Line]]      | `conveyor.gravity`           |
 | S16 | [[S16 Contact Materials]]        | `material.*` (pair table)    |
 | S17 | [[S17 Scenery Asset]]            | `scenery.asset`              |
+| S18 | [[S18 Variable]]                 | `info.variable`              |
+| S19 | [[S19 Table]]                    | `info.table`                 |
+| S20 | [[S20 List]]                     | `info.list`                  |
+| S21 | [[S21 Code Block]]               | `info.code`                  |
+| S22 | [[S22 Area]]                     | `info.area`                  |
 
 ## Decisions
 
@@ -93,6 +100,7 @@ IntraCraft simulates pallet conveyor systems with **one layout and two modes**: 
 - [[ADR-0015 MTBH Rigid Body from Pallet and Load Models]]
 - [[ADR-0016 Physics World Built from the Layout]]
 - [[ADR-0017 Scenery Assets in the Layout and Live Spawn]]
+- [[ADR-0018 IntraScript Scripting Language]]
 
 ## Reference
 
