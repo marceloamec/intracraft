@@ -156,9 +156,9 @@ async function withSim(
 }
 
 function poseOf(sim: PhysicsFlowSimulation, id: string) {
-  const pose = sim.snapshot().objects[id];
-  if (pose === undefined) throw new Error(`no pose for ${id}`);
-  return pose;
+  const view = sim.snapshot().objects[id];
+  if (view === undefined) throw new Error(`no pose for ${id}`);
+  return view.pose;
 }
 
 /** Height of the object's underside (upright objects: origin height + bounds.min.y). */

@@ -100,7 +100,13 @@ export interface PhysicsSnapshot extends FlowSnapshot {
   poses: Record<number, Pose>;
   /** Catalogue models to draw for each pallet (S09 §1.1); pallets without one are drawn as boxes. */
   looks: Record<number, PalletLook>;
-  objects: Record<string, Pose>;
+  objects: Record<string, SceneryView>;
+}
+
+/** A scenery object that can move: its catalogue model and the pose of the model origin. */
+export interface SceneryView {
+  asset: string;
+  pose: Pose;
 }
 
 /** An impact of a pallet against something that is not conveying it (a stop, a pallet, the floor). */
@@ -155,7 +161,7 @@ export class PhysicsFlowSimulation {
   private readonly owners = new Map<BodyHandle, string>();
   private readonly impactLog: ImpactRecord[] = [];
   /** Scenery objects (S17) by instance id; `dynamic` for the ones that can move. */
-  private readonly scenery = new Map<string, { body: BodyHandle; dynamic: boolean }>();
+  private readonly scenery = new Map<string, { body: BodyHandle; asset: string; dynamic: boolean }>();
   private nextLiveObject = 1;
   private readonly rules: Rule[];
   private readonly signals = new Map<string, boolean>();
@@ -372,9 +378,10 @@ export class PhysicsFlowSimulation {
       status[station.id] = station.busyStatus ?? station.deck.status;
       if (station.node.kind === 'lift') heights[station.id] = station.height;
     }
-    const objects: Record<string, Pose> = {};
-    for (const [id, { body, dynamic }] of this.scenery)
-      if (dynamic) objects[id] = this.world.getPose(body);
+    const objects: Record<string, SceneryView> = {};
+    for (const [id, { body, asset, dynamic }] of this.scenery) {
+      if (dynamic) objects[id] = { asset, pose: this.world.getPose(body) };
+    }
     return {
       time: this.now,
       pallets,
@@ -1107,7 +1114,7 @@ export class PhysicsFlowSimulation {
 
   private addScenery(id: string, name: string, object: SceneryObject): void {
     const body = this.world.addBody(sceneryBody(object));
-    this.scenery.set(id, { body, dynamic: object.placement !== 'fixed' });
+    this.scenery.set(id, { body, asset: object.asset, dynamic: object.placement !== 'fixed' });
     this.owners.set(body, name);
   }
 

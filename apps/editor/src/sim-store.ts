@@ -26,6 +26,8 @@ interface SimState {
   step(): void;
   stop(): void;
   setSpeed(speed: SimSpeed): void;
+  /** Drops a catalogue object into the running 3D simulation (S17 §4); ignored when stopped. */
+  spawnObject(input: unknown): void;
 }
 
 /**
@@ -100,6 +102,10 @@ export const useSimStore = create<SimState>()((set, get) => {
       loadIfStopped();
       send({ type: 'step' });
       set({ run: 'paused' });
+    },
+    spawnObject(input) {
+      if (get().run === 'stopped') return;
+      send({ type: 'spawn', input, actor: 'user' });
     },
     stop() {
       if (get().run === 'stopped') return;
