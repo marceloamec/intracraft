@@ -112,3 +112,15 @@ The real pallet-jack height and how the jack enters are open: [[Open Questions]]
 - `out`: sink with `removalTime` 60 s on `OP` → at most 60 pallets/h; the table is blocked while the operator is busy.
   - Measured (scenario LIFT-OUT): **55.3 pallets/h**. While the operator is busy, the next pallet already waits at the deck end. When the operator is free it needs 1.2 m from rest to clear the deck (1.2 / 0.25 + 0.25 / (2 × 0.5) = 5.05 s), so one cycle is 60 + 5.05 s.
 - Validations: `noOperator`, `operatorMismatch`, `heightsReversed`.
+
+## In the three modules
+
+Since 2026-10-31 IntraCraft is built in Rust on BIMCraft with three modules ([[ADR-0020 Rust Platform on BIMCraft with Three Modules]]). What this object is in each:
+
+| Module              | This object                                                                                                                                                                                                                                                          |
+| ------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Design              | Family of the library (category conveyor); its parameters form the attribute table (inherited ✔ / overridden ✖), its presets are the family's types; ports OP and LINE (in and out); placed from the Project Browser, listed in the Simulation tree and in schedules |
+| Discrete simulation | Lift station cycle ([[ADR-0013 Lift Station 2D Cycle]])                                                                                                                                                                                                              |
+| Physics simulation  | Kinematic platform following the trapezoidal height profile                                                                                                                                                                                                          |
+
+The behaviour above does not change. **Rust status:** not ported yet (library R1, 2D R3, 3D R6 of [[A19 Rust Implementation Plan]]); the tests of this spec are the expected values of the port.

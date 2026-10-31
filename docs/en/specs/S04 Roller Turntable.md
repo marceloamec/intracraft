@@ -34,6 +34,18 @@ Same battery as S03 (T3, S1-e / P4).
 
 2D behaviour: the same cycle as [[S03 Chain Turntable]] with the deck speed `loadSpeed` (implemented 2026-10-30, [[ADR-0008 Turntable 2D Cycle and Exit Rule]]). `lockRollersDuringTurn` and `holdDuringTurn` only matter in 3D.
 
+## In the three modules
+
+Since 2026-10-31 IntraCraft is built in Rust on BIMCraft with three modules ([[ADR-0020 Rust Platform on BIMCraft with Three Modules]]). What this object is in each:
+
+| Module              | This object                                                                                                                                                                                                                                                                     |
+| ------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Design              | Family of the library (category conveyor); its parameters form the attribute table (inherited ✔ / overridden ✖), its presets are the family's types; ports P0, P90, P180 and P270 (in and out); placed from the Project Browser, listed in the Simulation tree and in schedules |
+| Discrete simulation | Turntable cycle and exit rule ([[ADR-0008 Turntable 2D Cycle and Exit Rule]])                                                                                                                                                                                                   |
+| Physics simulation  | Not in 3D yet; planned in R7                                                                                                                                                                                                                                                    |
+
+The behaviour above does not change. **Rust status:** not ported yet (library R1, 2D R3, 3D R7 of [[A19 Rust Implementation Plan]]); the tests of this spec are the expected values of the port.
+
 ## Related
 
 [[S03 Chain Turntable]] · [[S01 Roller Conveyor]] · [[T13 Turntables and Transfer Lifts]]

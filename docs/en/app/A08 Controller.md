@@ -8,6 +8,8 @@ tags: [app, control]
 
 # A08 Controller (`packages/control`)
 
+> **Rust platform (2026-10-31):** this note describes the TypeScript reference, which is frozen ([[ADR-0020 Rust Platform on BIMCraft with Three Modules]]). The Rust port is `intracraft-control` (`platform/sim/control`), phase R3 of [[A19 Rust Implementation Plan]].
+
 Theory: [[T07 Control Logic and Signals]].
 
 ## 1. What exists today

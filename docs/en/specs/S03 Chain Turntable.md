@@ -66,6 +66,18 @@ Swept radius vs neighbours · enough motor torque · required vs available frict
 | T3        | 90° turn → 6.5 s (+ 0.3 s settle in the 2D cycle)   | ✅ formula + 2D |
 | S1-e / P4 | Pallet moves < 5 mm relative to platform during 90° | ⏳ phase 6      |
 
+## In the three modules
+
+Since 2026-10-31 IntraCraft is built in Rust on BIMCraft with three modules ([[ADR-0020 Rust Platform on BIMCraft with Three Modules]]). What this object is in each:
+
+| Module              | This object                                                                                                                                                                                                                                                                     |
+| ------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Design              | Family of the library (category conveyor); its parameters form the attribute table (inherited ✔ / overridden ✖), its presets are the family's types; ports P0, P90, P180 and P270 (in and out); placed from the Project Browser, listed in the Simulation tree and in schedules |
+| Discrete simulation | Turntable cycle and exit rule ([[ADR-0008 Turntable 2D Cycle and Exit Rule]])                                                                                                                                                                                                   |
+| Physics simulation  | Not in 3D yet (the reference warns "no 3D behaviour"); planned in R7                                                                                                                                                                                                            |
+
+The behaviour above does not change. **Rust status:** not ported yet (library R1, 2D R3, 3D R7 of [[A19 Rust Implementation Plan]]); the tests of this spec are the expected values of the port.
+
 ## Related
 
 [[T13 Turntables and Transfer Lifts]] · [[S04 Roller Turntable]] · [[T05 Accumulation, Capacity and Throughput]]

@@ -7,6 +7,8 @@ updated: 2026-10-29
 
 # A16 Asset Catalog
 
+> **Rust platform (2026-10-31):** this note describes the TypeScript reference, which is frozen ([[ADR-0020 Rust Platform on BIMCraft with Three Modules]]). The catalogue (`catalog.json`, `colliders.json`) is reused as is: its GLB models become family mesh forms in the Design module and bodies in the Physics simulation module.
+
 Catalogue of third-party 3D models (GLB) used as scenery and loads. Decision and sources: [[ADR-0005 3D Asset Sources]]. Parametric components are described in [[A05 Component Library]].
 
 ## 1. Layout

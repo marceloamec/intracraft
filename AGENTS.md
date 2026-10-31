@@ -16,6 +16,8 @@ Ampliación del 30-10-2026 (`docs/en/decisions/ADR-0012 Scope Extension Lifts El
 
 Ampliación del 31-10-2026 (`docs/en/decisions/ADR-0018 IntraScript Scripting Language.md`, propuesta): lenguaje de programación propio **IntraScript** (`docs/en/app/A17 IntraScript Language.md`) y objetos de información en el plano 2D: variable, tabla, lista, bloque de código y zona (especificaciones S18–S22). No se escribe código del lenguaje hasta que la responsable confirme esas notas.
 
+**Plataforma Rust (31-10-2026, `docs/en/decisions/ADR-0020 Rust Platform on BIMCraft with Three Modules.md`):** el producto se construye en Rust dentro de **BIMCraft** (aplicación BIM de código abierto, en `platform/`), con **tres módulos** sobre el mismo proyecto: **Diseño** (editor BIM: objetos de la librería como familias, tabla de atributos con heredado ✔/✖, árbol de simulación, tablas, presupuestos, plantas y 3D), **Simulación discreta** (el modo 2D) y **Simulación física** (el modo 3D). El código TypeScript (`packages/`, `apps/`) queda **congelado como referencia**: no recibe funciones nuevas y sus pruebas y escenarios son los valores esperados de la versión Rust. Plan por fases: `docs/en/app/A19 Rust Implementation Plan.md`.
+
 La especificación completa está en el documento «IntraCraft: plan y especificación del MVP» (archivo `FlowLab plan y especificación del MVP (transporte de pallets).md` en la raíz). Las especificaciones por objeto viven en `docs/en/specs/` (versión de referencia; las copias en `docs/es` y `docs/de` se conservan pero pueden quedar desactualizadas). Si algo de este archivo contradice una especificación, se pregunta antes de decidir.
 
 ## Quién usa este repositorio
@@ -52,6 +54,11 @@ intracraft/
 ├─ apps/
 │  ├─ editor/             (React + react-three-fiber; web local, Tauri más adelante)
 │  └─ cli/                (ejecución de escenarios sin interfaz)
+├─ platform/             (BIMCraft como git subtree: espacio de trabajo Cargo; ADR-0020)
+│  ├─ crates/             (BIMCraft: core, ui-egui, i18n, update, rvt, dwg; cambios listados en INTRACRAFT-CHANGES.md)
+│  ├─ sim/                (crates de IntraCraft: library, model, des, control, physics, scenarios, ui)
+│  ├─ apps/               (bimcraft y bimcraft-cli de BIMCraft; intracraft e intracraft-cli, los nuestros)
+│  └─ vendor/             (código de todas las librerías de Rust: se compila sin red)
 ├─ spikes/               (pruebas técnicas desechables; r5b-viewer: visores 3D en Rust, ADR-0021)
 └─ test_data/             (resultados guardados y datos de prueba)
 ```
@@ -59,6 +66,16 @@ intracraft/
 Si la estructura real difiere, actualizar este archivo en el mismo cambio.
 
 ## Stack
+
+**Producto (desde el 31-10-2026): Rust en `platform/`.**
+
+- Rust estable (edición 2024), espacio de trabajo Cargo de BIMCraft; interfaz egui/eframe 0.36 con wgpu; física con Rapier (`rapier3d`, nativo, con velocidad de superficie para las cadenas). Visor 3D según la prueba R5b (ADR-0021).
+- Todas las librerías están copiadas en `platform/vendor/` y se compila sin red. Una dependencia nueva se añade con `cargo vendor --versioned-dirs vendor` y se sube en el mismo commit (preguntar antes si es pesada).
+- Reglas de BIMCraft que también son nuestras (ver `platform/CLAUDE.md`): nunca romper (sin `unwrap`, `expect`, `panic!` ni `unsafe` fuera de las pruebas; las entradas son hostiles), **todo cambio es un comando** que pasa por `Session::execute` (deshacer y vuelta atrás si falla), la validación vive en un solo sitio (`Model::check` y las comprobaciones registradas), el núcleo no depende de la interfaz y la interfaz solo cambia el modelo con comandos, archivos leídos con tolerancia y comandos con rigor (`FORMAT` y migraciones).
+- Los crates propios van en `platform/sim/`, no en `platform/crates/` (así no se tocan las comprobaciones propias de BIMCraft). Cada archivo de BIMCraft que se cambie se anota en `platform/INTRACRAFT-CHANGES.md`.
+- En Windows, el «Control inteligente de aplicaciones» bloquea los programas que Cargo genera al compilar; en el portátil de la responsable está desactivado.
+
+**Referencia TypeScript (congelada):**
 
 - TypeScript en modo estricto en todo el repositorio; pnpm (espacios de trabajo); Vite; Vitest; ESLint y Prettier.
 - Esquemas y validación: Zod.
@@ -69,6 +86,7 @@ Si la estructura real difiere, actualizar este archivo en el mismo cambio.
 
 ## Convenciones del modelo
 
+- **Plataforma Rust:** el modelo BIM (módulo Diseño) guarda milímetros con x este, y norte, z arriba, como BIMCraft; los motores trabajan en SI con Y arriba. `intracraft-model` convierte una sola vez al construir la ejecución.
 - **Unidades internas SI:** metros, kilogramos, segundos, radianes. La interfaz muestra mm y grados. Convertir solo en los bordes (interfaz y archivos).
 - **Ejes:** Y hacia arriba, sistema de mano derecha. La vista 2D es la vista cenital (mirando hacia −Y).
 - **Tiempo:** enteros en microsegundos. La cola de eventos se ordena por (tiempo, prioridad, secuencia).
@@ -165,6 +183,16 @@ Organizar para lectura de arriba abajo: lo importante primero, los detalles desp
 
 Creados en la Fase 0 (28-10-2026); todos funcionan.
 
+Plataforma Rust (en `platform/`):
+
+- `cargo build -p intracraft` y `cargo run -p intracraft`: compilar y abrir la aplicación de escritorio con los tres módulos.
+- `cargo test --workspace`: todas las pruebas, las de BIMCraft y las nuestras.
+- `cargo clippy --workspace --all-targets -- -D warnings` y `cargo fmt --check`: linter y formato.
+- `cargo i18n check`: catálogo de traducciones de BIMCraft al día.
+- `cargo vendor --versioned-dirs vendor`: tras añadir o actualizar una dependencia; se sube con `git add -f platform/vendor` (algunas librerías traen archivos que un `.gitignore` dejaría fuera y sus sumas de comprobación los incluyen).
+
+Referencia TypeScript:
+
 - `pnpm install`: instalar dependencias.
 - `pnpm test`: ejecutar todas las pruebas.
 - `pnpm lint`: linter y comprobación de tipos.
@@ -179,5 +207,7 @@ Creados en la Fase 0 (28-10-2026); todos funcionan.
 
 - No ampliar el alcance del MVP: curvas, elevadores de tres o más niveles, cajas, cubetas, fallos, energía y OPC UA están fuera hasta nuevo aviso (la ampliación del 30-10-2026 está en ADR-0012; el lenguaje IntraScript, en ADR-0018).
 - No tocar `test_data/` ni los resultados esperados para que una prueba pase.
+- No añadir funciones nuevas a la referencia TypeScript (`packages/`, `apps/`): solo correcciones que expliquen una diferencia con la versión Rust.
+- No cambiar archivos de BIMCraft (`platform/crates`, `platform/apps/bimcraft*`) sin anotarlo en `platform/INTRACRAFT-CHANGES.md`.
 - No añadir dependencias pesadas sin preguntar.
 - No dejar código muerto, comentarios obsoletos ni funciones sin pruebas.

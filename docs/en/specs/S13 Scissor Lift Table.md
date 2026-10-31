@@ -77,3 +77,15 @@ Real lift speeds: [[Open Questions]] Q15.
 - **T8:** 0.6 → 1.2 m with `liftSpeed` 0.05 m/s and `verticalAccel` 0.2 m/s² → **12.25 s** of lifting; return 8.92 s (error < 1 %).
 - Down table (entry 1.2, exit 0.6): the move with the pallet uses `lowerSpeed` (8.92 s) and the return uses `liftSpeed` (12.25 s).
 - Blocked discharge holds the table at the exit height; one pallet per cycle; same seed gives the same result.
+
+## In the three modules
+
+Since 2026-10-31 IntraCraft is built in Rust on BIMCraft with three modules ([[ADR-0020 Rust Platform on BIMCraft with Three Modules]]). What this object is in each:
+
+| Module              | This object                                                                                                                                                                                                                                            |
+| ------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| Design              | Family of the library (category conveyor); its parameters form the attribute table (inherited ✔ / overridden ✖), its presets are the family's types; ports IN and OUT; placed from the Project Browser, listed in the Simulation tree and in schedules |
+| Discrete simulation | Lift station cycle ([[ADR-0013 Lift Station 2D Cycle]])                                                                                                                                                                                                |
+| Physics simulation  | Kinematic platform following the trapezoidal height profile                                                                                                                                                                                            |
+
+The behaviour above does not change. **Rust status:** not ported yet (library R1, 2D R3, 3D R6 of [[A19 Rust Implementation Plan]]); the tests of this spec are the expected values of the port.

@@ -90,3 +90,15 @@ Duplicating an area with everything inside (the reason for relative names; arriv
 - Two areas with their own `Roller3` and the same code in a code block each: each block drives its own conveyor.
 - `layout.setParent` that would make a cycle is rejected; moving an area moves its members by the same offset and undo restores all positions.
 - A project file without `parentId` loads unchanged.
+
+## In the three modules
+
+Since 2026-10-31 IntraCraft is built in Rust on BIMCraft with three modules ([[ADR-0020 Rust Platform on BIMCraft with Three Modules]]). What this object is in each:
+
+| Module              | This object                                                                                                                                         |
+| ------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Design              | An information object placed on the plan as a family of category information; its content is edited in its own panel; listed in the Simulation tree |
+| Discrete simulation | Read and written by IntraScript code and the controller during the run, as this spec says                                                           |
+| Physics simulation  | The same as in the Discrete simulation module (information objects have no body)                                                                    |
+
+The behaviour above does not change. **Rust status:** not ported yet (R10, after the owner answers Q20 of [[A19 Rust Implementation Plan]]); the tests of this spec are the expected values of the port.

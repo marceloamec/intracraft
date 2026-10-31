@@ -100,6 +100,18 @@ These choices do not change any 2D result.
 | —    | `none`: entering pallet moves the resident pallet; blocked exit stops the whole conveyor | ✅ 2D flow test |
 | S1-a | 1000 kg on 10 kinematic rollers → nominal speed ±3 %                                     | ⏳ spike S1     |
 
+## In the three modules
+
+Since 2026-10-31 IntraCraft is built in Rust on BIMCraft with three modules ([[ADR-0020 Rust Platform on BIMCraft with Three Modules]]). What this object is in each:
+
+| Module              | This object                                                                                                                                                                                                                                                    |
+| ------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Design              | Family of the library (category conveyor); its parameters form the attribute table (inherited ✔ / overridden ✖), its presets are the family's types; ports A (in) and B (out); placed from the Project Browser, listed in the Simulation tree and in schedules |
+| Discrete simulation | Line conveyor without accumulation ([[ADR-0007 2D Flow Model Without Accumulation]]): trapezoidal speed profile, decision point, hold at the end                                                                                                               |
+| Physics simulation  | Kinematic rollers turning at ω = v / r under the dynamic MTBH                                                                                                                                                                                                  |
+
+The behaviour above does not change. **Rust status:** not ported yet (library R1, 2D R3, 3D R5–R6 of [[A19 Rust Implementation Plan]]); the tests of this spec are the expected values of the port.
+
 ## Related
 
 [[T04 Conveyor Kinematics]] · [[T05 Accumulation, Capacity and Throughput]] · [[T12 Rollers and Chains in Physics]] · [[A05 Component Library]] · [[Open Questions]]

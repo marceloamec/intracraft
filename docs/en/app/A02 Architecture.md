@@ -8,7 +8,26 @@ tags: [app, architecture]
 
 # A02 Architecture
 
-## 1. Layers
+## 0. The Rust platform (since 2026-10-31)
+
+The product is built in Rust inside BIMCraft ([[ADR-0020 Rust Platform on BIMCraft with Three Modules]]); sections 1–5 describe the TypeScript reference, which the Rust crates follow.
+
+| Layer         | Crate (in `platform/`)                   | Responsibility                                                                                                    | Module                  |
+| ------------- | ---------------------------------------- | ----------------------------------------------------------------------------------------------------------------- | ----------------------- |
+| BIM model     | `bimcraft-core` (`crates/core`)          | Elements, ids and GUIDs, families, schedules, plans, 3D scene, IFC, commands (`Session::execute`, undo, rollback) | Design                  |
+| BIM desktop   | `bimcraft-ui-egui` (`crates/ui-egui`)    | Ribbon, Project Browser, Properties, canvas, 3D view                                                              | Design                  |
+| Library       | `intracraft-library` (`sim/library`)     | The JSON definitions and reference data, validation rules, ports, geometric connections                           | all                     |
+| Model         | `intracraft-model` (`sim/model`)         | Families from the library, attributes with inheritance, layout and simulation tree read from the BIM model        | Design                  |
+| DES engine    | `intracraft-des` (`sim/des`)             | Event queue, kinematics, flow model, stations, photoeyes, statistics                                              | Discrete simulation     |
+| Controller    | `intracraft-control` (`sim/control`)     | Boolean signals and If/Then rules                                                                                 | both simulation modules |
+| Physics       | `intracraft-physics` (`sim/physics`)     | Rapier world built from the layout, decks, MTBH bodies, raycast sensors                                           | Physics simulation      |
+| Scenarios     | `intracraft-scenarios` (`sim/scenarios`) | The reference's scenarios and expected values                                                                     | tests, CLI              |
+| Module panels | `intracraft-ui` (`sim/ui`)               | Simulation tree, attribute table, run controls, statistics sheets                                                 | all                     |
+| Applications  | `apps/intracraft`, `apps/intracraft-cli` | The desktop with the module selector; scenarios headless                                                          | —                       |
+
+**Hard rules:** the `sim/` crates depend on `bimcraft-core`, never the reverse; the engines (`des`, `control`, `physics`) have no UI dependency and use only the project's seeded random generator; a run never changes the BIM model (snapshots only); the UI changes the model only through commands.
+
+## 1. Layers of the TypeScript reference
 
 | Layer          | Package       | Responsibility                                                           | Depends on                                  |
 | -------------- | ------------- | ------------------------------------------------------------------------ | ------------------------------------------- |

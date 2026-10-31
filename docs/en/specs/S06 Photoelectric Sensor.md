@@ -80,6 +80,18 @@ Above the pallet (> 144 mm) the beam sees the load instead, if there is one.
 | —    | Oblique beam (different `sensorS` and `reflectorS`) → edges match the analytic intervals           | ✅ 2D test  |
 | P6   | 3D and 2D edges within ±50 ms                                                                      | ✅ ADR-0016 |
 
+## In the three modules
+
+Since 2026-10-31 IntraCraft is built in Rust on BIMCraft with three modules ([[ADR-0020 Rust Platform on BIMCraft with Three Modules]]). What this object is in each:
+
+| Module              | This object                                                                                                                                                                  |
+| ------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Design              | Family of the library (category sensor), hosted on a conveyor: its position and heights along the host are instance attributes; listed under its host in the Simulation tree |
+| Discrete simulation | Exact beam intervals, response time and filter; output signal to the controller                                                                                              |
+| Physics simulation  | A ray cast every physics step against the real pallet geometry; edges compared with 2D within ±50 ms                                                                         |
+
+The behaviour above does not change. **Rust status:** not ported yet (library R1, 2D R3, 3D R6 of [[A19 Rust Implementation Plan]]); the tests of this spec are the expected values of the port.
+
 ## Related
 
 [[T06 Photoelectric Sensing]] · [[S10 Pallet Types]] · [[T07 Control Logic and Signals]] · [[Open Questions]]

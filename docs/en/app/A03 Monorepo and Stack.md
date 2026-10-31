@@ -8,7 +8,43 @@ tags: [app, stack, tooling]
 
 # A03 Monorepo and Stack
 
-## 1. Repository layout (as created on 2026-10-28)
+## 0. The Rust platform (since 2026-10-31)
+
+The product is built in Rust in `platform/` ([[ADR-0020 Rust Platform on BIMCraft with Three Modules]]); sections 1–4 below describe the TypeScript reference, which is frozen.
+
+```
+intracraft/
+├─ platform/                (BIMCraft, git subtree; a Cargo workspace)
+│  ├─ crates/               (BIMCraft: core, ui-egui, i18n, update, rvt, dwg)
+│  ├─ sim/                  (IntraCraft: library, model, des, control, physics, scenarios, ui)
+│  ├─ apps/                 (bimcraft, bimcraft-cli; intracraft, intracraft-cli)
+│  ├─ vendor/               (every crate's sources: builds need no network)
+│  └─ INTRACRAFT-CHANGES.md (BIMCraft files IntraCraft changed, and why)
+├─ packages/ · apps/        (TypeScript reference, frozen)
+├─ spikes/                  (throw-away technical tests, e.g. r5b-viewer)
+└─ docs/ · test_data/
+```
+
+| Tool                | Version                                | Notes                                                                                                              |
+| ------------------- | -------------------------------------- | ------------------------------------------------------------------------------------------------------------------ |
+| Rust                | stable (1.99 on the owner's laptop)    | BIMCraft needs ≥ 1.95 for egui 0.36; edition 2024                                                                  |
+| egui / eframe       | 0.36 (BIMCraft's)                      | Desktop UI; wgpu for the 3D view                                                                                   |
+| Rapier (`rapier3d`) | 0.36 (added with `intracraft-physics`) | Physics; surface velocity through `modify_solver_contacts` ([[ADR-0021 Game Engine Choice for the Rust Platform]]) |
+| Windows build       | MSVC toolchain                         | Smart App Control blocks Cargo's build scripts; it is off on the owner's laptop                                    |
+
+Commands, run in `platform/`:
+
+| Command                                                 | What it does                                               |
+| ------------------------------------------------------- | ---------------------------------------------------------- |
+| `cargo build -p intracraft`                             | Builds the desktop application                             |
+| `cargo run -p intracraft`                               | Opens it                                                   |
+| `cargo test --workspace`                                | Every test, BIMCraft's and IntraCraft's                    |
+| `cargo clippy --workspace --all-targets -- -D warnings` | Lints (BIMCraft's: no `unwrap`, `panic`, `unsafe`)         |
+| `cargo fmt --check`                                     | Formatting                                                 |
+| `cargo i18n check`                                      | BIMCraft's translation catalogue is up to date             |
+| `cargo vendor --versioned-dirs vendor`                  | After adding a dependency: refresh `vendor/` and commit it |
+
+## 1. Repository layout of the TypeScript reference (as created on 2026-10-28)
 
 ```text
 ./

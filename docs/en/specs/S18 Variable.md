@@ -84,3 +84,15 @@ Changing the value of a running model from the editor, charts of the value over 
 - `Counted += 1` on every rising edge of a photocell equals the number of pallets that passed it (same as the sink count on a straight line).
 - `timeMean` of a variable that is 0 for 10 s and 4 for 30 s is 3.
 - `data.setVariable` with `"five"` on an integer variable is rejected; undo restores the previous value.
+
+## In the three modules
+
+Since 2026-10-31 IntraCraft is built in Rust on BIMCraft with three modules ([[ADR-0020 Rust Platform on BIMCraft with Three Modules]]). What this object is in each:
+
+| Module              | This object                                                                                                                                         |
+| ------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Design              | An information object placed on the plan as a family of category information; its content is edited in its own panel; listed in the Simulation tree |
+| Discrete simulation | Read and written by IntraScript code and the controller during the run, as this spec says                                                           |
+| Physics simulation  | The same as in the Discrete simulation module (information objects have no body)                                                                    |
+
+The behaviour above does not change. **Rust status:** not ported yet (R10, after the owner answers Q20 of [[A19 Rust Implementation Plan]]); the tests of this spec are the expected values of the port.

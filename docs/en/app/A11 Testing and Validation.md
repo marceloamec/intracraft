@@ -8,6 +8,8 @@ tags: [app, testing, validation]
 
 # A11 Testing and Validation
 
+> **Rust platform (2026-10-31):** this note describes the TypeScript reference, which is frozen ([[ADR-0020 Rust Platform on BIMCraft with Three Modules]]). In Rust the same expected values are checked by `cargo test --workspace` in `platform/`; the TypeScript results stay the oracle.
+
 **Test first, then implement.** Expected results come from the specification, never from the implementation.
 
 ## 1. Test layers

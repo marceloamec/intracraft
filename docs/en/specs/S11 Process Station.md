@@ -70,3 +70,15 @@ Signals (`enable` input, `working` output), set-up times, failures, several pall
 - **T6:** one pallet, `fixed` 30 s, between a source and a sink: leaves after centring time + 30 s + discharge time (kinematics from [[T04 Conveyor Kinematics]]), error < 1 %.
 - **T7:** saturated source: steady throughput = 1 / (centring + 30 s + discharge), error < 1 %.
 - Shares sum to 1; same seed gives the same result; `normal` and `exponential` means converge to `processingTime`.
+
+## In the three modules
+
+Since 2026-10-31 IntraCraft is built in Rust on BIMCraft with three modules ([[ADR-0020 Rust Platform on BIMCraft with Three Modules]]). What this object is in each:
+
+| Module              | This object                                                                                                                                                                                                                                        |
+| ------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Design              | Family of the library (category flow); its parameters form the attribute table (inherited ✔ / overridden ✖), its presets are the family's types; ports IN and OUT; placed from the Project Browser, listed in the Simulation tree and in schedules |
+| Discrete simulation | Station cycle with the process time; statistics of the station                                                                                                                                                                                     |
+| Physics simulation  | A platform without vertical motion holding the pallet for the process time                                                                                                                                                                         |
+
+The behaviour above does not change. **Rust status:** not ported yet (library R1, 2D R3, 3D R6 of [[A19 Rust Implementation Plan]]); the tests of this spec are the expected values of the port.

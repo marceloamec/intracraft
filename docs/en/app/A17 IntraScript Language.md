@@ -8,6 +8,8 @@ updated: 2026-10-31
 
 # A17 IntraScript Language
 
+> **Rust platform (2026-10-31):** the language is unchanged; its interpreter is the Rust crate `intracraft-script` (`platform/sim/script`) instead of `packages/script` (§14.6 and §21), built in phase R10 of [[A19 Rust Implementation Plan]] once Q20 is answered ([[ADR-0020 Rust Platform on BIMCraft with Three Modules]]).
+
 **IntraScript** is the programming language of IntraCraft. It programs behaviour that parameters and If/Then rules cannot express: routing by order data, sequences with waits, counters, queues and tables, reports during the run. Code lives in **code blocks** placed on the 2D plan, next to the variables, tables and lists it works with, and grouped in **areas** that give the model a hierarchy.
 
 Decision and scope: [[ADR-0018 IntraScript Scripting Language]]. Information objects: [[S18 Variable]], [[S19 Table]], [[S20 List]], [[S21 Code Block]], [[S22 Area]]. Rules it coexists with: [[A08 Controller]].

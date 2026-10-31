@@ -196,6 +196,18 @@ Interlocks: no lift without a centred pallet · rollers stopped while chains are
 | T4   | Cycle 7.4 s                                                | ✅ formula; 2D cycle adds lift/lower times (test) |
 | P5   | Lifted 40 ± 5 mm, moved 1 m ± 10 mm, set down rotated < 1° | ⏳ phase 8                                        |
 
+## In the three modules
+
+Since 2026-10-31 IntraCraft is built in Rust on BIMCraft with three modules ([[ADR-0020 Rust Platform on BIMCraft with Three Modules]]). What this object is in each:
+
+| Module              | This object                                                                                                                                                                                                                                                 |
+| ------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Design              | Family of the library (category conveyor); its parameters form the attribute table (inherited ✔ / overridden ✖), its presets are the family's types; ports A, B, C1 and C2; placed from the Project Browser, listed in the Simulation tree and in schedules |
+| Discrete simulation | Transfer cycle and stations ([[ADR-0009 Transfer Table 2D Cycle and Stations]]); the rewrite of this spec waits for the owner, the port follows the confirmed version                                                                                       |
+| Physics simulation  | Not in 3D yet; planned in R7                                                                                                                                                                                                                                |
+
+The behaviour above does not change. **Rust status:** not ported yet (library R1, 2D R3, 3D R7 of [[A19 Rust Implementation Plan]]); the tests of this spec are the expected values of the port.
+
 ## Related
 
 [[T13 Turntables and Transfer Lifts]] · [[S01 Roller Conveyor]] · [[S02 Chain Conveyor]] · [[T07 Control Logic and Signals]] · [[Open Questions]] Q6, Q19

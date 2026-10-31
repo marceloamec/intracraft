@@ -86,3 +86,15 @@ Breakpoints and step-by-step execution, a watch window for block variables durin
 - Scenario **IS-3** (timed stop): `wait 2 s` at a photocell delays each pallet by exactly 2 s in 2D; in 3D the photocell events of IS-1 to IS-3 agree with 2D within ±50 ms.
 - A block with a typo cannot start a run; disabling it lets the run start.
 - `while true` without `wait` stops the run with `stepLimit` instead of freezing the editor.
+
+## In the three modules
+
+Since 2026-10-31 IntraCraft is built in Rust on BIMCraft with three modules ([[ADR-0020 Rust Platform on BIMCraft with Three Modules]]). What this object is in each:
+
+| Module              | This object                                                                                                                                         |
+| ------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Design              | An information object placed on the plan as a family of category information; its content is edited in its own panel; listed in the Simulation tree |
+| Discrete simulation | Read and written by IntraScript code and the controller during the run, as this spec says                                                           |
+| Physics simulation  | The same as in the Discrete simulation module (information objects have no body)                                                                    |
+
+The behaviour above does not change. **Rust status:** not ported yet (R10, after the owner answers Q20 of [[A19 Rust Implementation Plan]]); the tests of this spec are the expected values of the port.

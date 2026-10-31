@@ -15,32 +15,38 @@ Every phase follows the IntraCraft workflow: spec first, failing test, implement
 
 | Phase | Name                                    | The owner can …                                                                                           | Depends on  |
 | ----- | --------------------------------------- | --------------------------------------------------------------------------------------------------------- | ----------- |
-| R0    | Fork and ground rules                   | Open BIMCraft built from our repository; read the merged agent rules                                      | ADR-0020    |
-| R1    | Simulation families and attributes      | Place a roller conveyor from the library, see its attribute table with inherited flags, schedule it       | R0          |
-| R2    | Ports, connections and simulation tree  | Snap conveyors together, see the Simulation tree, get validation errors (open port, wrong transport type) | R1          |
-| R3    | DES engine in Rust                      | Run T1–T5 and the reference scenarios from the CLI with the same results as the TypeScript version        | R2          |
-| R4    | 2D run in the desktop                   | Press Run in a plan view, watch pallets move, pause, change speed, see statistics sheets                  | R3          |
+| R0    | Repository and ground rules             | Build BIMCraft from this repository, offline, with every library inside; read the merged agent rules      | ADR-0020    |
+| R1    | Design module: library and attributes   | Place a roller conveyor from the library, see its attribute table with inherited flags, schedule it       | R0          |
+| R2    | Design module: ports and the tree       | Snap conveyors together, see the Simulation tree, get validation errors (open port, wrong transport type) | R1          |
+| R3    | DES engine and controller in Rust       | Run T1–T5 and the reference scenarios from the CLI with the same results as the TypeScript version        | R1          |
+| R4    | Discrete simulation module              | Press Run in a plan view, watch pallets move, pause, change speed, see statistics sheets                  | R2, R3      |
 | R5    | Physics spike S1 in Rust                | Run the stop, rebound and chain tests on Rapier; decide Rapier or Jolt                                    | R0          |
 | R5b   | 3D viewer spike (Bevy or BIMCraft view) | See the same busy scene in both viewers and choose one by frame rate and effort                           | R0          |
-| R6    | 3D physics run                          | Press Run in the 3D view, watch pallets driven by rollers and chains, compare 2D/3D sensor events         | R4, R5, R5b |
-| R7    | Controller and remaining objects        | Write if/then rules; use lifts, elevator, gravity line, stations (S11–S15)                                | R4          |
+| R6    | Physics simulation module               | Press Run in the 3D view, watch pallets driven by rollers and chains, compare 2D/3D sensor events         | R4, R5, R5b |
+| R7    | Remaining objects and rules editor      | Edit if/then rules in a table; use lifts, elevator, gravity line, stations (S11–S15) in both runs         | R4          |
 | R8    | Budgets and reports                     | Get a budget schedule with unit prices; export statistics and budget to XLSX                              | R1          |
 | R9    | Agents and packaging                    | Drive simulations through the MCP server; install the app on Windows/macOS/Linux                          | R6, R7      |
+| R10   | IntraScript                             | Write code blocks and information objects (S18–S22) that run in both simulation modules                   | R4, Q20     |
 
-R5 and R5b can run in parallel with R1–R4; R8 in parallel with R3–R7.
+R5 and R5b can run in parallel with R1–R4; R8 in parallel with R3–R7. By module: **Design** is R1, R2 and R8; **Discrete simulation** is R3, R4 and R7; **Physics simulation** is R5, R5b, R6 and R7; R10 serves both simulation modules ([[ADR-0020 Rust Platform on BIMCraft with Three Modules]] §7).
 
 ## 2. Phases in detail
 
-### R0 – Fork and ground rules
+### R0 – Repository and ground rules (done 2026-10-31)
 
-- Fork `IPedrax/BIMCraft` into the owner's account (name to confirm, ADR-0020 §6); keep an `upstream` remote and a monthly merge.
-- Merge the two rule sets into one `AGENTS.md`/`CLAUDE.md`: BIMCraft's (never crash, everything is a command, core without UI, file format and migrations, test first, layered agent docs) plus IntraCraft's (SI units inside, seeded randomness, determinism tests as top priority, Spanish explanations for the owner, ask before architecture changes, no change to `test_data/` to make a test pass).
-- **Units:** BIMCraft stores millimetres; IntraCraft's engines use SI. Decision proposed: the model keeps millimetres (BIMCraft's files and commands), the `sim-model` crate converts once when it builds the flow network, the engines stay in SI.
-- Copy `docs/en/specs`, `theory`, `decisions` and `test_data/` into the new repository (`docs/simulation/`), unchanged.
-- CI: BIMCraft's `cargo fmt`, `clippy` and `test` on every pull request.
-- **Exit:** the forked app builds and its whole test suite passes on CI.
+- BIMCraft is a git subtree in `platform/` (ADR-0020 §7); upstream changes come in with `git subtree pull --prefix=platform https://github.com/IPedrax/BIMCraft.git main --squash`. Changed BIMCraft files are listed in `platform/INTRACRAFT-CHANGES.md`.
+- Every crate is vendored in `platform/vendor/` (`cargo vendor --versioned-dirs vendor`) and `platform/.cargo/config.toml` builds from it, offline; a new dependency comes with its vendored sources in the same commit.
+- IntraCraft's crates live in `platform/sim/` (workspace member `sim/*`), its apps in `platform/apps/intracraft*`; BIMCraft's own `crates/` keep their rules (agent-docs test, translation catalogue).
+- The two rule sets are merged in `AGENTS.md`: BIMCraft's (never crash, everything is a command, the core without UI, file format and migrations, test first) plus IntraCraft's (SI units inside, seeded randomness, determinism first, Spanish explanations for the owner, ask before architecture changes, `test_data/` untouched).
+- **Units:** the model keeps millimetres (BIMCraft's files and commands); `intracraft-model` converts once when it builds the run, and the engines stay in SI.
+- The documentation stays in `docs/` (one vault); the TypeScript reference is frozen and its scenario files are the oracle.
+- CI: `.github/workflows/platform.yml` runs `cargo fmt --check`, `cargo clippy --workspace --all-targets -- -D warnings` and `cargo test --workspace` on Windows and Linux, offline.
+- **Exit:** BIMCraft builds and its whole test suite passes from this repository.
 
-### R1 – Simulation families and the attribute table
+### R1 – Design module: library, families and the attribute table
+
+- `intracraft-library` (`platform/sim/library`): reads the same JSON definitions and reference data as the TypeScript reference (`include_str!`, one source), ports the derived values, the nine validation rules, world ports and geometric connections; its tests reproduce `library.test.ts`, `ports.test.ts` and `snap.test.ts`.
+- `platform/apps/intracraft`: the BIMCraft window with a module selector (Design, Discrete simulation, Physics simulation).
 
 - New family categories: conveyor, transfer, turntable, lift, sensor, stop, guide, source, sink, station, MTBH.
 - `sim-library`: read IntraCraft's 17 JSON definitions (`packages/library/src/definitions`) and turn each into a BIMCraft family: parameters (with formulas for derived values), types from the presets, forms from the parametric geometry (deck, rollers as a repeated cylinder or a mesh, frame, legs), plan symbols.
@@ -59,16 +65,17 @@ R5 and R5b can run in parallel with R1–R4; R8 in parallel with R3–R7.
 - Query `sim_tree` in the core; **Simulation** tab in the Project Browser (A18 §3.2), with search, grouping by kind or by line, check boxes, selection shared with plan, 3D view and schedules.
 - **Exit:** the owner builds the reference layout of the TypeScript editor in the BIM app and the tree shows every element with its ID.
 
-### R3 – DES engine in Rust
+### R3 – DES engine and controller in Rust
 
-- `sim-des`: event queue ordered by (time µs, priority, sequence); seeded random generator (e.g. `rand_chacha`, licence checked); kinematics (trapezoidal profiles, T04); flow network built from the model; line conveyor without accumulation (ADR-0007); turntable (ADR-0008); transfer (ADR-0009); photoeye; source; sink.
+- `intracraft-control` (`platform/sim/control`): signals and if/then rules (ADR-0010), a pure evaluator as in the reference; evaluated on events in 2D and every 10 ms in 3D.
+- `intracraft-des` (`platform/sim/des`): event queue ordered by (time µs, priority, sequence); seeded random generator: the reference's PCG32 (XSH-RR) ported bit for bit, so the same seed gives the same arrivals as the TypeScript run; kinematics (trapezoidal profiles, T04); flow network built from the model; line conveyor without accumulation (ADR-0007); turntable (ADR-0008); transfer (ADR-0009); photoeye; source; sink.
 - Port order: kinematics → event queue → network → line conveyor → source/sink → photoeye → turntable → transfer.
 - Golden results: export the event logs of the TypeScript scenarios once (`pnpm run scenario all`) into `test_data/`; the Rust tests compare against them.
 - `sim-scenarios` + CLI `scenario <id|all>`.
 - **Tests:** T1 12.25 s, T2 ≈ 0.185 pallets/s, T3 6.5 s, T4 7.4 s, T5 32 J, all within 1 %; scenario event logs identical; determinism (same layout and seed → same log, run twice and on two threads).
 - **Exit:** `bimcraft-cli scenario all` passes with the same numbers as `pnpm run scenario all`.
 
-### R4 – 2D run in the desktop
+### R4 – Discrete simulation module
 
 - A run happens on a background thread; the UI receives snapshots (positions, states) at the display rate, never touches the engine state.
 - Run controls in the ribbon (Simulate tab): Run, Pause, Step, Reset, speed factor (×1 … as fast as possible), duration, seed, warm-up.
@@ -91,7 +98,7 @@ R5 and R5b can run in parallel with R1–R4; R8 in parallel with R3–R7.
 - The simulation engines never depend on the viewer: Rapier is used directly, not through a Bevy plugin.
 - **Exit:** an ADR that confirms or rejects the Bevy viewer, with numbers.
 
-### R6 – 3D physics run
+### R6 – Physics simulation module
 
 - Port `sim-physics/src/world` ([[ADR-0016 Physics World Built from the Layout]]): world from the model, decks, stations, gravity line, raycast sensors, MTBH bodies ([[ADR-0015 MTBH Rigid Body from Pallet and Load Models]]), scenery ([[ADR-0017 Scenery Assets in the Layout and Live Spawn]]).
 - Same plant logic as 2D, only the motion differs (ADR-0016 §1).
@@ -99,9 +106,9 @@ R5 and R5b can run in parallel with R1–R4; R8 in parallel with R3–R7.
 - **Tests:** 2D/3D sensor events within ±50 ms on the reference scenarios; stop accuracy; statistics sheet adds impact energy and stop error.
 - **Exit:** the owner switches the same project between 2D and 3D runs and compares statistics side by side.
 
-### R7 – Controller and remaining objects
+### R7 – Remaining objects and the rules editor
 
-- `sim-control`: signals and if/then rules (ADR-0010), evaluated every 10 ms in 3D and on events in 2D; rules edited in a table panel; commands for each edit.
+- Rules edited in a table panel of the Design module, one command per edit; live signal values during a run.
 - S11 process station, S12 manual lift table, S13 scissor lift, S14 elevator (ADR-0013), S15 gravity line (ADR-0014), S16 contact materials.
 - **Exit:** every object of the IntraCraft library passes its reference scenario in 2D and 3D.
 
@@ -117,6 +124,11 @@ R5 and R5b can run in parallel with R1–R4; R8 in parallel with R3–R7.
 - Every simulation command is in `ALL`, so the CLI and the MCP server expose them (place, connect, set attribute, run, read statistics). Tokens never stored in the project (A15).
 - Packages from BIMCraft's `packaging/` (Windows, macOS, Linux), with the new name and icon (`brand/`).
 - **Exit:** an agent builds a small line, runs it and reports throughput through MCP; installers built by CI.
+
+### R10 – IntraScript (after the owner answers Q20)
+
+- `intracraft-script` (`platform/sim/script`): the interpreter of [[A17 IntraScript Language]] in Rust (no `eval`, sandboxed, seeded random stream per block), and the information objects S18–S22 as families placed in the Design module.
+- **Exit:** the reference examples of A17 run with the same results in both simulation modules.
 
 ## 3. Extension points in BIMCraft's core
 

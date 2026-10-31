@@ -8,6 +8,8 @@ tags: [theory, physics, conveyors]
 
 # T12 Rollers and Chains in Physics
 
+> **Rust platform (2026-10-31):** in Rust, Rapier exposes the contact surface velocity (`SolverContact::tangent_velocity`, set in `PhysicsHooks::modify_solver_contacts`), so chain plan B carries over without a binding gap ([[ADR-0021 Game Engine Choice for the Rust Platform]]).
+
 ## 1. Driven rollers
 
 A driven roller is a **kinematic cylinder** spinning about its axis at

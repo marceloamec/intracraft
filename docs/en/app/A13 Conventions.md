@@ -8,6 +8,8 @@ tags: [app, conventions]
 
 # A13 Conventions
 
+> **Rust platform (2026-10-31):** this note describes the TypeScript reference, which is frozen ([[ADR-0020 Rust Platform on BIMCraft with Three Modules]]). The Rust platform keeps these conventions in the engines (SI, y up, integer microseconds). The BIM model of the Design module follows BIMCraft's: millimetres, x east, y north, z up; `intracraft-model` converts at the boundary. Code rules are BIMCraft's: no `unwrap`, `panic` or `unsafe`, every change a command, validation in one place.
+
 ## 1. Model conventions
 
 | Topic        | Rule                                                                                                                             |

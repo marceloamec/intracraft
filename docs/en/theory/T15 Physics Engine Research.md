@@ -9,6 +9,8 @@ date: 2026-10-28
 
 # T15 Physics Engine Research
 
+> **Rust platform (2026-10-31):** this research covers the JavaScript bindings used by the TypeScript reference. For the Rust platform the engine is Rapier (native), which has the surface velocity the JS binding lacked; Jolt has no maintained Rust binding ([[ADR-0019 Bevy Engine Feasibility]], [[ADR-0021 Game Engine Choice for the Rust Platform]]).
+
 Research carried out on **2026-10-28** to prepare spike S1. Method: the npm packages were downloaded (not installed in the project), their TypeScript typings inspected, and default settings read by instantiating each engine in Node.js 24. Nothing from these packages was copied into IntraCraft.
 
 ## 1. Candidates and versions

@@ -43,6 +43,18 @@ Integrated in every conveyor (`guides` group) and also available as a standalone
 | S1-d / P9  | 50 mm and 5° misalignment corrected to ±10 mm and ±1° | ✅ with polyethylene strips; painted steel up to 3° ([[ADR-0002 Physics Engine Candidate]]) |
 | Validation | Usable width ≥ pallet + 2 × clearance                 | ✅ `usableWidthFitsPallet`                                                                  |
 
+## In the three modules
+
+Since 2026-10-31 IntraCraft is built in Rust on BIMCraft with three modules ([[ADR-0020 Rust Platform on BIMCraft with Three Modules]]). What this object is in each:
+
+| Module              | This object                                                                            |
+| ------------------- | -------------------------------------------------------------------------------------- |
+| Design              | Planned as a hosted family on a conveyor (the reference library has no definition yet) |
+| Discrete simulation | No effect (2D has no lateral position)                                                 |
+| Physics simulation  | Guide bodies that centre the pallet (S1 criteria P9, P9-yaw)                           |
+
+The behaviour above does not change. **Rust status:** not ported yet (3D criteria re-run in R5; family in R7 of [[A19 Rust Implementation Plan]]); the tests of this spec are the expected values of the port.
+
 ## Related
 
 [[T14 Stops, Impacts and Alignment]] · [[S07 Mechanical Stop]]

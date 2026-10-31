@@ -2,13 +2,13 @@
 title: ADR-0020 Rust Platform on BIMCraft with Three Modules
 lang: en
 tags: [decision, architecture, rust, bim, pivot]
-status: proposed
+status: accepted
 date: 2026-10-31
 ---
 
 # ADR-0020 Rust Platform on BIMCraft with Three Modules
 
-- **Status:** Proposed on 2026-10-31 at the owner's request. Nothing in the code changes until the owner confirms this ADR and answers the questions in §6.
+- **Status:** Accepted on 2026-10-31. Proposed earlier the same day; the owner then confirmed the direction and answered §6 points 1, 3 and 6 (see §7, which amends the decision). Points 2, 4 and 5 stay open.
 - **Date:** 2026-10-31
 - **Plan:** [[A18 BIMCraft Integration Analysis]] (what exists, what maps to what) and [[A19 Rust Implementation Plan]] (phases and exit criteria).
 
@@ -27,6 +27,8 @@ What the owner asked for:
 7. Every object has an **attribute table**: typed values, a text description and an *inherited* flag per attribute.
 8. Every object has a **basic statistics sheet**.
 9. The application is written in **Rust**, like BIMCraft.
+10. (Added on confirmation) The program has **three modules**: **Design** (the BIM editor: families, attributes, schedules, budgets, plans, 3D), **Discrete simulation** (2D, event-driven) and **Physics simulation** (3D, real time).
+11. (Added on confirmation) **Everything lives in this repository**: BIMCraft and every Rust library the build needs.
 
 What we found (details in [[A18 BIMCraft Integration Analysis]]):
 
@@ -34,7 +36,7 @@ What we found (details in [[A18 BIMCraft Integration Analysis]]):
 - It has **no simulation, no time loop, no ports or connections between elements**, and **no budget** yet (cost take-off is only an idea, `CON-01` in its `IDEAS.md`).
 - IntraCraft's value is in its **specifications, theory, decisions, analytical tests and reference scenarios** (S01–S17, T01–T15, ADR-0007–0017, T1–T5), and in ~10 000 lines of TypeScript simulation code (`sim-des`, `sim-physics`) whose behaviour is fixed by those documents and tests.
 
-## Decision (proposed)
+## Decision
 
 1. **Fork BIMCraft** into a new repository (working name *IntraCraft BIM*) and keep it close to upstream, so its BIM work keeps flowing in. The simulation lives in **new crates** beside BIMCraft's, never inside its core files, except for a small set of extension points (§3 of [[A19 Rust Implementation Plan]]).
 2. **Port, do not translate line by line.** The TypeScript engines are rewritten in Rust from the specifications, with the existing tests and saved results as the oracle: the Rust 2D run must reproduce the TypeScript event times (T1–T5 within 1 %, scenario sensor events identical).
@@ -76,6 +78,27 @@ What we found (details in [[A18 BIMCraft Integration Analysis]]):
 4. **Budget.** BIMCraft has no budget yet. Do we build the cost take-off (unit prices per type and per material, sums in a schedule) as part of this plan, or wait for upstream?
 5. **Inheritance default.** When an instance is placed from a library object, are its attributes *inherited* (they follow later changes to the library) by default? (Yes assumed.)
 6. **TypeScript editor.** Freeze it now, or keep it running until the Rust app reaches the same features (phase R4)?
+
+## 7. Amendment on confirmation (2026-10-31)
+
+The owner confirmed the direction and changed three points of the decision above. Where they differ, this section wins.
+
+1. **No separate fork repository.** BIMCraft is brought **into this repository** as a git subtree in `platform/` (`git subtree add --prefix=platform … --squash`, BIMCraft commit `0733fd4`). Upstream changes come in with `git subtree pull --prefix=platform https://github.com/IPedrax/BIMCraft.git main --squash`. Files of BIMCraft that IntraCraft changes are listed in `platform/INTRACRAFT-CHANGES.md` (Apache-2.0 §4(b) asks modified files to say so, and the list keeps upstream merges easy).
+2. **Every Rust library is vendored.** `cargo vendor` keeps the sources of all crates in `platform/vendor/`, and `platform/.cargo/config.toml` builds from them, offline. A new dependency is added in the same change as its vendored sources. `.gitattributes` marks `platform/vendor/**` as binary so Git never rewrites line endings (the crates' checksums would break).
+3. **Three modules in one desktop application** (`platform/apps/intracraft`):
+
+| Module              | What it is                                                                                                                                                                      | Engine                                                                                          |
+| ------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ----------------------------------------------------------------------------------------------- |
+| Design              | BIMCraft's editor plus the intralogistics families: place and connect conveyors, attribute table with inherited flags, simulation tree, schedules, budgets, plans, sections, 3D | `bimcraft-core`, `intracraft-model`                                                             |
+| Discrete simulation | The 2D event-driven run of the same layout, much faster than real time; animated plan, run controls, statistics sheets                                                          | `intracraft-des`, `intracraft-control`                                                          |
+| Physics simulation  | The 3D run in real time: friction, contacts, stops, sensors with real geometry                                                                                                  | `intracraft-physics` (Rapier), viewer per [[ADR-0021 Game Engine Choice for the Rust Platform]] |
+
+4. **The TypeScript implementation is kept as the reference**, frozen: no new features. Its tests and scenario files (`packages/scenarios/scenarios/*.json`, the ten layouts) are the oracle the Rust port must reproduce. It is archived once the Rust modules match it.
+5. **Physics engine.** The owner allows any Rust game or physics engine. Rapier is used directly for the physics (decision 3 above); whether a game engine (Bevy) draws the 3D run is decided by spike R5b ([[ADR-0021 Game Engine Choice for the Rust Platform]]).
+6. **Shared data, one source.** While the TypeScript reference exists, the library definitions and reference data stay where they are (`packages/library/src/definitions/*.json`, `packages/library/src/reference/*.json`); the Rust crates embed the same files at build time instead of copying them.
+7. **Own crates live in `platform/sim/`**, not in BIMCraft's `crates/`, so BIMCraft's own checks (its agent-docs test and translation catalogue) stay untouched; the workspace lists `sim/*` as members.
+
+Answers to §6: 1 → inside this repository (point 1 above); 3 → Rapier, any engine allowed (point 5); 6 → TypeScript frozen as the reference (point 4). Still open: 2 (product name; IntraCraft is assumed), 4 (budget in scope) and 5 (inheritance by default; assumed yes).
 
 ## Related
 

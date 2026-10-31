@@ -8,7 +8,19 @@ tags: [app, editor, ui]
 
 # A09 Editor and Viewer (`apps/editor`)
 
-## 1. What exists today
+## 0. The Rust desktop: three modules
+
+Since 2026-10-31 the editor is BIMCraft's desktop with IntraCraft's modules ([[ADR-0020 Rust Platform on BIMCraft with Three Modules]]), application `platform/apps/intracraft` (`cargo run -p intracraft`). A selector at the top of the window switches between:
+
+| Module              | Window                                                                                                                                                                                              |
+| ------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Design              | BIMCraft's ribbon, plan, sections, 3D view, Project Browser and Properties; the intralogistics families placed from the browser; attribute table with inherited flags; Simulation tab with the tree |
+| Discrete simulation | The plan of the layout with animated pallets; Run, Pause, Step, speed, seed and duration; statistics sheet of the selected object; export to CSV and XLSX                                           |
+| Physics simulation  | The 3D run in real time (viewer per [[ADR-0021 Game Engine Choice for the Rust Platform]]); the same controls; physics figures (stop error, impact energy)                                          |
+
+The run happens on a background thread; the window only receives snapshots, as the Web Worker did in the reference. Sections 1–3 below describe the TypeScript reference editor (frozen); they stay as the list of features the modules must offer.
+
+## 1. The TypeScript reference editor
 
 Run with `pnpm dev` → http://localhost:5173.
 

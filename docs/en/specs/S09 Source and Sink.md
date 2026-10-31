@@ -50,6 +50,18 @@ Definitions: `flow.source` (`source.json`) and `flow.sink` (`sink.json`). Implem
 
 Publishes pallets received, throughput and mean cycle time (entry into the model → arrival at the sink).
 
+## In the three modules
+
+Since 2026-10-31 IntraCraft is built in Rust on BIMCraft with three modules ([[ADR-0020 Rust Platform on BIMCraft with Three Modules]]). What this object is in each:
+
+| Module              | This object                                                                                                                                                                                                                                                        |
+| ------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| Design              | Family of the library (category flow); its parameters form the attribute table (inherited ✔ / overridden ✖), its presets are the family's types; ports OUT (source) and IN (sink); placed from the Project Browser, listed in the Simulation tree and in schedules |
+| Discrete simulation | Arrivals at fixed or exponential intervals from the project's seeded stream; the sink frees its place after its delay                                                                                                                                              |
+| Physics simulation  | The source places a dynamic MTBH (catalogue pallet and load allowed); the sink removes it                                                                                                                                                                          |
+
+The behaviour above does not change. **Rust status:** not ported yet (library R1, 2D R3, 3D R6 of [[A19 Rust Implementation Plan]]); the tests of this spec are the expected values of the port.
+
 ## Related
 
 [[S10 Pallet Types]] · [[T08 Statistics and Output Analysis]] · [[T03 Time, Event Ordering and Determinism]]

@@ -10,6 +10,8 @@ date: 2026-10-29
 
 # A15 AI Agent Integration (design only — not implemented)
 
+> **Rust platform (2026-10-31):** this note describes the TypeScript reference, which is frozen ([[ADR-0020 Rust Platform on BIMCraft with Three Modules]]). In the Rust platform agents use BIMCraft's existing CLI and MCP server (`bimcraft-cli mcp`), which run every command through `Session::execute`; IntraCraft's commands are registered there too.
+
 **Requirement (project owner, 2026-10-29):** IntraCraft must be designed from the start so that AI agents can work with it, connecting either **directly** or through an **MCP server**. Like other tools the owner uses (e.g. SolidCraft), the app should offer a built-in way to enter **your own LLM gateway and API token** and chat with the application to control it. **Nothing is developed yet; this note fixes the architecture so that the code written from phase 2 onwards does not have to be reworked.** Decision: [[ADR-0004 AI-Ready Command Layer and MCP]].
 
 ## 1. The one rule that makes it possible: everything is a command

@@ -8,6 +8,8 @@ tags: [app, data-model, file-format]
 
 # A04 Data Model and Project File
 
+> **Rust platform (2026-10-31):** this note describes the TypeScript reference, which is frozen ([[ADR-0020 Rust Platform on BIMCraft with Three Modules]]). In the Rust platform the project is BIMCraft's `.bimcraft` file: placed objects are components of the intralogistics families, and the run settings and controller rules go in the model's `extensions` block; `intracraft-model` reads the layout from it and still imports `.intracraft.json` files. Units: the BIM model keeps millimetres with z up, the engines SI with y up; `intracraft-model` converts once.
+
 ## 1. Entities
 
 | Entity     | Content                                                                                                                                                                                                                                      | Status         |

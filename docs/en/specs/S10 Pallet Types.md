@@ -66,6 +66,18 @@ Consequence: the best beam height depends on the orientation — ≈ 130 mm on r
 | Plastic – steel       | 0.25      | 0.15 – 0.40 | `plastic-steel`     |
 | Wood – steel guide    | 0.30      | 0.20 – 0.45 | `wood-steel-guide`  |
 
+## In the three modules
+
+Since 2026-10-31 IntraCraft is built in Rust on BIMCraft with three modules ([[ADR-0020 Rust Platform on BIMCraft with Three Modules]]). What this object is in each:
+
+| Module              | This object                                                                                                             |
+| ------------------- | ----------------------------------------------------------------------------------------------------------------------- |
+| Design              | Reference data (pallet types table), chosen by sources and used by validations; shown as a schedule-like table          |
+| Discrete simulation | Footprint and occupancy along the conveyor                                                                              |
+| Physics simulation  | Board-and-block construction and mass properties of the MTBH ([[ADR-0015 MTBH Rigid Body from Pallet and Load Models]]) |
+
+The behaviour above does not change. **Rust status:** not ported yet (library R1 of [[A19 Rust Implementation Plan]]); the tests of this spec are the expected values of the port.
+
 ## Related
 
 [[T06 Photoelectric Sensing]] · [[S06 Photoelectric Sensor]] · [[T11 Contact, Friction and Restitution]] · [[S09 Source and Sink]] · [[Open Questions]]

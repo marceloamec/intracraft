@@ -8,6 +8,8 @@ tags: [app, api, reference]
 
 # A14 API Reference (state on 2026-10-29)
 
+> **Rust platform (2026-10-31):** this note describes the TypeScript reference, which is frozen ([[ADR-0020 Rust Platform on BIMCraft with Three Modules]]). The Rust API is documented in the crates themselves (`cargo doc` in `platform/`); the command list is BIMCraft's `catalog()`, IntraCraft's commands included.
+
 All values in SI units unless stated. Every package is imported as `@intracraft/<package>`.
 
 ## core-model

@@ -61,6 +61,18 @@ While a 3D run is going, an object dropped from the catalogue into the scene ent
 - A box dropped above a fixed rack stays on the shelf it falls on.
 - Same layout and seed → same state hash.
 
+## In the three modules
+
+Since 2026-10-31 IntraCraft is built in Rust on BIMCraft with three modules ([[ADR-0020 Rust Platform on BIMCraft with Three Modules]]). What this object is in each:
+
+| Module              | This object                                                                                                          |
+| ------------------- | -------------------------------------------------------------------------------------------------------------------- |
+| Design              | A family whose form is the catalogue model's mesh; placed, moved and scheduled like any family                       |
+| Discrete simulation | No effect (no 2D behaviour)                                                                                          |
+| Physics simulation  | A body dropped, resting or fixed ([[ADR-0017 Scenery Assets in the Layout and Live Spawn]]); live spawn during a run |
+
+The behaviour above does not change. **Rust status:** not ported yet (library R1, 3D R6 of [[A19 Rust Implementation Plan]]); the tests of this spec are the expected values of the port.
+
 ## Related
 
 [[A16 Asset Catalog]] · [[S16 Contact Materials]] · [[S09 Source and Sink]] · [[ADR-0016 Physics World Built from the Layout]]

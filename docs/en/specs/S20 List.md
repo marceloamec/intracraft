@@ -89,3 +89,15 @@ Priority queues (sorted on insertion; use `sort` meanwhile), lists of lists as o
 - `meanCount` of a list that holds 2 items for 10 s and 0 for 10 s is 1.
 - A pallet in `Waiting` that arrives at a sink is no longer in `Waiting`.
 - `pop` on an empty queue stops the run with `emptyList`, naming the list, the code block, the line and the time.
+
+## In the three modules
+
+Since 2026-10-31 IntraCraft is built in Rust on BIMCraft with three modules ([[ADR-0020 Rust Platform on BIMCraft with Three Modules]]). What this object is in each:
+
+| Module              | This object                                                                                                                                         |
+| ------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Design              | An information object placed on the plan as a family of category information; its content is edited in its own panel; listed in the Simulation tree |
+| Discrete simulation | Read and written by IntraScript code and the controller during the run, as this spec says                                                           |
+| Physics simulation  | The same as in the Discrete simulation module (information objects have no body)                                                                    |
+
+The behaviour above does not change. **Rust status:** not ported yet (R10, after the owner answers Q20 of [[A19 Rust Implementation Plan]]); the tests of this spec are the expected values of the port.

@@ -8,13 +8,13 @@ tags: [index]
 
 # IntraCraft — documentation (English)
 
-IntraCraft simulates pallet conveyor systems with **one layout and two modes**: a fast 2D **discrete-event** mode (throughput, accumulation, blocking, utilisation) and a real-time 3D **physics** mode (roller and chain friction, collisions with stops and guides, pallet alignment, sensors with real geometry).
+IntraCraft designs and simulates pallet conveyor systems with **one layout and three modules**: a **Design** module (a BIM editor: library objects as families, attribute tables, schedules, budgets, plans and 3D), a fast 2D **discrete simulation** module (throughput, accumulation, blocking, utilisation) and a real-time 3D **physics simulation** module (roller and chain friction, collisions with stops and guides, pallet alignment, sensors with real geometry). Since 2026-10-31 it is built in Rust on BIMCraft ([[ADR-0020 Rust Platform on BIMCraft with Three Modules]]); the first TypeScript implementation is kept as the reference.
 
 ## Reading paths
 
 - **"I want to know how the 2D mode computes its results"** → [[T01 Simulation Paradigms]] → [[T02 Discrete-Event Simulation]] → [[T03 Time, Event Ordering and Determinism]] → [[T04 Conveyor Kinematics]] → [[T05 Accumulation, Capacity and Throughput]].
 - **"I want to know how the 3D mode moves a pallet"** → [[T09 Rigid Body Dynamics]] → [[T10 Time Integration and Fixed Step]] → [[T11 Contact, Friction and Restitution]] → [[T12 Rollers and Chains in Physics]].
-- **"I want to know how the app is built"** → [[A01 Product Overview]] → [[A02 Architecture]] → [[A03 Monorepo and Stack]] → [[A14 API Reference]].
+- **"I want to know how the app is built"** → [[A01 Product Overview]] → [[A02 Architecture]] → [[A03 Monorepo and Stack]] → [[A18 BIMCraft Integration Analysis]] → [[A19 Rust Implementation Plan]].
 
 ## Theory
 
@@ -39,27 +39,27 @@ IntraCraft simulates pallet conveyor systems with **one layout and two modes**: 
 
 ## Application
 
-| #   | Note                                |
-| --- | ----------------------------------- |
-| A01 | [[A01 Product Overview]]            |
-| A02 | [[A02 Architecture]]                |
-| A03 | [[A03 Monorepo and Stack]]          |
-| A04 | [[A04 Data Model and Project File]] |
-| A05 | [[A05 Component Library]]           |
-| A06 | [[A06 DES Engine]]                  |
-| A07 | [[A07 Physics Engine Wrapper]]      |
-| A08 | [[A08 Controller]]                  |
-| A09 | [[A09 Editor and Viewer]]           |
-| A10 | [[A10 CLI and Scenarios]]           |
-| A11 | [[A11 Testing and Validation]]      |
-| A12 | [[A12 Roadmap]]                     |
-| A13 | [[A13 Conventions]]                 |
-| A14 | [[A14 API Reference]]               |
-| A15 | [[A15 AI Agent Integration]]        |
-| A16 | [[A16 Asset Catalog]]               |
-| A17 | [[A17 IntraScript Language]]        |
+| #   | Note                                  |
+| --- | ------------------------------------- |
+| A01 | [[A01 Product Overview]]              |
+| A02 | [[A02 Architecture]]                  |
+| A03 | [[A03 Monorepo and Stack]]            |
+| A04 | [[A04 Data Model and Project File]]   |
+| A05 | [[A05 Component Library]]             |
+| A06 | [[A06 DES Engine]]                    |
+| A07 | [[A07 Physics Engine Wrapper]]        |
+| A08 | [[A08 Controller]]                    |
+| A09 | [[A09 Editor and Viewer]]             |
+| A10 | [[A10 CLI and Scenarios]]             |
+| A11 | [[A11 Testing and Validation]]        |
+| A12 | [[A12 Roadmap]]                       |
+| A13 | [[A13 Conventions]]                   |
+| A14 | [[A14 API Reference]]                 |
+| A15 | [[A15 AI Agent Integration]]          |
+| A16 | [[A16 Asset Catalog]]                 |
+| A17 | [[A17 IntraScript Language]]          |
 | A18 | [[A18 BIMCraft Integration Analysis]] |
-| A19 | [[A19 Rust Implementation Plan]] |
+| A19 | [[A19 Rust Implementation Plan]]      |
 
 ## Specifications (library objects)
 

@@ -8,6 +8,8 @@ tags: [theory, physics, contact]
 
 # T11 Contact, Friction and Restitution
 
+> **Rust platform (2026-10-31):** Rapier (Rust) is the engine of the Physics simulation module; the Jolt settings below belong to the TypeScript reference and are re-tuned on Rapier in phase R5 of [[A19 Rust Implementation Plan]] against the same criteria.
+
 Contacts are where conveyor physics happens: rollers drive the pallet only through friction at their contact points, and stops and guides act only through contacts.
 
 ## 1. The collision pipeline (every step)

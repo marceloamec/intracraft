@@ -8,6 +8,8 @@ tags: [app, physics, sim-physics]
 
 # A07 Physics Engine Wrapper (`packages/sim-physics`)
 
+> **Rust platform (2026-10-31):** this note describes the TypeScript reference, which is frozen ([[ADR-0020 Rust Platform on BIMCraft with Three Modules]]). The Rust port is `intracraft-physics` (`platform/sim/physics`) on Rapier, behind the same backend contract; chains use Rapier's contact surface velocity. Phases R5 and R6 of [[A19 Rust Implementation Plan]]; [[ADR-0021 Game Engine Choice for the Rust Platform]].
+
 Theory: [[T09 Rigid Body Dynamics]] to [[T15 Physics Engine Research]].
 
 ## 1. Why a wrapper

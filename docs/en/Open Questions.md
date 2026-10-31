@@ -173,4 +173,4 @@ Each question states **what must be decided**, **why it matters** (which result 
 - **Decide:** whether IntraCraft becomes a simulation module of a fork of BIMCraft, rewritten in Rust ([[ADR-0020 Rust Platform on BIMCraft with Three Modules]]).
 - **Why:** it changes the language, the physics engine (Rapier instead of Jolt), the editor and the order of work ([[A19 Rust Implementation Plan]]); specifications, theory and tests are kept.
 - **Specific questions:** see ADR-0020 §6 (fork or upstream contribution, name, physics engine, budget in scope, inheritance by default, when to freeze the TypeScript editor).
-- **Assumed:** nothing changes in the TypeScript code until the owner confirms.
+- **Answered (2026-10-31):** yes. Rust inside BIMCraft, brought into this repository with every library vendored; three modules (Design, Discrete simulation, Physics simulation); any Rust game or physics engine allowed; the TypeScript code kept frozen as the reference ([[ADR-0020 Rust Platform on BIMCraft with Three Modules]] §7). Still open: the product name (IntraCraft assumed), budgets in scope, inheritance by default (assumed yes).

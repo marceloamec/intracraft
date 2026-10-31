@@ -8,6 +8,8 @@ tags: [app, library]
 
 # A05 Component Library
 
+> **Rust platform (2026-10-31):** this note describes the TypeScript reference, which is frozen ([[ADR-0020 Rust Platform on BIMCraft with Three Modules]]). The Rust crate `intracraft-library` (`platform/sim/library`) reads the same JSON definitions and reference data, and `intracraft-model` turns each definition into a BIMCraft family (parameters, presets as types, forms, plan symbol). See [[A19 Rust Implementation Plan]] phase R1.
+
 ## 1. Concepts
 
 | Concept    | Meaning                                                                                       |

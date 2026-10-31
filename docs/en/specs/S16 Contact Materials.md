@@ -125,3 +125,15 @@ Physics bench scenarios ([[A10 CLI and Scenarios]]):
   - Steel rollers with plastic: 2.45 m/s².
   - All within 10 %.
 - **P5:** rebound speed / approach speed at a full-height stop face: 0.1 (painted steel), 0.2 (polyurethane) and 0.35 (rubber), within 10 %.
+
+## In the three modules
+
+Since 2026-10-31 IntraCraft is built in Rust on BIMCraft with three modules ([[ADR-0020 Rust Platform on BIMCraft with Three Modules]]). What this object is in each:
+
+| Module              | This object                                                                                           |
+| ------------------- | ----------------------------------------------------------------------------------------------------- |
+| Design              | Reference data: the material of each object is an attribute chosen from this table                    |
+| Discrete simulation | No effect                                                                                             |
+| Physics simulation  | Friction and restitution of every contact pair (55 pairs), re-tuned on Rapier against the S1 criteria |
+
+The behaviour above does not change. **Rust status:** not ported yet (library R1, 3D R5 of [[A19 Rust Implementation Plan]]); the tests of this spec are the expected values of the port.

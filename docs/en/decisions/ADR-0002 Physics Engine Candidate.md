@@ -11,7 +11,7 @@ updated: 2026-10-30
 
 # ADR-0002 Physics Engine Candidate
 
-- **Status:** Accepted on 2026-10-30, after spike S1: Jolt with plan B for chains
+- **Status:** Accepted on 2026-10-30, after spike S1: Jolt with plan B for chains **Rust platform (2026-10-31):** Jolt stays the engine of the TypeScript reference; the Rust platform uses Rapier ([[ADR-0020 Rust Platform on BIMCraft with Three Modules]], [[ADR-0021 Game Engine Choice for the Rust Platform]]) and re-runs the S1 criteria in phase R5.
 - **Date:** 2026-10-28 (proposed), 2026-10-30 (accepted)
 
 ## Context

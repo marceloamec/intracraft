@@ -50,6 +50,18 @@ Do not raise under a pallet (zone above the stop must be clear).
 | P1 / S1-c | Front ±5 mm, rebound < 10 mm                 | ⏳ S1 / phase 4 |
 | P2        | Speed and energy recorded; warning above max | ⏳ phase 4      |
 
+## In the three modules
+
+Since 2026-10-31 IntraCraft is built in Rust on BIMCraft with three modules ([[ADR-0020 Rust Platform on BIMCraft with Three Modules]]). What this object is in each:
+
+| Module              | This object                                                                                       |
+| ------------------- | ------------------------------------------------------------------------------------------------- |
+| Design              | Planned as a hosted family on a conveyor (the reference library has no definition yet)            |
+| Discrete simulation | Part of the conveyor's hold at the end (decision point) until a definition exists                 |
+| Physics simulation  | A body the pallet stops against: front within ±5 mm, rebound < 10 mm (S1 criteria P3, P3-rebound) |
+
+The behaviour above does not change. **Rust status:** not ported yet (3D criteria re-run in R5; family in R7 of [[A19 Rust Implementation Plan]]); the tests of this spec are the expected values of the port.
+
 ## Related
 
 [[T14 Stops, Impacts and Alignment]] · [[T11 Contact, Friction and Restitution]]

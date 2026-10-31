@@ -20,7 +20,7 @@
 | 1 | Un layout, dos fidelidades | El layout se guarda en 3D real; el modo 2D es la misma planta con lógica simplificada |
 | 2 | Librería dirigida por datos | Cada componente se describe en JSON (parámetros, puertos, señales) y su comportamiento se registra en código; la interfaz de edición se genera sola |
 | 3 | Mismo controlador en ambos modos | Las reglas Si/Entonces leen sensores y mandan actuadores igual en 2D y en 3D |
-| 4 | TypeScript en todo, web local primero | Un solo lenguaje y resultado visual inmediato; la versión de escritorio (Tauri) viene después |
+| 4 | ~~TypeScript en todo, web local primero~~ → **Rust sobre BIMCraft, tres módulos** (enmienda del 31-10-2026) | La primera versión se hizo en TypeScript y queda congelada como referencia. Desde el 31-10-2026 el producto se construye en Rust dentro de BIMCraft (`platform/`), con tres módulos: Diseño (BIM), Simulación discreta 2D y Simulación física 3D (ADR-0020) |
 | 5 | Spike de física antes de comprometerse | La ‘superficie móvil’ de las cadenas es el mayor riesgo técnico (sección 12) |
 | 6 | Un transportador a la vez, de punta a punta | Cada tipo se entrega completo: parámetros, modo 2D, modo 3D y pruebas |
 | 7 | Unidades SI y eje Y hacia arriba | Coincide con Three.js y glTF |
@@ -75,6 +75,8 @@ Curvas, elevadores de tres o más niveles, lanzaderas y desviadores; cajas y cub
 ## 3. Arquitectura
 
 ### 3.1 Capas
+
+> **Enmienda del 31-10-2026 (ADR-0020):** las capas de esta tabla describen la referencia TypeScript, congelada. En la plataforma Rust las mismas capas son crates de `platform/sim/` (`intracraft-library`, `-model`, `-des`, `-control`, `-physics`, `-scenarios`, `-ui`) sobre `bimcraft-core`; el editor es el de BIMCraft con un selector de tres módulos. Mapa completo: `docs/en/app/A02 Architecture.md` §0 y `docs/en/app/A19 Rust Implementation Plan.md`.
 
 | Capa | Responsabilidad | Tecnología propuesta |
 | --- | --- | --- |
@@ -155,6 +157,8 @@ Herramientas: pnpm (espacios de trabajo), Vite, Vitest, TypeScript en modo estri
 JSON legible y versionable con git (`.intracraft.json`). Los resultados de simulación no se guardan dentro del proyecto; se exportan aparte.
 
 ## 5. Los dos modos
+
+> **Enmienda del 31-10-2026 (ADR-0020):** los dos modos son ahora los módulos **Simulación discreta** y **Simulación física**, y se añade un tercer módulo, **Diseño** (el editor BIM de BIMCraft: familias, atributos heredados, árbol de simulación, tablas y presupuestos). Lo que sigue sobre cada modo no cambia.
 
 ### 5.1 Qué hace cada modo
 

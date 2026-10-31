@@ -10,7 +10,7 @@ date: 2026-10-28
 
 # ADR-0001 Toolchain and Versions
 
-- **Status:** Accepted
+- **Status:** Accepted **Rust platform (2026-10-31):** superseded for the product by [[ADR-0020 Rust Platform on BIMCraft with Three Modules]]; it still describes the TypeScript reference, which is frozen.
 - **Date:** 2026-10-28
 
 ## Context

@@ -5,9 +5,9 @@ tags: [home]
 
 # IntraCraft Knowledge Base
 
-Hybrid 2D (discrete-event) / 3D (physics) pallet conveyor simulator.
-Simulador híbrido 2D (eventos discretos) / 3D (física) de transporte de pallets.
-Hybrider 2D- (ereignisdiskret) / 3D- (Physik-) Simulator für Palettenfördertechnik.
+Pallet conveyor design and simulation in three modules: Design (BIM), 2D discrete simulation, 3D physics simulation.
+Diseño y simulación de transporte de pallets en tres módulos: Diseño (BIM), simulación discreta 2D y simulación física 3D.
+Planung und Simulation von Palettenfördertechnik in drei Modulen: Planung (BIM), ereignisdiskrete 2D-Simulation, 3D-Physiksimulation.
 
 **English is the reference** (since 2026-10-29 new notes are written in English only; the Spanish and German notes are kept but may be outdated).
 

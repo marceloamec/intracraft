@@ -10,6 +10,8 @@ tags: [app, roadmap, plan]
 
 Order chosen to attack the biggest risk first (chain physics) and to deliver each conveyor end to end. Sizes in Claude Code work sessions: S ≈ 1–3, M ≈ 4–8, L ≈ 8–15.
 
+> **Rust platform (2026-10-31):** the product is now built in Rust inside BIMCraft, with three modules ([[ADR-0020 Rust Platform on BIMCraft with Three Modules]]). Its phases are in [[A19 Rust Implementation Plan]]. The phases below are the history of the TypeScript reference, which is frozen.
+
 ## MVP phases
 
 | Phase | Goal                  | Deliverables                                                                                                                         | Exit criterion                                       | Size | Risk   | Status (2026-10-31)                                                                                                                         |

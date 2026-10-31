@@ -106,3 +106,15 @@ Real slope, brake spacing, brake speed, separator delay and queue behaviour: [[O
 - `startDelay` = 0: after a release the whole queue starts at the same instant. `startDelay` = 2 s: gaps of 0.4 m open while rolling and close again at the separator.
 - Separator: the second pallet stops at 4.7 m while the first is in the pick-up position.
 - Validations: `slopeTooLow`, `brakeSpacingTooLong`, `exitNotSink`. Same seed gives the same result.
+
+## In the three modules
+
+Since 2026-10-31 IntraCraft is built in Rust on BIMCraft with three modules ([[ADR-0020 Rust Platform on BIMCraft with Three Modules]]). What this object is in each:
+
+| Module              | This object                                                                                                                                                                                                                                            |
+| ------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| Design              | Family of the library (category conveyor); its parameters form the attribute table (inherited ✔ / overridden ✖), its presets are the family's types; ports IN and OUT; placed from the Project Browser, listed in the Simulation tree and in schedules |
+| Discrete simulation | Gravity kinematics with brake speed, separator and start delay ([[ADR-0014 Gravity Line 2D Model]])                                                                                                                                                    |
+| Physics simulation  | Free rollers that follow the pallet, a separator body and an end stop                                                                                                                                                                                  |
+
+The behaviour above does not change. **Rust status:** not ported yet (library R1, 2D R3, 3D R6 of [[A19 Rust Implementation Plan]]); the tests of this spec are the expected values of the port.

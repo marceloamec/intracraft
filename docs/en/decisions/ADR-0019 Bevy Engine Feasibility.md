@@ -2,13 +2,13 @@
 title: ADR-0019 Bevy Engine Feasibility
 lang: en
 tags: [decision, architecture, stack, physics, research]
-status: proposed
+status: superseded
 date: 2026-10-31
 ---
 
 # ADR-0019 Bevy Engine Feasibility
 
-- **Status:** Proposed on 2026-10-31. Feasibility study asked for by the owner; the owner decides. Recommendation: do not adopt Bevy for the MVP; revisit at the desktop phase or if a trigger below appears.
+- **Status:** Superseded on 2026-10-31 by [[ADR-0020 Rust Platform on BIMCraft with Three Modules]] and [[ADR-0021 Game Engine Choice for the Rust Platform]]: the owner chose to rebuild IntraCraft in Rust inside BIMCraft (option A of this note, without making Bevy the base). Its findings (Bevy versions, Avian and Rapier surface velocity, no maintained Jolt binding for Rust) still hold and feed ADR-0021. Original recommendation: do not adopt Bevy for the MVP.
 - **Date:** 2026-10-31
 
 ## Context

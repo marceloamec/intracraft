@@ -8,6 +8,8 @@ tags: [theory, physics, numerics]
 
 # T10 Time Integration and Fixed Step
 
+> **Rust platform (2026-10-31):** the fixed step and clock described here carry over to `intracraft-physics` on Rapier; the Jolt-specific settings are re-tuned in phase R5 of [[A19 Rust Implementation Plan]].
+
 ## 1. From equations to steps
 
 The physics engine cannot solve Newton–Euler equations ([[T09 Rigid Body Dynamics]]) in closed form once contacts are involved. It advances the state in small steps $\Delta t$.

@@ -57,6 +57,18 @@ Ports A (in) and B (out), as for the roller conveyor.
 | —    | `none`: entering pallet moves the resident pallet     | ⏳ phase 5 |
 | —    | `slip`: line force ≈ Σ μ m g                          | ⏳ phase 5 |
 
+## In the three modules
+
+Since 2026-10-31 IntraCraft is built in Rust on BIMCraft with three modules ([[ADR-0020 Rust Platform on BIMCraft with Three Modules]]). What this object is in each:
+
+| Module              | This object                                                                                                                                                                                                                                         |
+| ------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Design              | Family of the library (category conveyor); its parameters form the attribute table (inherited ✔ / overridden ✖), its presets are the family's types; ports A and B; placed from the Project Browser, listed in the Simulation tree and in schedules |
+| Discrete simulation | Line conveyor without accumulation, as S01; pallets travel transversely                                                                                                                                                                             |
+| Physics simulation  | Static chain strands with a contact surface velocity (plan B; Rapier `tangent_velocity`)                                                                                                                                                            |
+
+The behaviour above does not change. **Rust status:** not ported yet (library R1, 2D R3, 3D R5–R6 of [[A19 Rust Implementation Plan]]); the tests of this spec are the expected values of the port.
+
 ## Related
 
 [[T12 Rollers and Chains in Physics]] · [[S05 Roller-to-Chain Transfer]] · [[S03 Chain Turntable]] · [[Open Questions]]

@@ -44,19 +44,19 @@ Rules worth keeping (from BIMCraft's `CLAUDE.md`): never crash (no `unwrap`/`pan
 
 ## 2. What IntraCraft brings
 
-| IntraCraft asset                                  | Size / status                                | Fate in the new platform                                                                               |
-| ------------------------------------------------- | -------------------------------------------- | ------------------------------------------------------------------------------------------------------ |
-| Specs S01–S17, theory T01–T15, ADR-0007–0017      | Complete for the MVP and the 30-10 extension | **Kept as is**: the specification of the Rust code                                                     |
-| Analytical tests T1–T5, scenarios, `test_data/`   | Pass in TypeScript                           | **Kept**: become Rust tests; the TypeScript results are the oracle                                     |
-| `packages/library` (JSON definitions, validation) | ~1 400 lines; 17 object definitions          | Definitions become **family templates** (JSON → family + simulation metadata); validation rules ported |
-| `packages/core-model` (layout, ports, units)      | ~400 lines                                   | Ports and connections move into a `sim-model` crate on top of BIMCraft's elements                      |
-| `packages/commands` (session, undo, log)          | ~750 lines                                   | Replaced by BIMCraft's `Session` and commands; IntraCraft's commands are re-declared there             |
-| `packages/sim-des` (flow model, stations, eyes)   | ~5 000 lines                                 | **Ported** to the `sim-des` crate                                                                      |
-| `packages/sim-physics` (Jolt, world, MTBH)        | ~4 700 lines                                 | **Ported** to the `sim-physics` crate on Rapier                                                        |
-| `packages/control` (if/then rules)                | ~100 lines                                   | Ported to the `sim-control` crate                                                                      |
-| `packages/geometry` (parametric 3D, 2D symbols)   | ~230 lines                                   | Replaced by family forms and symbols                                                                   |
-| `packages/asset-catalog` (third-party GLB models) | ~400 lines + manifest                        | Kept as a catalogue; GLB meshes become family `mesh` forms (licences re-checked)                       |
-| `apps/editor` (React + three.js)                  | ~5 100 lines                                 | **Not ported**: replaced by egui panels; its behaviour serves as the UI reference                      |
+| IntraCraft asset                                  | Size / status                                | Fate in the new platform                                                                                |
+| ------------------------------------------------- | -------------------------------------------- | ------------------------------------------------------------------------------------------------------- |
+| Specs S01–S17, theory T01–T15, ADR-0007–0017      | Complete for the MVP and the 30-10 extension | **Kept as is**: the specification of the Rust code                                                      |
+| Analytical tests T1–T5, scenarios, `test_data/`   | Pass in TypeScript                           | **Kept**: become Rust tests; the TypeScript results are the oracle                                      |
+| `packages/library` (JSON definitions, validation) | ~1 400 lines; 17 object definitions          | Definitions become **family templates** (JSON → family + simulation metadata); validation rules ported  |
+| `packages/core-model` (layout, ports, units)      | ~400 lines                                   | Ports and connections move into `intracraft-model` (`platform/sim/model`) on top of BIMCraft's elements |
+| `packages/commands` (session, undo, log)          | ~750 lines                                   | Replaced by BIMCraft's `Session` and commands; IntraCraft's commands are re-declared there              |
+| `packages/sim-des` (flow model, stations, eyes)   | ~5 000 lines                                 | **Ported** to the `sim-des` crate                                                                       |
+| `packages/sim-physics` (Jolt, world, MTBH)        | ~4 700 lines                                 | **Ported** to the `sim-physics` crate on Rapier                                                         |
+| `packages/control` (if/then rules)                | ~100 lines                                   | Ported to the `sim-control` crate                                                                       |
+| `packages/geometry` (parametric 3D, 2D symbols)   | ~230 lines                                   | Replaced by family forms and symbols                                                                    |
+| `packages/asset-catalog` (third-party GLB models) | ~400 lines + manifest                        | Kept as a catalogue; GLB meshes become family `mesh` forms (licences re-checked)                        |
+| `apps/editor` (React + three.js)                  | ~5 100 lines                                 | **Not ported**: replaced by egui panels; its behaviour serves as the UI reference                       |
 
 ## 3. Data model added by the simulation module
 
@@ -176,24 +176,29 @@ Definitions follow [[T08 Statistics and Output Analysis]] (time-weighted average
 ## 7. Architecture of the new workspace
 
 ```
-intracraft-bim/                      (fork of BIMCraft)
-├─ crates/
-│  ├─ core/                ← BIMCraft (minimal extension points only)
-│  ├─ ui-egui/             ← BIMCraft (+ Simulation tab, attribute table, statistics, run controls)
-│  ├─ i18n/ update/ rvt/ dwg/          ← BIMCraft, unchanged
-│  ├─ sim-model/           NEW  ports, connections, attributes with inheritance, flow network, validation
-│  ├─ sim-library/         NEW  intralogistics family templates (from library/definitions), behaviour registry
-│  ├─ sim-des/             NEW  event queue, flow model, stations, photoeyes (port of packages/sim-des)
-│  ├─ sim-physics/         NEW  Rapier world, decks, MTBH bodies, raycast sensors (port of packages/sim-physics)
-│  ├─ sim-control/         NEW  signals and if/then rules (port of packages/control)
-│  ├─ sim-stats/           NEW  statistics collectors and the statistics sheet data
-│  └─ sim-scenarios/       NEW  T1–T5 and the reference scenarios, golden results
-└─ apps/
-   ├─ bimcraft/            desktop (renamed if the owner wishes)
-   └─ bimcraft-cli/        + `scenario <id|all>` and simulation commands for the MCP server
+intracraft/                          (this repository)
+├─ packages/ apps/ …       TypeScript reference, frozen (ADR-0020 §7)
+└─ platform/               BIMCraft, git subtree
+   ├─ crates/
+   │  ├─ core/             ← BIMCraft (minimal extension points only, listed in INTRACRAFT-CHANGES.md)
+   │  ├─ ui-egui/          ← BIMCraft (+ hooks for the Simulation tab and per-frame drawing)
+   │  └─ i18n/ update/ rvt/ dwg/       ← BIMCraft, unchanged
+   ├─ sim/                 NEW, IntraCraft's crates
+   │  ├─ library/          definitions and reference data (the same JSON files), validation rules, ports, connections
+   │  ├─ model/            families from the library, attributes with inheritance, layout, simulation tree
+   │  ├─ des/              event queue, kinematics, flow model, stations, photoeyes, statistics
+   │  ├─ control/          signals and if/then rules
+   │  ├─ physics/          Rapier world, decks, MTBH bodies, raycast sensors
+   │  ├─ scenarios/        T1–T11, P1–P11 and the reference layouts, against the reference's expected values
+   │  └─ ui/               the two simulation modules' panels: tree, attribute table, run controls, statistics
+   ├─ apps/
+   │  ├─ bimcraft/ bimcraft-cli/       ← BIMCraft, unchanged
+   │  ├─ intracraft/       the desktop: Design, Discrete simulation and Physics simulation modules
+   │  └─ intracraft-cli/   scenarios headless, and BIMCraft's commands plus IntraCraft's
+   └─ vendor/              every crate's sources, offline builds
 ```
 
-Dependency rules: `sim-*` crates depend on `bimcraft-core`, never the reverse; the engines (`sim-des`, `sim-physics`, `sim-control`) have no UI dependency; the UI shows snapshots produced by a run on a background thread (the Rust equivalent of the Web Worker).
+Dependency rules: the `sim/` crates depend on `bimcraft-core`, never the reverse; the engines (`sim-des`, `sim-physics`, `sim-control`) have no UI dependency; the UI shows snapshots produced by a run on a background thread (the Rust equivalent of the Web Worker).
 
 ## Related
 

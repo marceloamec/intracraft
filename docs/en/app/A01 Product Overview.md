@@ -10,18 +10,21 @@ tags: [app, overview]
 
 ## What IntraCraft is
 
-An application to **design and simulate pallet conveyor systems** with one layout and two simulation modes:
+An application to **design and simulate pallet conveyor systems**. Since 2026-10-31 it is built in Rust on the BIM platform BIMCraft ([[ADR-0020 Rust Platform on BIMCraft with Three Modules]]) and has **three modules on one project**:
 
-| Mode              | Engine        | Speed              | Answers                                                  |
-| ----------------- | ------------- | ------------------ | -------------------------------------------------------- |
-| 2D discrete (DES) | `sim-des`     | ≥ 1000× real time  | Throughput, accumulation, blocking, utilisation          |
-| 3D physics        | `sim-physics` | Real time (60 FPS) | Friction, impacts, alignment, sensors with real geometry |
+| Module              | What it does                                                                                                                                                     | Engine                              | Speed              | Answers                                                  |
+| ------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------- | ----------------------------------- | ------------------ | -------------------------------------------------------- |
+| Design              | BIM editor: place and connect library objects (families), attribute table with inherited flags, simulation tree, schedules, budgets, plans, sections, 3D, sheets | `bimcraft-core`, `intracraft-model` | Interactive        | What the plant is, what it is made of and what it costs  |
+| Discrete simulation | 2D event-driven run of the layout                                                                                                                                | `intracraft-des`                    | ≥ 1000× real time  | Throughput, accumulation, blocking, utilisation          |
+| Physics simulation  | 3D run with rigid bodies                                                                                                                                         | `intracraft-physics` (Rapier)       | Real time (60 FPS) | Friction, impacts, alignment, sensors with real geometry |
 
-Both modes read the same layout and are driven by the same If/Then controller. Theory: [[T01 Simulation Paradigms]].
+Both simulation modules read the layout of the Design module and are driven by the same If/Then controller. Every placed object has a unique id and GUID, an attribute table and a statistics sheet ([[A18 BIMCraft Integration Analysis]]). Theory: [[T01 Simulation Paradigms]].
+
+The first implementation, in TypeScript (web editor, 2D and 3D modes), is kept frozen as the **reference**: its tests and scenario files are what the Rust modules must reproduce.
 
 ## Design principles
 
-1. The layout is the source of truth; 2D, 3D and statistics are derived from it.
+1. The layout of the Design module is the source of truth; 2D, 3D, schedules and statistics are derived from it.
 2. Same control logic, different plant.
 3. Every parameter has a unit, range, default and description; the editing UI is generated from that schema.
 4. Determinism: same data + same seed → same results.
@@ -46,9 +49,10 @@ Both modes read the same layout and are driven by the same If/Then controller. T
 7. 3D keeps 60 FPS with 20 conveyors and 10 pallets on a current laptop.
 8. Three known reference models are reproduced and compared.
 
-## Current status (2026-10-28)
+## Current status (2026-10-31)
 
-Phase 0 scaffolding is in place: monorepo, packages, CI workflow, analytic kinematics (T1–T5 pass), event queue, seeded RNG, project schema, roller-conveyor definition, rule evaluator and a viewer showing a parametric roller conveyor. See [[A12 Roadmap]].
+- **TypeScript reference (frozen):** the five conveyors, lifts, elevator, gravity line, process station, sensors, source and sink in 2D; the 3D physics world on Jolt; editor, CLI and scenarios ([[A12 Roadmap]]).
+- **Rust platform:** BIMCraft is in `platform/` with every library vendored; the port follows [[A19 Rust Implementation Plan]].
 
 ## Related
 

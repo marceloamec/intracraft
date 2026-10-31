@@ -95,3 +95,15 @@ Variants and real speeds: [[Open Questions]] Q15 and Q17.
   - the conveyor at the upper level, on the same side as the entry, receives it.
 - Z exit through `OUT_FAR`; a down move (entry above exit); `twoExits` and `noExit`.
 - Blocked discharge holds the carriage at the exit height; same seed gives the same result.
+
+## In the three modules
+
+Since 2026-10-31 IntraCraft is built in Rust on BIMCraft with three modules ([[ADR-0020 Rust Platform on BIMCraft with Three Modules]]). What this object is in each:
+
+| Module              | This object                                                                                                                                                                                                                                                          |
+| ------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Design              | Family of the library (category conveyor); its parameters form the attribute table (inherited ✔ / overridden ✖), its presets are the family's types; ports IN, OUT_NEAR and OUT_FAR; placed from the Project Browser, listed in the Simulation tree and in schedules |
+| Discrete simulation | Lift station cycle with two levels ([[ADR-0013 Lift Station 2D Cycle]])                                                                                                                                                                                              |
+| Physics simulation  | Kinematic platform with rollers or chains, following the trapezoidal height profile                                                                                                                                                                                  |
+
+The behaviour above does not change. **Rust status:** not ported yet (library R1, 2D R3, 3D R6 of [[A19 Rust Implementation Plan]]); the tests of this spec are the expected values of the port.

@@ -8,6 +8,8 @@ tags: [app, des, sim-des]
 
 # A06 DES Engine (`packages/sim-des`)
 
+> **Rust platform (2026-10-31):** this note describes the TypeScript reference, which is frozen ([[ADR-0020 Rust Platform on BIMCraft with Three Modules]]). The Rust port is `intracraft-des` (`platform/sim/des`), phases R3 and R4 of [[A19 Rust Implementation Plan]]; it must reproduce the reference's event times.
+
 Theory: [[T02 Discrete-Event Simulation]], [[T03 Time, Event Ordering and Determinism]], [[T04 Conveyor Kinematics]], [[T05 Accumulation, Capacity and Throughput]].
 
 ## 1. What exists today
