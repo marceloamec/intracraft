@@ -77,6 +77,7 @@ IntraCraft simulates pallet conveyor systems with **one layout and two modes**: 
 | S14 | [[S14 Pallet Elevator]]          | `conveyor.elevator`          |
 | S15 | [[S15 Gravity Roller Line]]      | `conveyor.gravity`           |
 | S16 | [[S16 Contact Materials]]        | `material.*` (pair table)    |
+| S17 | [[S17 Scenery Asset]]            | `scenery.asset`              |
 
 ## Decisions
 
@@ -91,6 +92,7 @@ IntraCraft simulates pallet conveyor systems with **one layout and two modes**: 
 - [[ADR-0014 Gravity Line 2D Model]]
 - [[ADR-0015 MTBH Rigid Body from Pallet and Load Models]]
 - [[ADR-0016 Physics World Built from the Layout]]
+- [[ADR-0017 Scenery Assets in the Layout and Live Spawn]]
 
 ## Reference
 
