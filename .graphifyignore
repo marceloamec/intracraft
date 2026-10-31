@@ -1,0 +1,8 @@
+﻿# Solo código: la documentación se consulta directamente (docs/en) y las copias es/de duplican contenido.
+docs/
+reference-sim/
+brand/
+.github/skills/
+knowledge/
+*.md
+*.pdf
