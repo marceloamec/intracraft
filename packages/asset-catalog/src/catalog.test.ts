@@ -133,6 +133,7 @@ function asset(id: string, category: string, en: string, tags: string[]) {
     sha256: 'a'.repeat(64),
     dimensions: { x: 1.2, y: 0.144, z: 0.8 },
     bounds: { min: { x: -0.6, y: 0, z: -0.4 }, max: { x: 0.6, y: 0.144, z: 0.4 } },
+    contactMaterial: 'wood',
     source: { dataset: 'codepawl/simready-glb', revision: 'abc', name: file[2] },
     license: {
       id: 'CC-BY-4.0',

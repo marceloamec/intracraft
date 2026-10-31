@@ -44,6 +44,7 @@
         "density": 700,
         "materials": ["wood"]
       },
+      "contactMaterial": "wood",
       "source": {
         "dataset": "codepawl/simready-glb",
         "revision": "e52172290393dde80e8d383861db94b8d0e92ec3",
@@ -98,6 +99,7 @@
         "density": 700,
         "materials": ["wood"]
       },
+      "contactMaterial": "wood",
       "source": {
         "dataset": "codepawl/simready-glb",
         "revision": "e52172290393dde80e8d383861db94b8d0e92ec3",
@@ -152,6 +154,7 @@
         "density": 700,
         "materials": ["metal", "wood"]
       },
+      "contactMaterial": "wood",
       "source": {
         "dataset": "codepawl/simready-glb",
         "revision": "e52172290393dde80e8d383861db94b8d0e92ec3",
@@ -205,6 +208,7 @@
         },
         "materials": ["metal", "wood"]
       },
+      "contactMaterial": "wood",
       "source": {
         "dataset": "codepawl/simready-glb",
         "revision": "e52172290393dde80e8d383861db94b8d0e92ec3",
@@ -259,6 +263,7 @@
         "density": 950,
         "materials": ["plastic"]
       },
+      "contactMaterial": "plastic",
       "source": {
         "dataset": "codepawl/simready-glb",
         "revision": "e52172290393dde80e8d383861db94b8d0e92ec3",
@@ -313,6 +318,7 @@
         "density": 8000,
         "materials": ["metal"]
       },
+      "contactMaterial": "steel-painted",
       "source": {
         "dataset": "codepawl/simready-glb",
         "revision": "e52172290393dde80e8d383861db94b8d0e92ec3",
@@ -367,6 +373,7 @@
         "density": 900,
         "materials": ["cardboard", "metal", "nylon", "wood"]
       },
+      "contactMaterial": "cardboard",
       "source": {
         "dataset": "codepawl/simready-glb",
         "revision": "e52172290393dde80e8d383861db94b8d0e92ec3",
@@ -421,6 +428,7 @@
         "density": 700,
         "materials": ["metal", "wood"]
       },
+      "contactMaterial": "wood",
       "source": {
         "dataset": "codepawl/simready-glb",
         "revision": "e52172290393dde80e8d383861db94b8d0e92ec3",
@@ -475,6 +483,7 @@
         "density": 950,
         "materials": ["plastic"]
       },
+      "contactMaterial": "plastic",
       "source": {
         "dataset": "codepawl/simready-glb",
         "revision": "e52172290393dde80e8d383861db94b8d0e92ec3",
@@ -529,6 +538,7 @@
         "density": 7800,
         "materials": ["cardboard", "metal", "paper", "wood"]
       },
+      "contactMaterial": "cardboard",
       "source": {
         "dataset": "codepawl/simready-glb",
         "revision": "e52172290393dde80e8d383861db94b8d0e92ec3",
@@ -583,6 +593,7 @@
         "density": 689,
         "materials": ["cardboard"]
       },
+      "contactMaterial": "cardboard",
       "source": {
         "dataset": "codepawl/simready-glb",
         "revision": "e52172290393dde80e8d383861db94b8d0e92ec3",
@@ -637,6 +648,7 @@
         "density": 689,
         "materials": ["cardboard"]
       },
+      "contactMaterial": "cardboard",
       "source": {
         "dataset": "codepawl/simready-glb",
         "revision": "e52172290393dde80e8d383861db94b8d0e92ec3",
@@ -691,6 +703,7 @@
         "density": 689,
         "materials": ["cardboard", "metal", "paper", "plastic", "wood"]
       },
+      "contactMaterial": "cardboard",
       "source": {
         "dataset": "codepawl/simready-glb",
         "revision": "e52172290393dde80e8d383861db94b8d0e92ec3",
@@ -745,6 +758,7 @@
         "density": 689,
         "materials": ["cardboard"]
       },
+      "contactMaterial": "cardboard",
       "source": {
         "dataset": "codepawl/simready-glb",
         "revision": "e52172290393dde80e8d383861db94b8d0e92ec3",
@@ -799,6 +813,7 @@
         "density": 689,
         "materials": ["cardboard"]
       },
+      "contactMaterial": "cardboard",
       "source": {
         "dataset": "codepawl/simready-glb",
         "revision": "e52172290393dde80e8d383861db94b8d0e92ec3",
@@ -853,6 +868,7 @@
         "density": 689,
         "materials": ["cardboard", "paper"]
       },
+      "contactMaterial": "cardboard",
       "source": {
         "dataset": "codepawl/simready-glb",
         "revision": "e52172290393dde80e8d383861db94b8d0e92ec3",
@@ -907,6 +923,7 @@
         "density": 689,
         "materials": ["cardboard", "paper"]
       },
+      "contactMaterial": "cardboard",
       "source": {
         "dataset": "codepawl/simready-glb",
         "revision": "e52172290393dde80e8d383861db94b8d0e92ec3",
@@ -961,6 +978,7 @@
         "density": 950,
         "materials": ["plastic"]
       },
+      "contactMaterial": "plastic",
       "source": {
         "dataset": "codepawl/simready-glb",
         "revision": "e52172290393dde80e8d383861db94b8d0e92ec3",
@@ -1015,6 +1033,7 @@
         "density": 950,
         "materials": ["plastic"]
       },
+      "contactMaterial": "plastic",
       "source": {
         "dataset": "codepawl/simready-glb",
         "revision": "e52172290393dde80e8d383861db94b8d0e92ec3",
@@ -1069,6 +1088,7 @@
         "density": 950,
         "materials": ["plastic"]
       },
+      "contactMaterial": "plastic",
       "source": {
         "dataset": "codepawl/simready-glb",
         "revision": "e52172290393dde80e8d383861db94b8d0e92ec3",
@@ -1123,6 +1143,7 @@
         "density": 8000,
         "materials": ["metal", "wood"]
       },
+      "contactMaterial": "wood",
       "source": {
         "dataset": "codepawl/simready-glb",
         "revision": "e52172290393dde80e8d383861db94b8d0e92ec3",
@@ -1177,6 +1198,7 @@
         "density": 900,
         "materials": ["plastic"]
       },
+      "contactMaterial": "plastic",
       "source": {
         "dataset": "codepawl/simready-glb",
         "revision": "e52172290393dde80e8d383861db94b8d0e92ec3",
@@ -1231,6 +1253,7 @@
         "density": 950,
         "materials": ["plastic"]
       },
+      "contactMaterial": "plastic",
       "source": {
         "dataset": "codepawl/simready-glb",
         "revision": "e52172290393dde80e8d383861db94b8d0e92ec3",
@@ -1285,6 +1308,7 @@
         "density": 950,
         "materials": ["metal", "plastic"]
       },
+      "contactMaterial": "steel-painted",
       "source": {
         "dataset": "codepawl/simready-glb",
         "revision": "e52172290393dde80e8d383861db94b8d0e92ec3",
@@ -1339,6 +1363,7 @@
         "density": 8000,
         "materials": ["metal"]
       },
+      "contactMaterial": "steel-painted",
       "source": {
         "dataset": "codepawl/simready-glb",
         "revision": "e52172290393dde80e8d383861db94b8d0e92ec3",
@@ -1393,6 +1418,7 @@
         "density": 900,
         "materials": ["plastic"]
       },
+      "contactMaterial": "plastic",
       "source": {
         "dataset": "codepawl/simready-glb",
         "revision": "e52172290393dde80e8d383861db94b8d0e92ec3",
@@ -1447,6 +1473,7 @@
         "density": 689,
         "materials": ["cardboard", "metal"]
       },
+      "contactMaterial": "steel-painted",
       "source": {
         "dataset": "codepawl/simready-glb",
         "revision": "e52172290393dde80e8d383861db94b8d0e92ec3",
@@ -1501,6 +1528,7 @@
         "density": 950,
         "materials": ["metal", "plastic"]
       },
+      "contactMaterial": "plastic",
       "source": {
         "dataset": "codepawl/simready-glb",
         "revision": "e52172290393dde80e8d383861db94b8d0e92ec3",
@@ -1555,6 +1583,7 @@
         "density": 8000,
         "materials": ["metal"]
       },
+      "contactMaterial": "steel-painted",
       "source": {
         "dataset": "codepawl/simready-glb",
         "revision": "e52172290393dde80e8d383861db94b8d0e92ec3",
@@ -1609,6 +1638,7 @@
         "density": 8000,
         "materials": ["metal"]
       },
+      "contactMaterial": "steel-painted",
       "source": {
         "dataset": "codepawl/simready-glb",
         "revision": "e52172290393dde80e8d383861db94b8d0e92ec3",
@@ -1663,6 +1693,7 @@
         "density": 8000,
         "materials": ["metal", "wood"]
       },
+      "contactMaterial": "steel-painted",
       "source": {
         "dataset": "codepawl/simready-glb",
         "revision": "e52172290393dde80e8d383861db94b8d0e92ec3",
@@ -1717,6 +1748,7 @@
         "density": 7800,
         "materials": ["metal"]
       },
+      "contactMaterial": "steel-painted",
       "source": {
         "dataset": "codepawl/simready-glb",
         "revision": "e52172290393dde80e8d383861db94b8d0e92ec3",
@@ -1771,6 +1803,7 @@
         "density": 7800,
         "materials": ["metal"]
       },
+      "contactMaterial": "steel-painted",
       "source": {
         "dataset": "codepawl/simready-glb",
         "revision": "e52172290393dde80e8d383861db94b8d0e92ec3",
@@ -1825,6 +1858,7 @@
         "density": 7800,
         "materials": ["glass", "paper", "plastic"]
       },
+      "contactMaterial": "steel-painted",
       "source": {
         "dataset": "codepawl/simready-glb",
         "revision": "e52172290393dde80e8d383861db94b8d0e92ec3",
@@ -1879,6 +1913,7 @@
         "density": 950,
         "materials": ["glass", "metal", "paper", "plastic", "rubber"]
       },
+      "contactMaterial": "plastic",
       "source": {
         "dataset": "codepawl/simready-glb",
         "revision": "e52172290393dde80e8d383861db94b8d0e92ec3",
@@ -1933,6 +1968,7 @@
         "density": 1200,
         "materials": ["paper", "rubber"]
       },
+      "contactMaterial": "rubber",
       "source": {
         "dataset": "codepawl/simready-glb",
         "revision": "e52172290393dde80e8d383861db94b8d0e92ec3",
@@ -1987,6 +2023,7 @@
         "density": 1200,
         "materials": ["paper", "rubber"]
       },
+      "contactMaterial": "rubber",
       "source": {
         "dataset": "codepawl/simready-glb",
         "revision": "e52172290393dde80e8d383861db94b8d0e92ec3",
@@ -2041,6 +2078,7 @@
         "density": 900,
         "materials": ["metal", "paper", "plastic", "rubber"]
       },
+      "contactMaterial": "plastic",
       "source": {
         "dataset": "codepawl/simready-glb",
         "revision": "e52172290393dde80e8d383861db94b8d0e92ec3",
@@ -2095,6 +2133,7 @@
         "density": 950,
         "materials": ["metal", "paper", "plastic", "rubber"]
       },
+      "contactMaterial": "steel-painted",
       "source": {
         "dataset": "codepawl/simready-glb",
         "revision": "e52172290393dde80e8d383861db94b8d0e92ec3",
@@ -2149,6 +2188,7 @@
         "density": 7800,
         "materials": ["metal"]
       },
+      "contactMaterial": "steel-painted",
       "source": {
         "dataset": "codepawl/simready-glb",
         "revision": "e52172290393dde80e8d383861db94b8d0e92ec3",
@@ -2203,6 +2243,7 @@
         "density": 200,
         "materials": ["metal", "rubber"]
       },
+      "contactMaterial": "steel-painted",
       "source": {
         "dataset": "codepawl/simready-glb",
         "revision": "e52172290393dde80e8d383861db94b8d0e92ec3",
@@ -2257,6 +2298,7 @@
         "density": 900,
         "materials": ["metal", "plastic"]
       },
+      "contactMaterial": "steel-painted",
       "source": {
         "dataset": "codepawl/simready-glb",
         "revision": "e52172290393dde80e8d383861db94b8d0e92ec3",
@@ -2311,6 +2353,7 @@
         "density": 7850,
         "materials": ["metal"]
       },
+      "contactMaterial": "steel-painted",
       "source": {
         "dataset": "codepawl/simready-glb",
         "revision": "e52172290393dde80e8d383861db94b8d0e92ec3",

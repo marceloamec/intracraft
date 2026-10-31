@@ -49,6 +49,8 @@ export const assetSchema = z.object({
   /** Bounding box in model coordinates (m): where the model sits relative to its origin. */
   bounds: z.object({ min: vec3Schema, max: vec3Schema }),
   physics: assetPhysicsSchema.optional(),
+  /** Contact material (S16 id) of the model's largest collision piece ([[S16 Contact Materials]] §2.1). */
+  contactMaterial: z.string().min(1),
   source: z.object({
     dataset: z.string().min(1),
     /** Dataset commit the file was taken from, so the download stays reproducible. */

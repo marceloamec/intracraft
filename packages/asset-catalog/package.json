@@ -5,7 +5,8 @@
   "description": "Catalogue of third-party 3D models (GLB) for scenery and loads; queries and manifest.",
   "type": "module",
   "exports": {
-    ".": "./src/index.ts"
+    ".": "./src/index.ts",
+    "./colliders": "./src/colliders.ts"
   },
   "dependencies": {
     "@intracraft/core-model": "workspace:*",

@@ -2,13 +2,13 @@
 title: ADR-0017 Scenery Assets in the Layout and Live Spawn
 lang: en
 tags: [decision, physics, assets, layout, commands]
-status: proposed
+status: accepted
 date: 2026-10-31
 ---
 
 # ADR-0017 Scenery Assets in the Layout and Live Spawn
 
-- **Status:** Proposed on 2026-10-31, after the owner chose the options below (placement in the layout and live, convex hulls from the model, pallet model plus catalogue load in the source).
+- **Status:** Accepted on 2026-10-31 (owner confirmed S17 and the S09/S16 amendments). The owner chose the options below (placement in the layout and live, convex hulls from the model, pallet model plus catalogue load in the source).
 - **Date:** 2026-10-31
 
 ## Context
@@ -23,7 +23,12 @@ The asset catalogue ([[A16 Asset Catalog]], [[ADR-0005 3D Asset Sources]]) holds
 ## Decision
 
 1. **Scenery is a registered definition**, `scenery.asset` ([[S17 Scenery Asset]]), built in `createBuiltInRegistry()` from the catalogue (its `asset` options are the catalogue ids, with their names as option labels). No `schemaVersion` change: add, move, set parameters, remove, undo, load and the command log work unchanged. The definition schema gains a `scenery` category and optional `optionLabels`.
-2. **Collision shapes are convex hulls taken from the model's own collider declarations** (`KHR_physics_rigid_bodies.collider`, one per node). The catalogue script decodes the binary chunk (`EXT_meshopt_compression`, `KHR_mesh_quantization`), moves each collider's vertices into the model frame, builds its convex hull and keeps at most 64 corners. The hulls are stored in `packages/asset-catalog/src/colliders.json` (in git, derived data under CC BY 4.0) so tests and the physics world do not need the downloaded models. Development-only dependencies for the script: `meshoptimizer` and `quickhull3d` (both MIT).
+2. **Collision shapes are convex pieces derived from the model's own collider meshes** (`KHR_physics_rigid_bodies.collider`). Most models declare one collider for the whole object (a rack, a fence, a pallet), whose hull would be a solid block, so the catalogue script (`scripts/lib/colliders.mjs`):
+   - decodes the binary chunk (`EXT_meshopt_compression`, `KHR_mesh_quantization`) and moves each collider mesh into the model frame;
+   - splits it into its **connected parts** (vertices welded within 0.5 mm): every beam, upright, board or panel becomes a piece, so the openings between them stay open;
+   - drops parts smaller than 20 mm (bolts, labels) and keeps the 48 parts with the largest face area;
+   - keeps, per part, its extreme points in 64 fixed directions (the six axes plus a Fibonacci sphere); flat parts get a thickness of 5 mm. The physics engine builds the convex hull of those points.
+   The pieces are stored in `packages/asset-catalog/src/colliders.json` (≈ 0.5 MB, in git, derived data under CC BY 4.0, millimetres) so tests and the physics world do not need the downloaded models. Development-only dependency for the script: `meshoptimizer` 1.3.0 (MIT). A hull library (`quickhull3d`) was tried and dropped: its published build does not load in Node, and Jolt already builds hulls.
 3. **Pallets on conveyors keep the MTBH construction** ([[ADR-0015 MTBH Rigid Body from Pallet and Load Models]]): a hull would fill the gaps between bottom boards that the photocells and the rollers must see. Free-standing pallets placed as scenery use their hulls; they are scenery, not flow items.
 4. **Materials.** One contact material per model: the SimReady family of its largest collision piece, mapped to S16 (§2.1 there). New material `cardboard`. The pair table now covers all 55 pairs of the ten materials; the rule "missing pair = error" stays.
 5. **Sleeping.** Dynamic scenery bodies may sleep when still (`BodyDesc.allowSleep`). Pallets and every existing body keep `allowSleep = false`, so existing results do not change.
@@ -53,7 +58,7 @@ Sources: [Engineering ToolBox, friction coefficients](https://engineeringtoolbox
 ## Consequences
 
 - Any catalogue model can be placed and simulated; new models need only `node scripts/build-catalog.mjs`.
-- Collision is coarser than the drawing where a model declares few pieces (each piece is filled).
+- Collision is coarser than the drawing inside each piece (a piece is filled; an open crate is a solid block) and where small parts were dropped.
 - The source can create objects that are not pallets; sizes along travel come from the models in both modes, so 2D and 3D stay comparable.
 - Live objects do not appear in the project file or in 2D results.
 
