@@ -34,7 +34,7 @@ export default tseslint.config(
   },
   {
     // Command-line scripts report to the terminal.
-    files: ['**/*.test.ts', 'scripts/**'],
+    files: ['**/*.test.ts', 'scripts/**', 'spikes/**/*.mjs'],
     rules: { 'no-console': 'off' },
   },
 );

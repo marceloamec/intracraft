@@ -50,6 +50,7 @@ intracraft/
 ├─ apps/
 │  ├─ editor/             (React + react-three-fiber; web local, Tauri más adelante)
 │  └─ cli/                (ejecución de escenarios sin interfaz)
+├─ spikes/               (pruebas técnicas desechables; r5b-viewer: visores 3D en Rust, ADR-0019)
 └─ test_data/             (resultados guardados y datos de prueba)
 ```
 

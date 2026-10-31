@@ -27,7 +27,7 @@ The platform already has, from BIMCraft: an egui desktop (`eframe` 0.36) with it
 
 | Engine           | Version                                                                    | Licence    | Architecture                                   | Physics                                                   | UI                                  | Editor                    |
 | ---------------- | -------------------------------------------------------------------------- | ---------- | ---------------------------------------------- | --------------------------------------------------------- | ----------------------------------- | ------------------------- |
-| **Bevy**         | 0.19 (June 2026); breaking release about every 3 months                    | MIT/Apache | Pure ECS, data-oriented, parallel systems      | `bevy_rapier3d` 0.33 or Avian 0.5 (plugins)               | `bevy_egui` 0.42 (egui inside Bevy) | None official; code-first |
+| **Bevy**         | 0.20 (October 2026; 0.19 in June); breaking release about every 3 months   | MIT/Apache | Pure ECS, data-oriented, parallel systems      | `bevy_rapier3d` 0.33 or Avian 0.5 (plugins)               | `bevy_egui` 0.43 (egui inside Bevy) | None official; code-first |
 | **Fyrox**        | 1.0 stable (March 2026); new features on hold for a few months             | MIT        | Scene graph of nodes                           | Rapier built in                                           | Own `fyrox-ui` (not egui)           | Full native editor        |
 | **Godot + Rust** | Godot 4.x (C++); `godot-rust` gdext 0.5 (2026), breaking from time to time | MIT        | Node tree in C++, Rust through GDExtension FFI | Jolt built in (default for new projects planned from 4.6) | Godot's own UI                      | Godot editor              |
 
@@ -60,6 +60,36 @@ Scores 1 (poor) to 5 (good) for **this** product, not for games in general.
    - If the BIMCraft view reaches 60 fps and loads the GLB models with little work, **stay without a game engine** (fewer dependencies, one process). Otherwise adopt the Bevy viewer.
 6. **Version pinning.** If adopted, Bevy is pinned to one release and upgraded at most twice a year, in its own pull request, following the version rules of [[ADR-0001 Toolchain and Versions]].
 
+## Spike R5b: protocol and results
+
+Code: `spikes/r5b-viewer/` (a throw-away Cargo workspace, outside pnpm). Windows build: workflow `.github/workflows/r5b-viewer.yml`, artifact `r5b-viewer-windows`.
+
+**Scene** (crate `r5b-scene`, shared by both viewers): a closed loop of 20 roller conveyors (8 + 2 + 8 + 2, 100 rollers each at 206.3 mm pitch), 2 000 rollers spinning at ω = v / r, 200 EUR pallets with a 1 m load block moving at 0.5 m/s. Every frame each viewer takes a fresh snapshot and rewrites all 2 400 poses, as the 3D run's viewer will. The camera circles the loop once during the measurement. Both draw a 1 600 × 900 px 3D picture with a 45° field of view.
+
+**Viewers:**
+
+| Viewer            | Stack                                                                 | Drawing                                                                                                                                                                                                |
+| ----------------- | --------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| `r5b-viewer-egui` | eframe / egui-wgpu 0.36.2 (BIMCraft's versions), `gltf` 1.4.1, `glam` | BIMCraft's pattern (own pipeline into an offscreen target shown as an egui texture) plus instancing; one sun, no shadows, no anti-aliasing, no textures (a material's picture becomes its mean colour) |
+| `r5b-viewer-bevy` | Bevy 0.20.0, `bevy_egui` 0.43.0                                       | Bevy defaults: PBR, cascaded shadows, tonemapping, 4× MSAA; the catalogue GLB through Bevy's own loader                                                                                                |
+
+**Measurement:** `--bench 30` per viewer, vsync off, the first 30 frames left out; result in `result-<viewer>.json`; `r5b-report` writes `resultados.txt` for the owner. Decision rule: the BIMCraft-style view must hold a mean of 60 frames/s and 45 frames/s in its slowest 5 % of frames; else Bevy if it does; a software adapter (WARP, llvmpipe) invalidates the run.
+
+**Measured in the cloud container (2026-10-31, 4 cores, no graphics card):**
+
+| Item                                         | BIMCraft-style (egui + wgpu) | Bevy                   |
+| -------------------------------------------- | ---------------------------- | ---------------------- |
+| Code lines of the viewer (no tests/comments) | 672 (GLB reading: 68)        | 286 (GLB reading: ~10) |
+| What the code does not have                  | Shadows, textures, MSAA, PBR | —                      |
+| Crates in the Windows build                  | 152                          | 359                    |
+| Release build from clean (4 cores)           | pending                      | pending                |
+| Release binary size (Linux)                  | pending                      | pending                |
+| Smoke run on llvmpipe (software; not valid)  | 33 frames/s                  | 7 frames/s             |
+
+The software numbers only show that both viewers run and finish the measurement; with shadows and MSAA Bevy does far more work per frame, which a processor pays for and a graphics card mostly does not.
+
+**On the owner's Windows laptop:** pending. To be recorded in ADR-0020 with the decision.
+
 ## Alternatives
 
 | Option                                         | Consequences                                                                                                             |
@@ -79,4 +109,4 @@ Scores 1 (poor) to 5 (good) for **this** product, not for games in general.
 ## Related
 
 - [[ADR-0018 Pivot to a Simulation Module on a Rust BIM Platform]] · [[A17 BIMCraft Integration Analysis]] · [[A18 Rust Implementation Plan]] · [[ADR-0002 Physics Engine Candidate]] · [[A16 Asset Catalog]]
-- Sources: [Bevy news (0.19)](https://bevy.org/news/) · [Bevy fixed timestep example](https://docs.rs/bevy/0.17.2/src/fixed_timestep/fixed_timestep.rs.html) · [Bevy `MinimalPlugins`](https://dev-docs.bevyengine.org/bevy/struct.MinimalPlugins.html) · [bevy_egui](https://crates.io/api/v1/crates/bevy_egui) · [Rapier with Bevy](https://rapier.rs/docs/user_guides/bevy_plugin/getting_started_bevy) · [Avian 3D](https://docs.rs/avian3d/latest/avian3d) · [Fyrox 1.0.0](https://fyrox.rs/blog/post/fyrox-game-engine-1-0-0/) · [Fyrox 1.0 (i-programmer)](https://www.i-programmer.info/news/144-graphics-and-games/19015-fyrox-game-engine-reaches-version-100.html) · [Fyrox README](https://docs.rs/crate/fyrox/0.24.0/source/README.md) · [godot-core releases](https://lib.rs/crates/godot-core) · [Godot: using Jolt Physics](https://docs.godotengine.org/en/stable/tutorials/physics/using_jolt_physics.html) · [Godot proposal: Jolt as default](https://github.com/godotengine/godot-proposals/issues/12289)
+- Sources: [Bevy news](https://bevy.org/news/) · [bevy 0.20.0 on crates.io](https://crates.io/crates/bevy/0.20.0) · [Bevy fixed timestep example](https://docs.rs/bevy/0.17.2/src/fixed_timestep/fixed_timestep.rs.html) · [Bevy `MinimalPlugins`](https://dev-docs.bevyengine.org/bevy/struct.MinimalPlugins.html) · [bevy_egui](https://crates.io/api/v1/crates/bevy_egui) · [Rapier with Bevy](https://rapier.rs/docs/user_guides/bevy_plugin/getting_started_bevy) · [Avian 3D](https://docs.rs/avian3d/latest/avian3d) · [Fyrox 1.0.0](https://fyrox.rs/blog/post/fyrox-game-engine-1-0-0/) · [Fyrox 1.0 (i-programmer)](https://www.i-programmer.info/news/144-graphics-and-games/19015-fyrox-game-engine-reaches-version-100.html) · [Fyrox README](https://docs.rs/crate/fyrox/0.24.0/source/README.md) · [godot-core releases](https://lib.rs/crates/godot-core) · [Godot: using Jolt Physics](https://docs.godotengine.org/en/stable/tutorials/physics/using_jolt_physics.html) · [Godot proposal: Jolt as default](https://github.com/godotengine/godot-proposals/issues/12289)

@@ -1,0 +1,66 @@
+# Spike R5b (ADR-0019): builds the two 3D viewers for Windows and packs them for the owner's laptop.
+name: R5b viewer spike
+
+on:
+  workflow_dispatch:
+  push:
+    paths:
+      - 'spikes/r5b-viewer/**'
+      - '.github/workflows/r5b-viewer.yml'
+
+jobs:
+  windows:
+    runs-on: windows-latest
+    defaults:
+      run:
+        working-directory: spikes/r5b-viewer
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version-file: .nvmrc
+      - name: Rust toolchain (from rust-toolchain.toml)
+        run: rustup show active-toolchain || rustup toolchain install
+      - uses: actions/cache@v4
+        with:
+          path: |
+            ~/.cargo/registry
+            ~/.cargo/git
+            spikes/r5b-viewer/target
+          key: r5b-${{ runner.os }}-${{ hashFiles('spikes/r5b-viewer/Cargo.lock', 'spikes/r5b-viewer/rust-toolchain.toml') }}
+          restore-keys: r5b-${{ runner.os }}-
+      - name: Catalogue pallet (CC BY 4.0)
+        continue-on-error: true
+        run: node fetch-pallet.mjs package
+      - run: cargo fmt --check
+      - run: cargo clippy --workspace --all-targets -- -D warnings
+      - name: Tests (with the catalogue pallet when it downloaded)
+        env:
+          R5B_GLB: ${{ github.workspace }}/spikes/r5b-viewer/package/pallet_a01.glb
+        run: cargo test --workspace
+      - name: Build
+        shell: bash
+        run: |
+          start=$(date +%s)
+          cargo build --release --workspace
+          echo "release build: $(( $(date +%s) - start )) s" | tee build-time.txt
+      - name: Smoke run on the runner's software renderer (numbers do not count)
+        continue-on-error: true
+        shell: bash
+        run: |
+          ./target/release/r5b-viewer-egui.exe --bench 5 --out smoke-egui.json
+          ./target/release/r5b-viewer-bevy.exe --bench 5 --out smoke-bevy.json
+          cat smoke-egui.json smoke-bevy.json
+      - name: Pack
+        shell: bash
+        run: |
+          mkdir -p dist/r5b-viewer
+          cp target/release/r5b-viewer-egui.exe target/release/r5b-viewer-bevy.exe target/release/r5b-report.exe dist/r5b-viewer/
+          cp package/ejecutar-prueba.bat package/LEEME.txt dist/r5b-viewer/
+          cp package/pallet_a01.glb dist/r5b-viewer/ 2>/dev/null || echo "no catalogue pallet: the viewers draw boxes"
+          ls -la dist/r5b-viewer
+      - uses: actions/upload-artifact@v4
+        with:
+          name: r5b-viewer-windows
+          path: spikes/r5b-viewer/dist/r5b-viewer
+          retention-days: 30

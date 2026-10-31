@@ -1,0 +1,31 @@
+# Spike R5b (ADR-0019): the same busy scene in a BIMCraft-style egui/wgpu viewer and in a Bevy viewer.
+# Throw-away code to measure frame rate and effort; not part of the product.
+[workspace]
+resolver = "3"
+members = ["scene", "viewer-egui", "viewer-bevy"]
+
+[workspace.package]
+version = "0.1.0"
+edition = "2024"
+license = "MIT OR Apache-2.0"
+publish = false
+
+[workspace.dependencies]
+r5b-scene = { path = "scene" }
+serde = { version = "1", features = ["derive"] }
+serde_json = "1"
+
+[workspace.lints.rust]
+unsafe_code = "forbid"
+
+[workspace.lints.clippy]
+unwrap_used = "deny"
+expect_used = "deny"
+panic = "deny"
+
+# Bevy is slow in debug builds; optimise dependencies even there.
+[profile.dev.package."*"]
+opt-level = 2
+
+[profile.release]
+codegen-units = 4

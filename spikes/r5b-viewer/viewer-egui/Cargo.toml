@@ -1,0 +1,18 @@
+[package]
+name = "r5b-viewer-egui"
+description = "Spike R5b: the benchmark scene drawn the BIMCraft way (eframe + egui-wgpu, an offscreen pass shown as an egui image)"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+publish.workspace = true
+
+[lints]
+workspace = true
+
+[dependencies]
+r5b-scene = { workspace = true }
+eframe = { version = "=0.36.2", default-features = false, features = ["wgpu", "default_fonts", "x11", "wayland"] }
+egui = "=0.36.2"
+bytemuck = { version = "1", features = ["derive"] }
+glam = { version = "0.30", features = ["bytemuck"] }
+gltf = { version = "=1.4.1", default-features = false, features = ["import", "utils"] }
