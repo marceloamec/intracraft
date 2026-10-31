@@ -173,6 +173,9 @@ importers:
 
   packages/sim-des:
     dependencies:
+      '@intracraft/asset-catalog':
+        specifier: workspace:*
+        version: link:../asset-catalog
       '@intracraft/control':
         specifier: workspace:*
         version: link:../control

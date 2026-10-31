@@ -11,9 +11,18 @@ import {
   num,
   resolvePorts,
 } from '@intracraft/library';
+import {
+  type LoadKind,
+  MODEL_MISMATCH,
+  type SourceItem,
+  palletModelMismatch,
+  sourceItem,
+} from './source-item';
 
 /** `behaviors.des` of definitions the 2D model ignores (scenery objects, S17). */
 export const NO_2D_BEHAVIOR = 'des.none';
+
+const LOAD_KINDS: readonly LoadKind[] = ['block', 'none', 'asset'];
 
 /** Behaviours of the 2D mode, keyed by the definition's `behaviors.des`. */
 const LINE_BEHAVIORS = new Set(['des.roller_conveyor', 'des.chain_conveyor']);
@@ -62,6 +71,8 @@ export interface SourceNode extends NodeBase {
   orientation: 'long' | 'short';
   loadMass: number;
   loadHeight: number;
+  /** What it creates and its sizes (S09 §1.1). */
+  item: SourceItem;
   generationMode: 'fixedInterval' | 'exponential';
   interval: number;
   maxPallets: number;
@@ -346,10 +357,37 @@ function createNode(
   if (behavior === 'des.source') {
     const palletType = PALLET_TYPES.find((p) => p.id === params['palletType']) ?? PALLET_TYPES[0];
     if (palletType === undefined) throw new Error('The library has no pallet types');
+    const choice = {
+      palletModel: String(params['palletModel'] ?? 'auto'),
+      loadKind: LOAD_KINDS.find((k) => k === params['loadKind']) ?? 'block',
+      loadAsset: String(params['loadAsset'] ?? ''),
+      loadHeight: num(params, 'loadHeight', 0),
+    };
+    const { nothing, ...item } = sourceItem(palletType, choice);
+    if (nothing) {
+      issues.push(
+        issue(
+          base,
+          'sourceCreatesNothing',
+          'has neither pallet nor load; it sends an empty pallet of its type',
+        ),
+      );
+    }
+    const mismatch = palletModelMismatch(palletType, item.palletModel);
+    if (mismatch > MODEL_MISMATCH) {
+      issues.push(
+        issue(
+          base,
+          'palletModelMismatch',
+          `the pallet model differs by ${round(mismatch * MM)} mm from the ${palletType.id} footprint`,
+        ),
+      );
+    }
     return {
       ...base,
       kind: 'source',
       palletType,
+      item,
       orientation: params['orientation'] === 'short' ? 'short' : 'long',
       loadMass: num(params, 'loadMass', 0),
       loadHeight: num(params, 'loadHeight', 0),

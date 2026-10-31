@@ -8,6 +8,7 @@
     ".": "./src/index.ts"
   },
   "dependencies": {
+    "@intracraft/asset-catalog": "workspace:*",
     "@intracraft/control": "workspace:*",
     "@intracraft/core-model": "workspace:*",
     "@intracraft/library": "workspace:*"

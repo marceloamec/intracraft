@@ -38,7 +38,8 @@ Definitions: `flow.source` (`source.json`) and `flow.sink` (`sink.json`). Implem
 - **`loadKind`.** `block` keeps today's uniform block of `loadMass` and `loadHeight`. `none` sends the pallet empty. `asset` puts one catalogue object (`loadAsset`) centred on the pallet: its shape is the model's convex pieces ([[S17 Scenery Asset]] §2), its mass is `loadMass` (the catalogue mass describes empty packaging), its centre of mass is the model's, scaled. The load is rigidly joined to the pallet, as the block is today.
 - **Sizes.** Length and width along travel come from the larger of pallet and load footprints, in 2D and 3D alike, so both modes see the same object. Height for the photocells: the pallet profile up to the pallet height, the load as a solid above it.
 - **Warning `palletModelMismatch`** when the model footprint differs by more than 50 mm from the `palletType` footprint.
-- `palletModel` = none with `loadKind` = none is rejected: the source would create nothing.
+- `palletModel` = none with `loadKind` = none would create nothing: the source warns (`sourceCreatesNothing`) and sends an empty pallet of its type.
+- A load block without a pallet travels as a carton stack (contact material `cardboard`). With a pallet, the block keeps the pallet footprint as before; a catalogue load may overhang it, and then the footprint is the larger one.
 
 ## 2. Sink
 

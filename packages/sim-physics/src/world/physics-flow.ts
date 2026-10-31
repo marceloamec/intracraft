@@ -55,7 +55,7 @@ import {
   SEPARATOR_OPEN_Y,
   SEPARATOR_THICKNESS,
 } from './gravity';
-import { type WorldPallet, sourceMtbh } from './pallet-body';
+import { type PalletLook, type WorldPallet, sourceMtbh } from './pallet-body';
 import { PLACEMENTS, type Placement, type SceneryObject, sceneryBody } from './scenery-body';
 import { type SensorEdge, Sensor3D } from './sensor';
 import { Station3D } from './station';
@@ -98,6 +98,8 @@ export interface PhysicsFlowOptions {
  */
 export interface PhysicsSnapshot extends FlowSnapshot {
   poses: Record<number, Pose>;
+  /** Catalogue models to draw for each pallet (S09 §1.1); pallets without one are drawn as boxes. */
+  looks: Record<number, PalletLook>;
   objects: Record<string, Pose>;
 }
 
@@ -331,6 +333,7 @@ export class PhysicsFlowSimulation {
   snapshot(): PhysicsSnapshot {
     const pallets: PalletView[] = [];
     const poses: Record<number, Pose> = {};
+    const looks: Record<number, PalletLook> = {};
     for (const pallet of this.pallets.values()) {
       const carrier = this.decks.get(pallet.carrier) ?? this.stations.get(pallet.carrier)?.deck;
       const gravity = this.gravityLines.get(pallet.carrier);
@@ -352,6 +355,8 @@ export class PhysicsFlowSimulation {
         loadHeight: pallet.loadHeight,
       });
       poses[pallet.id] = pallet.pose;
+      if (pallet.look.pallet !== undefined || pallet.look.load !== undefined)
+        looks[pallet.id] = pallet.look;
     }
     const status: Record<string, ObjectStatus> = {};
     for (const line of this.lines) status[line.spec.id] = line.status;
@@ -378,6 +383,7 @@ export class PhysicsFlowSimulation {
       angles: {},
       heights,
       poses,
+      looks,
       objects,
     };
   }
@@ -801,8 +807,8 @@ export class PhysicsFlowSimulation {
         this.signals.get(`${logic.node.id}.enable`) === false
       )
         continue;
-      const { palletType, orientation } = logic.node;
-      const length = orientation === 'long' ? palletType.length : palletType.width;
+      const { item, orientation } = logic.node;
+      const length = orientation === 'long' ? item.long : item.short;
       const accepts =
         entry.station === undefined || entry.station.canReceive(logic.node.downstreamPort);
       if (accepts && this.canEnter(entry.deck, length + entry.deck.spec.minGap)) {
@@ -821,7 +827,7 @@ export class PhysicsFlowSimulation {
   /** A new pallet at rest on the entry deck, its rear at the entry end, aligned with travel (S09 §3D). */
   private spawn(node: SourceNode, deck: Deck, length: number, now: SimTime): void {
     const mtbh = sourceMtbh(node);
-    const { palletType, orientation } = node;
+    const { palletType, orientation, item } = node;
     const travel = length / 2;
     const x = deck.direction > 0 ? travel : deck.spec.length - travel;
     const pose: Pose = {
@@ -844,15 +850,16 @@ export class PhysicsFlowSimulation {
       typeId: palletType.id,
       along: orientation,
       length,
-      width: orientation === 'long' ? palletType.width : palletType.length,
-      height: palletType.height,
+      width: orientation === 'long' ? item.short : item.long,
+      height: item.palletHeight,
       loadMass: node.loadMass,
-      loadHeight: node.loadHeight,
+      loadHeight: item.loadHeight,
       createdAt: now,
       enteredAt: now,
       front: length,
       body,
       mtbh,
+      look: mtbh.look,
       carrier: this.stationOf.get(deck)?.id ?? deck.spec.id,
       pose,
       velocity: { linear: velocity, angular: ZERO },

@@ -5,6 +5,8 @@ import type { Vec3 } from '@intracraft/core-model';
 import type { MassProperties, Shape } from './backend';
 import { solidBoxInertia } from './mechanics';
 
+const ZERO: Vec3 = { x: 0, y: 0, z: 0 };
+
 export interface ModelBox {
   min: Vec3;
   max: Vec3;
@@ -36,19 +38,36 @@ export interface PalletConstruction {
   layers: PalletLayer[];
 }
 
+/** A uniform load block above the pallet. */
+export interface BlockLoad {
+  mass: number;
+  /**
+   * Bounds of the loaded model (model coordinates, same origin as the pallet model). The load is
+   * the block above the pallet; it is treated as uniform because the models' own mass is that of
+   * empty packaging.
+   */
+  bounds: ModelBox;
+  /** Shift of the load's centre of mass from the centre of its block (body axes, m). */
+  centerOffset: Vec3;
+}
+
+/**
+ * A catalogue object standing centred on the pallet, long side along the pallet length (S09 §1.1,
+ * ADR-0017): its convex pieces, its centre of mass, its inertia scaled to `mass`.
+ */
+export interface ModelLoad {
+  mass: number;
+  model: ModelPhysics;
+  /** Convex pieces in model coordinates. */
+  hulls: Vec3[][];
+}
+
 export interface MtbhSpec {
-  pallet: ModelPhysics & { construction: PalletConstruction; material: string };
-  load?: {
-    mass: number;
-    /**
-     * Bounds of the loaded model (model coordinates, same origin as the pallet model). The load is
-     * the block above the pallet; it is treated as uniform because the models' own mass is that of
-     * empty packaging.
-     */
-    bounds: ModelBox;
-    /** Shift of the load's centre of mass from the centre of its block (body axes, m). */
-    centerOffset: Vec3;
-  };
+  /** Absent: the load travels alone. */
+  pallet?: ModelPhysics & { construction: PalletConstruction; material: string };
+  load?: BlockLoad | ModelLoad;
+  /** Contact material when there is no pallet. */
+  material?: string;
 }
 
 /** Where a model sits in the body frame: body = rotate about Y by `yaw` (quarter turns) + translation. */
@@ -62,8 +81,11 @@ export interface Mtbh {
   /** Inertia products are neglected: the load offset only shifts the centre of mass (ADR-0015). */
   massProperties: MassProperties;
   material: string;
+  /** Where the pallet model sits (the load model when there is no pallet). */
   placement: ModelPlacement;
-  /** Pallet size along the body axes (m). */
+  /** Where a catalogue load model sits. */
+  loadPlacement?: ModelPlacement;
+  /** Footprint along the body axes: the larger of pallet and load (m). */
   length: number;
   width: number;
   /** Total height including the load (m). */
@@ -100,19 +122,42 @@ export function palletConstruction(type: {
   return { length: type.length, width: type.width, height: type.height, layers };
 }
 
-export function buildMtbh({ pallet, load }: MtbhSpec): Mtbh {
-  const placement = palletPlacement(pallet.bounds);
-  const palletSize = sizeOf(placeBox(pallet.bounds, placement));
-  const shapes: Shape[] = palletShapes(pallet.construction, palletSize);
-  const parts = [
-    {
+export function buildMtbh({ pallet, load, material }: MtbhSpec): Mtbh {
+  const shapes: Shape[] = [];
+  const parts: MassProperties[] = [];
+  let placement: ModelPlacement = { yaw: 0, translation: ZERO };
+  let palletSize = ZERO;
+  if (pallet !== undefined) {
+    placement = palletPlacement(pallet.bounds);
+    palletSize = sizeOf(placeBox(pallet.bounds, placement));
+    shapes.push(...palletShapes(pallet.construction, palletSize));
+    parts.push({
       mass: pallet.mass,
       centerOfMass: placePoint(pallet.centerOfMass, placement),
       inertia: placeInertia(pallet.inertia, placement),
-    },
-  ];
+    });
+  }
+  let footprint = { x: palletSize.x, z: palletSize.z };
   let height = palletSize.y;
-  if (load !== undefined) {
+  let loadPlacement: ModelPlacement | undefined;
+  if (load !== undefined && 'model' in load) {
+    loadPlacement = modelLoadPlacement(load.model.bounds, palletSize.y);
+    const box = placeBox(load.model.bounds, loadPlacement);
+    const place = loadPlacement;
+    for (const hull of load.hulls) {
+      shapes.push({ kind: 'hull', points: hull.map((p) => placePoint(p, place)), offset: ZERO });
+    }
+    parts.push({
+      mass: load.mass,
+      centerOfMass: placePoint(load.model.centerOfMass, loadPlacement),
+      inertia: scale(placeInertia(load.model.inertia, loadPlacement), load.mass / load.model.mass),
+    });
+    footprint = {
+      x: Math.max(footprint.x, sizeOf(box).x),
+      z: Math.max(footprint.z, sizeOf(box).z),
+    };
+    height = box.max.y;
+  } else if (load !== undefined) {
     const block = placeBox(load.bounds, placement);
     block.min.y = palletSize.y;
     const size = sizeOf(block);
@@ -127,15 +172,22 @@ export function buildMtbh({ pallet, load }: MtbhSpec): Mtbh {
       },
       inertia: solidBoxInertia(load.mass, size),
     });
+    // A block keeps the pallet footprint (ADR-0015); without a pallet it is the footprint.
+    if (pallet === undefined) footprint = { x: size.x, z: size.z };
     height = block.max.y;
+  }
+  const bodyMaterial = pallet?.material ?? material;
+  if (bodyMaterial === undefined || parts.length === 0) {
+    throw new Error('An MTBH needs a pallet, or a load and a contact material');
   }
   return {
     shapes,
     massProperties: combineMassProperties(parts),
-    material: pallet.material,
-    placement,
-    length: palletSize.x,
-    width: palletSize.z,
+    material: bodyMaterial,
+    placement: pallet === undefined ? (loadPlacement ?? placement) : placement,
+    ...(loadPlacement === undefined ? {} : { loadPlacement }),
+    length: footprint.x,
+    width: footprint.z,
     height,
   };
 }
@@ -170,6 +222,15 @@ function palletPlacement(bounds: ModelBox): ModelPlacement {
     yaw: longAlongZ ? Math.PI / 2 : 0,
     translation: { x: -center.x, y: -rotated.min.y, z: -center.z },
   };
+}
+
+/** A load model turned long side along X, centred on the footprint, its underside at `top`. */
+function modelLoadPlacement(bounds: ModelBox, top: number): ModelPlacement {
+  const longAlongZ = bounds.max.z - bounds.min.z > bounds.max.x - bounds.min.x;
+  const yaw = longAlongZ ? Math.PI / 2 : 0;
+  const rotated = placeBox(bounds, { yaw, translation: ZERO });
+  const center = centerOf(rotated);
+  return { yaw, translation: { x: -center.x, y: top - rotated.min.y, z: -center.z } };
 }
 
 /** One box per solid cell of each layer, scaled from the pallet type to the model size. */

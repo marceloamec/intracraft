@@ -1,21 +1,43 @@
 // Pallets of the 3D run: the 2D pallet record plus its rigid body (pallet + load as one MTBH,
 // ADR-0015) and the pose and velocity read after each step.
 import { builtInCatalog } from '@intracraft/asset-catalog';
+import { assetColliders } from '@intracraft/asset-catalog/colliders';
 import type { Vec3 } from '@intracraft/core-model';
 import type { PalletType } from '@intracraft/library';
 import type { Pallet, SourceNode } from '@intracraft/sim-des';
 import type { BodyHandle, Pose, Velocity } from '../backend';
 import { solidBoxInertia } from '../mechanics';
-import { type ModelPhysics, type Mtbh, buildMtbh, palletConstruction } from '../mtbh';
+import {
+  type ModelPhysics,
+  type ModelPlacement,
+  type Mtbh,
+  type MtbhSpec,
+  buildMtbh,
+  palletConstruction,
+} from '../mtbh';
 import { type DeckFrame, dot, frameAxis, rotateVec, toLocal } from './frame';
 
 /** Pallet models with rigid-body data in the asset catalogue, by pallet type (ADR-0015). */
 const PALLET_MODELS: Record<string, string> = { eur: 'asset.pallets.pallet_block_a07' };
 const PALLET_MATERIAL = 'wood';
+/** Contact material of a load block travelling without a pallet (a carton stack, S09 §1.1). */
+const BLOCK_MATERIAL = 'cardboard';
+
+/** Catalogue models the viewer draws for a pallet, and where they sit in its body frame. */
+export interface PalletLook {
+  pallet?: { asset: string; placement: ModelPlacement };
+  load?: { asset: string; placement: ModelPlacement };
+}
+
+/** The rigid body of what a source creates, with the models to draw. */
+export interface SourceBody extends Mtbh {
+  look: PalletLook;
+}
 
 export interface WorldPallet extends Pallet {
   readonly body: BodyHandle;
   readonly mtbh: Mtbh;
+  readonly look: PalletLook;
   /** Instance id of the object carrying the pallet (the one under its tail, as in 2D). */
   carrier: string;
   pose: Pose;
@@ -34,40 +56,83 @@ export interface Extent {
   speed: number;
 }
 
-const cache = new Map<string, Mtbh>();
+const cache = new Map<string, SourceBody>();
 
 /**
- * Rigid body of the pallets a source creates: the catalogue model of the pallet type (or a box of
- * the type's size and tare mass when there is none) with a uniform load block of the source's mass
- * and height on top.
+ * Rigid body of what a source creates (S09 §1.1, ADR-0015/0017): the pallet model (the model of the
+ * pallet type, a catalogue pallet, or a box of the type's size and tare mass when there is none) with
+ * a uniform load block of the source's mass and height, a catalogue object or nothing on top, or the
+ * load alone.
  */
-export function sourceMtbh(node: SourceNode): Mtbh {
-  const key = `${node.palletType.id}|${node.loadMass}|${node.loadHeight}`;
+export function sourceMtbh(node: SourceNode): SourceBody {
+  const { item, palletType } = node;
+  const key = [
+    palletType.id,
+    node.loadMass,
+    node.loadHeight,
+    item.palletModel,
+    item.loadKind,
+    item.loadAsset,
+  ].join('|');
   const cached = cache.get(key);
   if (cached !== undefined) return cached;
-  const model = palletModel(node.palletType);
-  const pallet = {
-    ...model,
-    construction: palletConstruction(node.palletType),
-    material: PALLET_MATERIAL,
-  };
-  const { min, max } = model.bounds;
-  const mtbh =
-    node.loadMass > 0 && node.loadHeight > 0
-      ? buildMtbh({
-          pallet,
-          load: {
-            mass: node.loadMass,
-            bounds: {
-              min: { x: min.x, y: max.y, z: min.z },
-              max: { x: max.x, y: max.y + node.loadHeight, z: max.z },
-            },
-            centerOffset: { x: 0, y: 0, z: 0 },
-          },
-        })
-      : buildMtbh({ pallet });
-  cache.set(key, mtbh);
-  return mtbh;
+  const palletAsset =
+    item.palletModel === 'auto'
+      ? PALLET_MODELS[palletType.id]
+      : item.palletModel === 'none'
+        ? undefined
+        : item.palletModel;
+  const pallet =
+    item.palletModel === 'none'
+      ? undefined
+      : {
+          ...palletModel(palletType, palletAsset),
+          construction: palletConstruction(palletType),
+          material:
+            palletAsset === undefined
+              ? PALLET_MATERIAL
+              : builtInCatalog.get(palletAsset).contactMaterial,
+        };
+  const spec: MtbhSpec = pallet === undefined ? {} : { pallet };
+  if (item.loadKind === 'asset') {
+    const asset = builtInCatalog.get(item.loadAsset);
+    const physics = asset.physics;
+    const model = {
+      bounds: asset.bounds,
+      mass: physics?.mass ?? 1,
+      centerOfMass: physics?.centerOfMass ?? { x: 0, y: asset.dimensions.y / 2, z: 0 },
+      inertia: physics?.inertia ?? solidBoxInertia(1, asset.dimensions),
+    };
+    spec.load = {
+      mass: node.loadMass > 0 ? node.loadMass : model.mass,
+      model,
+      hulls: assetColliders(asset.id),
+    };
+    spec.material = asset.contactMaterial;
+  } else if (item.loadKind === 'block' && node.loadMass > 0 && node.loadHeight > 0) {
+    const { min, max } = pallet?.bounds ?? footprintBox(palletType);
+    const top = pallet === undefined ? 0 : max.y;
+    spec.load = {
+      mass: node.loadMass,
+      bounds: {
+        min: { x: min.x, y: top, z: min.z },
+        max: { x: max.x, y: top + node.loadHeight, z: max.z },
+      },
+      centerOffset: { x: 0, y: 0, z: 0 },
+    };
+    spec.material = BLOCK_MATERIAL;
+  }
+  const mtbh = buildMtbh(spec);
+  const look: PalletLook = {};
+  if (palletAsset !== undefined && pallet !== undefined) {
+    look.pallet = { asset: palletAsset, placement: mtbh.placement };
+  }
+  if (item.loadKind === 'asset' && mtbh.loadPlacement !== undefined) {
+    look.load = { asset: item.loadAsset, placement: mtbh.loadPlacement };
+  }
+  const body = { ...mtbh, look };
+  cache.set(key, body);
+  return body;
 }
 
 /**
@@ -98,20 +163,24 @@ export function extentOn(
   };
 }
 
-function palletModel(type: PalletType): ModelPhysics {
-  const assetId = PALLET_MODELS[type.id];
+function palletModel(type: PalletType, assetId: string | undefined): ModelPhysics {
   if (assetId !== undefined) {
     const asset = builtInCatalog.get(assetId);
     if (asset.physics !== undefined) return { ...asset.physics, bounds: asset.bounds };
   }
   const size: Vec3 = { x: type.length, y: type.height, z: type.width };
   return {
-    bounds: {
-      min: { x: -size.x / 2, y: 0, z: -size.z / 2 },
-      max: { x: size.x / 2, y: size.y, z: size.z / 2 },
-    },
+    bounds: footprintBox(type),
     mass: type.tareMass,
     centerOfMass: { x: 0, y: size.y / 2, z: 0 },
     inertia: solidBoxInertia(type.tareMass, size),
+  };
+}
+
+/** The pallet type's outline: centred footprint, underside at 0. */
+function footprintBox(type: PalletType): { min: Vec3; max: Vec3 } {
+  return {
+    min: { x: -type.length / 2, y: 0, z: -type.width / 2 },
+    max: { x: type.length / 2, y: type.height, z: type.width / 2 },
   };
 }
