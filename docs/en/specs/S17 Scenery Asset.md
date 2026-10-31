@@ -35,7 +35,8 @@ The instance's position is the point **on the support** under the object (floor 
 - **Collision shape:** the convex pieces the model declares (`KHR_physics_rigid_bodies` colliders), one convex hull per piece, at most 64 corners each. Hollow objects (racks, fences) keep their openings between pieces; a piece itself is filled.
 - **Mass properties:** mass, centre of mass and diagonal inertia from the catalogue.
 - **Rest:** dynamic scenery bodies may **sleep** when still, to save computing time; contact wakes them.
-- **Impacts** of or against a scenery object appear in the impact log with the instance name.
+- **Impacts** of a pallet against a scenery object appear in the impact log with the object's name.
+- **Not a flow item.** A scenery object on a moving conveyor is carried by friction, but the conveyor logic, the photocells (which detect pallets only) and the sinks do not see it, and it is not counted in any statistic.
 
 ## 3. 2D behaviour
 

@@ -56,6 +56,7 @@ import {
   SEPARATOR_THICKNESS,
 } from './gravity';
 import { type WorldPallet, sourceMtbh } from './pallet-body';
+import { PLACEMENTS, type Placement, type SceneryObject, sceneryBody } from './scenery-body';
 import { type SensorEdge, Sensor3D } from './sensor';
 import { Station3D } from './station';
 
@@ -79,6 +80,9 @@ const FLOOR_HALF: Vec3 = { x: 250, y: 0.05, z: 250 };
 const ZERO: Vec3 = { x: 0, y: 0, z: 0 };
 const SECONDS_PER_HOUR = 3600;
 
+/** `behaviors.physics` of scenery objects (S17). */
+const SCENERY_BEHAVIOR = 'phys.scenery';
+
 /** Behaviours of the 3D mode that exist only in 2D for now: turntables and the transfer table. */
 const NOT_IN_3D = new Set(['turntable', 'transfer', 'inert']);
 
@@ -88,9 +92,13 @@ export interface PhysicsFlowOptions {
   dt?: number;
 }
 
-/** The 2D snapshot plus the real pose of every pallet (position of the underside centre, rotation). */
+/**
+ * The 2D snapshot plus the real pose of every pallet (position of the underside centre, rotation) and
+ * of every scenery object that can move (model origin, rotation), by instance id (S17).
+ */
 export interface PhysicsSnapshot extends FlowSnapshot {
   poses: Record<number, Pose>;
+  objects: Record<string, Pose>;
 }
 
 /** An impact of a pallet against something that is not conveying it (a stop, a pallet, the floor). */
@@ -144,6 +152,9 @@ export class PhysicsFlowSimulation {
   /** Names of the bodies a pallet may hit, for the impact log. */
   private readonly owners = new Map<BodyHandle, string>();
   private readonly impactLog: ImpactRecord[] = [];
+  /** Scenery objects (S17) by instance id; `dynamic` for the ones that can move. */
+  private readonly scenery = new Map<string, { body: BodyHandle; dynamic: boolean }>();
+  private nextLiveObject = 1;
   private readonly rules: Rule[];
   private readonly signals = new Map<string, boolean>();
   private evaluated: SignalValues = {};
@@ -181,6 +192,20 @@ export class PhysicsFlowSimulation {
       shapes: [{ kind: 'box', halfExtents: FLOOR_HALF, offset: ZERO }],
       material: 'concrete',
     });
+    for (const instance of layout.instances) {
+      if (!registry.has(instance.definitionId)) continue;
+      const definition = registry.get(instance.definitionId);
+      if (definition.behaviors.physics !== SCENERY_BEHAVIOR) continue;
+      const params = instanceParams(definition, instance.params);
+      this.addScenery(instance.id, instance.name || instance.id, {
+        asset: String(params['asset']),
+        placement: placementOf(params['placement']),
+        dropHeight: num(params, 'dropHeight', 0),
+        position: instance.position,
+        yaw: instance.yaw,
+        material: String(params['material'] ?? 'auto'),
+      });
+    }
     const paramsOf = new Map(
       layout.instances
         .filter((instance) => registry.has(instance.definitionId))
@@ -258,6 +283,17 @@ export class PhysicsFlowSimulation {
     return Math.round((this.steps + 1) * this.dt * US_PER_S);
   }
 
+  /**
+   * Drops a catalogue object into the running world (live spawn, S17 §4). It is not part of the layout
+   * and disappears with the run. Returns its id (`live1`, `live2`…).
+   */
+  spawnObject(object: SceneryObject): string {
+    let id = `live${this.nextLiveObject++}`;
+    while (this.scenery.has(id) || this.nodes.has(id)) id = `live${this.nextLiveObject++}`;
+    this.addScenery(id, id, object);
+    return id;
+  }
+
   step(): void {
     const dt = this.dt;
     const now = this.now;
@@ -331,6 +367,9 @@ export class PhysicsFlowSimulation {
       status[station.id] = station.busyStatus ?? station.deck.status;
       if (station.node.kind === 'lift') heights[station.id] = station.height;
     }
+    const objects: Record<string, Pose> = {};
+    for (const [id, { body, dynamic }] of this.scenery)
+      if (dynamic) objects[id] = this.world.getPose(body);
     return {
       time: this.now,
       pallets,
@@ -339,6 +378,7 @@ export class PhysicsFlowSimulation {
       angles: {},
       heights,
       poses,
+      objects,
     };
   }
 
@@ -1058,6 +1098,12 @@ export class PhysicsFlowSimulation {
     });
   }
 
+  private addScenery(id: string, name: string, object: SceneryObject): void {
+    const body = this.world.addBody(sceneryBody(object));
+    this.scenery.set(id, { body, dynamic: object.placement !== 'fixed' });
+    this.owners.set(body, name);
+  }
+
   private removePallet(pallet: WorldPallet): void {
     this.world.removeBody(pallet.body);
     this.pallets.delete(pallet.id);
@@ -1131,4 +1177,8 @@ function limits(group: Deck[]): { maxSpeed: number; accel: number; decel: number
 function hasRoomFor(target: Deck, travel: number): boolean {
   const lead = target.lead;
   return lead === undefined || target.extent(lead).front + travel <= target.spec.length + POS_EPS;
+}
+
+function placementOf(value: unknown): Placement {
+  return PLACEMENTS.find((p) => p === value) ?? 'rest';
 }
