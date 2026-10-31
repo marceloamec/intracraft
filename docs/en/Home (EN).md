@@ -58,6 +58,8 @@ IntraCraft simulates pallet conveyor systems with **one layout and two modes**: 
 | A15 | [[A15 AI Agent Integration]]        |
 | A16 | [[A16 Asset Catalog]]               |
 | A17 | [[A17 IntraScript Language]]        |
+| A18 | [[A18 BIMCraft Integration Analysis]] |
+| A19 | [[A19 Rust Implementation Plan]] |
 
 ## Specifications (library objects)
 
@@ -101,6 +103,9 @@ IntraCraft simulates pallet conveyor systems with **one layout and two modes**: 
 - [[ADR-0016 Physics World Built from the Layout]]
 - [[ADR-0017 Scenery Assets in the Layout and Live Spawn]]
 - [[ADR-0018 IntraScript Scripting Language]]
+- [[ADR-0019 Bevy Engine Feasibility]] (superseded by ADR-0020 and ADR-0021)
+- [[ADR-0020 Rust Platform on BIMCraft with Three Modules]]
+- [[ADR-0021 Game Engine Choice for the Rust Platform]] (proposed)
 
 ## Reference
 

@@ -168,3 +168,9 @@ Each question states **what must be decided**, **why it matters** (which result 
 | j   | Area membership           | Explicit (`layout.setParent`); the editor offers it when dropping inside an area | Purely by position inside the rectangle                                                      |
 
 - **Assumed:** as written in A17 and S18–S22 until the owner answers.
+
+### Q21. Pivot to a simulation module on BIMCraft (Rust)
+- **Decide:** whether IntraCraft becomes a simulation module of a fork of BIMCraft, rewritten in Rust ([[ADR-0020 Rust Platform on BIMCraft with Three Modules]]).
+- **Why:** it changes the language, the physics engine (Rapier instead of Jolt), the editor and the order of work ([[A19 Rust Implementation Plan]]); specifications, theory and tests are kept.
+- **Specific questions:** see ADR-0020 §6 (fork or upstream contribution, name, physics engine, budget in scope, inheritance by default, when to freeze the TypeScript editor).
+- **Assumed:** nothing changes in the TypeScript code until the owner confirms.

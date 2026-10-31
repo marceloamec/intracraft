@@ -1,0 +1,31 @@
+PRUEBA R5b - VISOR 3D DE LA SIMULACION
+======================================
+
+Que es
+------
+Dos programas dibujan la misma escena: un circuito de 20 transportadores de rodillos,
+2000 rodillos girando y 200 pallets con carga en movimiento.
+
+  r5b-viewer-egui.exe  La vista 3D hecha como la de BIMCraft (sin motor de juegos).
+  r5b-viewer-bevy.exe  La misma escena con el motor de juegos Bevy (luces y sombras).
+
+La prueba mide cuantas imagenes por segundo dibuja cada uno en este portatil. Si la vista
+tipo BIMCraft llega a 60 imagenes por segundo, no hace falta motor de juegos (ADR-0019).
+
+Como hacerla
+------------
+1. Enchufe el portatil a la corriente y cierre los demas programas.
+2. Haga doble clic en  ejecutar-prueba.bat  y pulse una tecla.
+3. Se abre una ventana durante 30 segundos, luego la otra. No toque nada mientras tanto.
+4. Al terminar se crea  resultados.txt. Copie su contenido en el chat.
+
+Si Windows avisa de que el programa no es de confianza (SmartScreen), pulse
+"Mas informacion" y despues "Ejecutar de todas formas": los programas no estan firmados.
+
+Para mirar la escena sin medir, abra cualquiera de los dos .exe con doble clic.
+
+Modelo del pallet
+-----------------
+pallet_a01.glb: Model from NVIDIA SimReady Assets (nvidia/simready-assets), licensed
+CC BY 4.0 (https://creativecommons.org/licenses/by/4.0/). Si falta el archivo, los
+visores dibujan los pallets como cajas y resultados.txt lo dice.
