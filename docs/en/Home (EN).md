@@ -105,7 +105,8 @@ IntraCraft designs and simulates pallet conveyor systems with **one layout and t
 - [[ADR-0018 IntraScript Scripting Language]]
 - [[ADR-0019 Bevy Engine Feasibility]] (superseded by ADR-0020 and ADR-0021)
 - [[ADR-0020 Rust Platform on BIMCraft with Three Modules]]
-- [[ADR-0021 Game Engine Choice for the Rust Platform]] (proposed)
+- [[ADR-0021 Game Engine Choice for the Rust Platform]]
+- [[ADR-0022 Bevy Viewer for the Physics Simulation Module]]
 
 ## Reference
 

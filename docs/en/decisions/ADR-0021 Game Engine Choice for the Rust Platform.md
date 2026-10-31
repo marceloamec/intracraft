@@ -2,13 +2,13 @@
 title: ADR-0021 Game Engine Choice for the Rust Platform
 lang: en
 tags: [decision, architecture, rust, rendering, physics, pivot]
-status: proposed
+status: accepted
 date: 2026-10-31
 ---
 
 # ADR-0021 Game Engine Choice for the Rust Platform
 
-- **Status:** Proposed on 2026-10-31 at the owner's request. Depends on [[ADR-0020 Rust Platform on BIMCraft with Three Modules]].
+- **Status:** Accepted on 2026-10-31: spike R5b ran on the owner's laptop and the owner chose Bevy for the 3D run's viewer ([[ADR-0022 Bevy Viewer for the Physics Simulation Module]]). Proposed earlier the same day at the owner's request. Depends on [[ADR-0020 Rust Platform on BIMCraft with Three Modules]].
 - **Date:** 2026-10-31
 
 ## Context
@@ -88,7 +88,7 @@ Code: `spikes/r5b-viewer/` (a throw-away Cargo workspace, outside pnpm). Windows
 
 The software numbers only show that both viewers run and finish the measurement; with shadows and MSAA Bevy does far more work per frame, which a processor pays for and a graphics card mostly does not.
 
-**On the owner's Windows laptop:** pending. To be recorded in ADR-0022 with the decision.
+**On the owner's Windows laptop (RTX 5070 Laptop GPU):** BIMCraft-style 2 141 frames/s, Bevy 498 frames/s, both with box pallets; the catalogue GLBs (meshopt-compressed) loaded in neither. Details and the decision: [[ADR-0022 Bevy Viewer for the Physics Simulation Module]].
 
 ## Alternatives
 

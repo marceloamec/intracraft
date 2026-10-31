@@ -92,7 +92,7 @@ pub fn render(egui: Option<&BenchResult>, bevy: Option<&BenchResult>) -> String 
             "La medicion no vale: falta un resultado o se dibujo sin tarjeta grafica real. Repetir en el portatil.\n"
         }
     });
-    out.push_str("\nCopie este texto en el chat para escribir la decision (ADR-0020).\n");
+    out.push_str("\nCopie este texto en el chat para escribir la decision (ADR-0022).\n");
     out
 }
 

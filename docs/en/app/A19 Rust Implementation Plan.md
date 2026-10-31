@@ -91,7 +91,7 @@ R5 and R5b can run in parallel with R1–R4; R8 in parallel with R3–R7. By mod
 - If Rapier fails a criterion, try Jolt through `joltc-sys`/`oxijolt-sys` behind the same trait, and record the result in an ADR.
 - **Exit:** an ADR that confirms or replaces the engine choice of ADR-0020, with numbers.
 
-### R5b – 3D viewer spike (in parallel)
+### R5b – 3D viewer spike (done 2026-10-31: Bevy, [[ADR-0022 Bevy Viewer for the Physics Simulation Module]])
 
 - Decide the viewer of the 3D run ([[ADR-0021 Game Engine Choice for the Rust Platform]]): BIMCraft's own wgpu view with instancing, or a separate Bevy viewer process fed by snapshots through the control port.
 - Same scene in both: 200 pallets, 2 000 rollers, 20 conveyors, catalogue GLB models; measure frame rate on a laptop with integrated graphics, start-up time, binary size and work needed.

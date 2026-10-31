@@ -16,7 +16,7 @@ Since 2026-10-31 the editor is BIMCraft's desktop with IntraCraft's modules ([[A
 | ------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | Design              | BIMCraft's ribbon, plan, sections, 3D view, Project Browser and Properties; the intralogistics families placed from the browser; attribute table with inherited flags; Simulation tab with the tree |
 | Discrete simulation | The plan of the layout with animated pallets; Run, Pause, Step, speed, seed and duration; statistics sheet of the selected object; export to CSV and XLSX                                           |
-| Physics simulation  | The 3D run in real time (viewer per [[ADR-0021 Game Engine Choice for the Rust Platform]]); the same controls; physics figures (stop error, impact energy)                                          |
+| Physics simulation  | The 3D run in real time, drawn by a Bevy viewer ([[ADR-0022 Bevy Viewer for the Physics Simulation Module]]); the same controls; physics figures (stop error, impact energy)                        |
 
 The run happens on a background thread; the window only receives snapshots, as the Web Worker did in the reference. Sections 1–3 below describe the TypeScript reference editor (frozen); they stay as the list of features the modules must offer.
 
