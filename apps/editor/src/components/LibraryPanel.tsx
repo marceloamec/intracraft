@@ -1,5 +1,5 @@
 // Component library: one card per registered definition, grouped by category; drag a card into
-// the 3D or 2D view to place it.
+// the 3D or 2D view to place it. Scenery objects are placed from the asset catalogue instead (S17).
 import { localize } from '@intracraft/core-model';
 import type { ComponentDefinition } from '@intracraft/library';
 import { type StringKey } from '../i18n/strings';
@@ -9,7 +9,9 @@ import { useEditorStore } from '../store';
 import { ComponentSymbol } from './ComponentSymbol';
 import { DEFINITION_MIME } from './Viewport';
 
-const CATEGORY_KEYS: Record<ComponentDefinition['category'], StringKey> = {
+type LibraryCategory = Exclude<ComponentDefinition['category'], 'scenery'>;
+
+const CATEGORY_KEYS: Record<LibraryCategory, StringKey> = {
   conveyors: 'catConveyors',
   sensors: 'catSensors',
   mechanics: 'catMechanics',
@@ -22,8 +24,11 @@ export function LibraryPanel() {
   const t = useT();
   const language = useEditorStore((s) => s.language);
   const { beginNewDrag, endDrag } = useLayoutStore.getState();
-  const groups = new Map<ComponentDefinition['category'], ComponentDefinition[]>();
-  for (const d of registry.list()) groups.set(d.category, [...(groups.get(d.category) ?? []), d]);
+  const groups = new Map<LibraryCategory, ComponentDefinition[]>();
+  for (const d of registry.list()) {
+    if (d.category === 'scenery') continue;
+    groups.set(d.category, [...(groups.get(d.category) ?? []), d]);
+  }
 
   return (
     <aside className="side-panel library-panel" aria-label={t('componentsTitle')}>

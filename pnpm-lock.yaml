@@ -140,6 +140,9 @@ importers:
 
   packages/library:
     dependencies:
+      '@intracraft/asset-catalog':
+        specifier: workspace:*
+        version: link:../asset-catalog
       '@intracraft/core-model':
         specifier: workspace:*
         version: link:../core-model
