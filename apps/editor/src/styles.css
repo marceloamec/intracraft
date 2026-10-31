@@ -506,3 +506,16 @@ details summary {
 .run-status.stopped {
   color: #e0b341;
 }
+
+.catalog-placement {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  margin: 0;
+  padding: 6px 8px;
+  border: 1px solid var(--border);
+}
+
+.catalog-list li[draggable='true'] {
+  cursor: grab;
+}

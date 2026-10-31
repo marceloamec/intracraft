@@ -31,6 +31,13 @@ const EN = {
   category_vehicles: 'Vehicles',
   category_conveyors: 'Conveyors (decorative)',
   category_safety: 'Safety and docks',
+  placementLabel: 'When the 3D run starts',
+  placement_drop: 'Drop from the air',
+  placement_rest: 'Resting in place',
+  placement_fixed: 'Fixed to the floor',
+  dropHeightLabel: 'Drop height',
+  dragAssetHint:
+    'Drag a model into the 3D view to place it. While a 3D run is going, it drops into the running simulation.',
   // Editor: menus, toolbar, component library, properties, status bar.
   menuFile: 'File',
   menuEdit: 'Edit',
@@ -48,7 +55,8 @@ const EN = {
   catFlow: 'Flow',
   catPallets: 'Pallets',
   catControl: 'Control',
-  dragHint: 'Drag a component into the 3D or 2D view. It snaps to a free port nearby; press R to rotate it.',
+  dragHint:
+    'Drag a component into the 3D or 2D view. It snaps to a free port nearby; press R to rotate it.',
   nothingSelected: 'Click an object to see its properties.',
   layoutSummary: '{objects} objects · {connections} connections',
   identity: 'Identity',
@@ -74,11 +82,13 @@ const EN = {
   snapped: 'Connected',
   mountedOn: 'Mounted on',
   notMounted: 'Not on a conveyor: the sensor will detect nothing',
-  shortcutsHint: 'V view · F frame all · R rotate · Del delete · Ctrl+Z undo · Ctrl+Y redo · Esc cancel · Space run/pause',
+  shortcutsHint:
+    'V view · F frame all · R rotate · Del delete · Ctrl+Z undo · Ctrl+Y redo · Esc cancel · Space run/pause',
   frameAll: 'Frame all',
   // Controller rules.
   controllerTitle: 'Controller',
-  controllerHint: 'If/Then rules over signals. Conditions read sensors and conveyors; actions switch conveyors (run) and sources (enable), optionally after a delay.',
+  controllerHint:
+    'If/Then rules over signals. Conditions read sensors and conveyors; actions switch conveyors (run) and sources (enable), optionally after a delay.',
   addRule: 'Add rule',
   stopAtSensorTemplate: 'Stop at sensor',
   noRules: 'No rules: conveyors run whenever they carry pallets.',
@@ -177,7 +187,8 @@ const TRANSLATIONS: Record<Exclude<Language, 'en'>, Partial<Record<StringKey, st
     noResults: 'Ningún objeto coincide.',
     selectToPreview: 'Selecciona un objeto para verlo.',
     loadingModel: 'Cargando modelo…',
-    modelMissing: 'No se encuentra el archivo del modelo. Ejecuta una vez «pnpm assets:fetch» para descargar la librería.',
+    modelMissing:
+      'No se encuentra el archivo del modelo. Ejecuta una vez «pnpm assets:fetch» para descargar la librería.',
     sizeLabel: 'Tamaño (ancho × alto × fondo)',
     fileSizeLabel: 'Tamaño del archivo',
     attributionLabel: 'Créditos',
@@ -189,6 +200,13 @@ const TRANSLATIONS: Record<Exclude<Language, 'en'>, Partial<Record<StringKey, st
     category_vehicles: 'Vehículos',
     category_conveyors: 'Transportadores (decorativos)',
     category_safety: 'Seguridad y muelles',
+    placementLabel: 'Al empezar la simulación 3D',
+    placement_drop: 'Soltar desde el aire',
+    placement_rest: 'Reposando en su sitio',
+    placement_fixed: 'Fijado al suelo',
+    dropHeightLabel: 'Altura de caída',
+    dragAssetHint:
+      'Arrastra un modelo a la vista 3D para colocarlo. Con una simulación 3D en marcha, cae dentro de ella.',
     baseHeight: 'Altura de base',
     stat_blockedShare: 'Porcentaje bloqueado',
     stat_idleShare: 'Porcentaje en espera',
@@ -215,7 +233,8 @@ const TRANSLATIONS: Record<Exclude<Language, 'en'>, Partial<Record<StringKey, st
     noResults: 'Keine passenden Objekte.',
     selectToPreview: 'Objekt auswählen, um es anzusehen.',
     loadingModel: 'Modell wird geladen…',
-    modelMissing: 'Modelldatei nicht gefunden. Einmal „pnpm assets:fetch“ ausführen, um die Bibliothek herunterzuladen.',
+    modelMissing:
+      'Modelldatei nicht gefunden. Einmal „pnpm assets:fetch“ ausführen, um die Bibliothek herunterzuladen.',
     sizeLabel: 'Größe (B × H × T)',
     fileSizeLabel: 'Dateigröße',
     attributionLabel: 'Quellenangabe',
@@ -227,6 +246,13 @@ const TRANSLATIONS: Record<Exclude<Language, 'en'>, Partial<Record<StringKey, st
     category_vehicles: 'Fahrzeuge',
     category_conveyors: 'Förderer (dekorativ)',
     category_safety: 'Sicherheit und Rampen',
+    placementLabel: 'Beim Start der 3D-Simulation',
+    placement_drop: 'Aus der Luft fallen lassen',
+    placement_rest: 'Ruhend an Ort und Stelle',
+    placement_fixed: 'Am Boden fixiert',
+    dropHeightLabel: 'Fallhöhe',
+    dragAssetHint:
+      'Ein Modell in die 3D-Ansicht ziehen, um es zu platzieren. Während einer 3D-Simulation fällt es in die laufende Simulation.',
     baseHeight: 'Sockelhöhe',
     stat_blockedShare: 'Blockierter Anteil',
     stat_idleShare: 'Leerlaufanteil',

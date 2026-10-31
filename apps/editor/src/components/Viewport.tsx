@@ -4,16 +4,30 @@
 import type { Vec3 } from '@intracraft/core-model';
 import { Canvas, useThree } from '@react-three/fiber';
 import { type DragEvent, type PointerEvent, useEffect, useRef } from 'react';
-import { Box3, type Camera, type Mesh, type Object3D, OrthographicCamera, PerspectiveCamera, Plane, Raycaster, Vector2, Vector3 } from 'three';
+import {
+  Box3,
+  type Camera,
+  type Mesh,
+  type Object3D,
+  OrthographicCamera,
+  PerspectiveCamera,
+  Plane,
+  Raycaster,
+  Vector2,
+  Vector3,
+} from 'three';
 import { OrbitControls } from 'three/examples/jsm/controls/OrbitControls.js';
-import { useLayoutStore } from '../layout-store';
+import { registry, useLayoutStore } from '../layout-store';
+import { useSimStore } from '../sim-store';
 import { displayPose } from '../sensor-mount';
 import { useEditorStore } from '../store';
 import { InstanceModel } from './models/InstanceModel';
 import { PalletLayer } from './PalletLayer';
 import { PortMarkers } from './PortMarkers';
+import { RunModelLayer } from './RunModelLayer';
 
 export const DEFINITION_MIME = 'application/x-intracraft-definition';
+export const ASSET_MIME = 'application/x-intracraft-asset';
 
 const TOP_VIEW_ZOOM = 80;
 const CLICK_TOLERANCE_PX = 4;
@@ -21,6 +35,8 @@ const NORMAL = { ghost: false, selected: false, dimmed: false };
 
 interface Picker {
   floor(clientX: number, clientY: number): Vec3 | null;
+  /** The first surface under the pointer (an object or the floor), skipping `exclude` and the ghost. */
+  surface(clientX: number, clientY: number, exclude?: string): Vec3 | null;
   instance(clientX: number, clientY: number): string | null;
 }
 
@@ -43,8 +59,11 @@ export function Viewport() {
     e.stopPropagation();
     select(hit);
     beginMoveDrag(hit, floor);
+    const scenery = isScenery(hit);
     const onMove = (ev: globalThis.PointerEvent) => {
-      const point = picker.current?.floor(ev.clientX, ev.clientY) ?? null;
+      const point = scenery
+        ? (picker.current?.surface(ev.clientX, ev.clientY, hit) ?? null)
+        : (picker.current?.floor(ev.clientX, ev.clientY) ?? null);
       if (point !== null) dragTo(point);
     };
     const onUp = () => {
@@ -65,16 +84,35 @@ export function Viewport() {
   };
 
   const onDragOver = (e: DragEvent<HTMLDivElement>) => {
-    if (!e.dataTransfer.types.includes(DEFINITION_MIME)) return;
+    const asset = e.dataTransfer.types.includes(ASSET_MIME);
+    if (!asset && !e.dataTransfer.types.includes(DEFINITION_MIME)) return;
     e.preventDefault();
     e.dataTransfer.dropEffect = 'copy';
-    const point = picker.current?.floor(e.clientX, e.clientY) ?? null;
+    const point = asset
+      ? (picker.current?.surface(e.clientX, e.clientY) ?? null)
+      : (picker.current?.floor(e.clientX, e.clientY) ?? null);
     if (point !== null) dragTo(point);
   };
 
   const onDrop = (e: DragEvent<HTMLDivElement>) => {
-    if (!e.dataTransfer.types.includes(DEFINITION_MIME)) return;
+    const asset = e.dataTransfer.types.includes(ASSET_MIME);
+    if (!asset && !e.dataTransfer.types.includes(DEFINITION_MIME)) return;
     e.preventDefault();
+    const preview = useLayoutStore.getState().preview;
+    const running3d =
+      useSimStore.getState().run !== 'stopped' && useEditorStore.getState().simMode === 'physics';
+    if (asset && running3d && preview !== null) {
+      // A 3D run is going: the object drops into it instead of changing the layout (S17 §4).
+      useSimStore.getState().spawnObject({
+        asset: String(preview.params['asset']),
+        placement: String(preview.params['placement']),
+        dropHeight: Number(preview.params['dropHeight']),
+        position: preview.position,
+        yaw: preview.yaw,
+      });
+      endDrag(false);
+      return;
+    }
     endDrag(true);
   };
 
@@ -140,6 +178,7 @@ function LayoutScene() {
       )}
       <PortMarkers layout={layout} target={preview?.link?.target ?? null} />
       <PalletLayer />
+      <RunModelLayer />
     </>
   );
 }
@@ -154,7 +193,10 @@ function ScenePicker() {
     const floorPlane = new Plane(new Vector3(0, 1, 0), 0);
     const aim = (clientX: number, clientY: number, cam: Camera) => {
       const rect = canvas.getBoundingClientRect();
-      const ndc = new Vector2(((clientX - rect.left) / rect.width) * 2 - 1, -((clientY - rect.top) / rect.height) * 2 + 1);
+      const ndc = new Vector2(
+        ((clientX - rect.left) / rect.width) * 2 - 1,
+        -((clientY - rect.top) / rect.height) * 2 + 1,
+      );
       raycaster.setFromCamera(ndc, cam);
     };
     picker.current = {
@@ -162,6 +204,14 @@ function ScenePicker() {
         aim(clientX, clientY, camera);
         const hit = raycaster.ray.intersectPlane(floorPlane, new Vector3());
         return hit === null ? null : { x: hit.x, y: 0, z: hit.z };
+      },
+      surface(clientX, clientY, exclude) {
+        aim(clientX, clientY, camera);
+        for (const hit of raycaster.intersectObjects(scene.children, true)) {
+          if ((hit.object as Mesh).isMesh !== true || skipped(hit.object, exclude)) continue;
+          return { x: hit.point.x, y: Math.max(0, hit.point.y), z: hit.point.z };
+        }
+        return this.floor(clientX, clientY);
       },
       instance(clientX, clientY) {
         // Pick by each object's bounding box, so a click between two rollers still hits the conveyor.
@@ -172,7 +222,8 @@ function ScenePicker() {
           if (typeof id !== 'string') continue;
           const hit = raycaster.ray.intersectBox(pickBox(child), new Vector3());
           const distance = hit?.distanceTo(raycaster.ray.origin);
-          if (distance !== undefined && (best === null || distance < best.distance)) best = { id, distance };
+          if (distance !== undefined && (best === null || distance < best.distance))
+            best = { id, distance };
         }
         return best?.id ?? null;
       },
@@ -185,12 +236,28 @@ function ScenePicker() {
   return null;
 }
 
+/** Parts a dropped object cannot stand on: the drag preview, pallets, floor marks, the moved object. */
+function skipped(object: Object3D, exclude: string | undefined): boolean {
+  for (let o: Object3D | null = object; o !== null; o = o.parent) {
+    const data = o.userData;
+    if (data['ghost'] === true || data['noPick'] === true) return true;
+    if (exclude !== undefined && data['instanceId'] === exclude) return true;
+  }
+  return false;
+}
+
+function isScenery(instanceId: string): boolean {
+  const instance = useLayoutStore.getState().layout.instances.find((i) => i.id === instanceId);
+  return instance !== undefined && registry.get(instance.definitionId).category === 'scenery';
+}
+
 /** Bounding box of an instance's meshes, leaving out floor marks such as the swept circle. */
 function pickBox(group: Object3D): Box3 {
   const box = new Box3();
   const part = new Box3();
   group.traverse((o) => {
-    if ((o as Mesh).isMesh === true && o.userData['noPick'] !== true) box.union(part.setFromObject(o));
+    if ((o as Mesh).isMesh === true && o.userData['noPick'] !== true)
+      box.union(part.setFromObject(o));
   });
   return box;
 }
@@ -200,7 +267,13 @@ export const cameraActions: { frameAll: (() => void) | null } = { frameAll: null
 
 const FRAME_MARGIN = 1.15;
 
-function CameraControls({ target, allowRotate }: { target: [number, number, number]; allowRotate: boolean }) {
+function CameraControls({
+  target,
+  allowRotate,
+}: {
+  target: [number, number, number];
+  allowRotate: boolean;
+}) {
   const camera = useThree((s) => s.camera);
   const domElement = useThree((s) => s.gl.domElement);
   const scene = useThree((s) => s.scene);
@@ -214,7 +287,8 @@ function CameraControls({ target, allowRotate }: { target: [number, number, numb
     controls.update();
     cameraActions.frameAll = () => {
       const bounds = new Box3();
-      for (const child of scene.children) if (child.userData['instanceId'] !== undefined) bounds.expandByObject(child);
+      for (const child of scene.children)
+        if (child.userData['instanceId'] !== undefined) bounds.expandByObject(child);
       if (bounds.isEmpty()) return;
       const centre = bounds.getCenter(new Vector3());
       const extent = bounds.getSize(new Vector3());

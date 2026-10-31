@@ -9,6 +9,7 @@ import { useLayoutEffect, useMemo, useRef } from 'react';
 import { Color, Euler, type InstancedMesh, Matrix4, Quaternion, Vector3 } from 'three';
 import { registry, useLayoutStore } from '../layout-store';
 import { liveFrame, useSimStore } from '../sim-store';
+import { hasModels } from './RunModelLayer';
 
 const CAPACITY = 1024;
 /** Longest wall-clock time a frame is extrapolated (ms). */
@@ -81,6 +82,12 @@ export function PalletLayer() {
         i,
         status === 'blocked' ? COLOR_BLOCKED : status === 'stopped' ? COLOR_STOPPED : COLOR_LOAD,
       );
+      if (hasModels(snapshot?.looks?.[pallet.id])) {
+        // Drawn with its catalogue models by RunModelLayer.
+        base.setMatrixAt(i, matrix.makeScale(0, 0, 0));
+        load.setMatrixAt(i, matrix);
+        return;
+      }
       const pose = poses?.[pallet.id];
       if (pose !== undefined) {
         // Body frame: X along the pallet's long side, origin at the footprint centre on the underside.

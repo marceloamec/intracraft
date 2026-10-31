@@ -43,6 +43,8 @@ type Drag =
   | {
       kind: 'new';
       definitionId: string;
+      /** Parameters the new object starts with (a catalogue object's model and placement). */
+      params: Record<string, number | boolean | string>;
       grab: { x: number; z: number };
       yaw: number;
       moved: boolean;
@@ -85,7 +87,7 @@ interface LayoutState {
   select(id: string | null): void;
   rotateSelected(): void;
   deleteSelected(): void;
-  beginNewDrag(definitionId: string): void;
+  beginNewDrag(definitionId: string, params?: Record<string, number | boolean | string>): void;
   beginMoveDrag(instanceId: string, pointer: Vec3): void;
   dragTo(pointer: Vec3): void;
   rotateDrag(): void;
@@ -163,8 +165,8 @@ export const useLayoutStore = create<LayoutState>()((set, get) => {
       if (get().run('layout.remove', { instanceId: id }).ok) set({ selectedId: null });
     },
 
-    beginNewDrag(definitionId) {
-      drag = { kind: 'new', definitionId, grab: { x: 0, z: 0 }, yaw: 0, moved: true };
+    beginNewDrag(definitionId, params = {}) {
+      drag = { kind: 'new', definitionId, params, grab: { x: 0, z: 0 }, yaw: 0, moved: true };
     },
     beginMoveDrag(instanceId, pointer) {
       const instance = session.layout.instances.find((i) => i.id === instanceId);
@@ -212,7 +214,11 @@ export const useLayoutStore = create<LayoutState>()((set, get) => {
           : preview.link === null
             ? ''
             : linkText(preview.link);
-      const params = preview.mount?.params;
+      const params =
+        preview.mount?.params ??
+        (finished.kind === 'new' && Object.keys(preview.params).length > 0
+          ? preview.params
+          : undefined);
       if (finished.kind === 'new') {
         const result = get().run(
           'layout.addInstance',
@@ -249,13 +255,15 @@ function computePreview(current: Drag, pointer: Vec3): Preview {
       : undefined;
   const definitionId =
     instance?.definitionId ?? (current.kind === 'new' ? current.definitionId : '');
-  const params = instance?.params ?? {};
+  const params = instance?.params ?? (current.kind === 'new' ? current.params : {});
   if (isSensor(definitionId, registry))
     return sensorPreview(definitionId, params, pointer, instance?.id);
   const offset = rotateY(localCentre(definitionId, params), current.yaw);
+  // Scenery objects stand on whatever is under the pointer (S17); everything else on the floor.
+  const onSupport = registry.get(definitionId).category === 'scenery';
   const position = {
     x: pointer.x - current.grab.x - offset.x,
-    y: 0,
+    y: onSupport ? pointer.y : 0,
     z: pointer.z - current.grab.z - offset.z,
   };
   const candidate = { definition: registry.get(definitionId), params, position, yaw: current.yaw };

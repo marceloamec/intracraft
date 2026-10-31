@@ -3,6 +3,7 @@ import type { Vec3 } from '@intracraft/core-model';
 import { instanceParams } from '@intracraft/library';
 import { useMemo } from 'react';
 import { registry } from '../../layout-store';
+import { AssetModel } from './AssetModel';
 import { ChainConveyorModel } from './ChainConveyorModel';
 import { ElevatorModel } from './ElevatorModel';
 import { FlowEndModel } from './FlowEndModel';
@@ -36,6 +37,7 @@ const MODELS: Record<string, (props: ModelProps) => React.JSX.Element> = {
   'flow.sink': (props) => <FlowEndModel {...props} kind="sink" />,
   'flow.process_station': ProcessStationModel,
   'sensor.photoeye': PhotoeyeModel,
+  'scenery.asset': AssetModel,
 };
 
 export function InstanceModel({
@@ -54,7 +56,10 @@ export function InstanceModel({
   yaw: number;
   style: ModelStyle;
 }) {
-  const values = useMemo(() => instanceParams(registry.get(definitionId), params), [definitionId, params]);
+  const values = useMemo(
+    () => instanceParams(registry.get(definitionId), params),
+    [definitionId, params],
+  );
   const Model = MODELS[definitionId];
   if (Model === undefined) return null;
   return (
@@ -64,8 +69,14 @@ export function InstanceModel({
       userData={instanceId === undefined ? { ghost: true } : { instanceId }}
     >
       <ModelStyleContext value={style}>
-        {instanceId === undefined ? <Model params={values} /> : <Model params={values} instanceId={instanceId} />}
-        {position.y > MIN_RAISED_BASE && <MezzaninePlate params={values} />}
+        {instanceId === undefined ? (
+          <Model params={values} />
+        ) : (
+          <Model params={values} instanceId={instanceId} />
+        )}
+        {position.y > MIN_RAISED_BASE && registry.get(definitionId).category !== 'scenery' && (
+          <MezzaninePlate params={values} />
+        )}
       </ModelStyleContext>
     </group>
   );
@@ -76,7 +87,11 @@ function MezzaninePlate({ params }: { params: Record<string, number | boolean | 
   const length = n(params, 'length', 0.4);
   const width = n(params, 'usableWidth', n(params, 'platformWidth', 1));
   return (
-    <mesh position={[length / 2, -PLATE_THICKNESS / 2, 0]} receiveShadow userData={{ noPick: true }}>
+    <mesh
+      position={[length / 2, -PLATE_THICKNESS / 2, 0]}
+      receiveShadow
+      userData={{ noPick: true }}
+    >
       <boxGeometry args={[length + 2 * PLATE_MARGIN, PLATE_THICKNESS, width + 2 * PLATE_MARGIN]} />
       <meshStandardMaterial color={COLORS.base} transparent opacity={0.45} roughness={0.9} />
     </mesh>

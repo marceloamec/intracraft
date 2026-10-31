@@ -3,6 +3,11 @@ import { create } from 'zustand';
 import type { AssetCategory } from '@intracraft/asset-catalog';
 import type { Language } from './i18n/strings';
 
+/** How a catalogue object enters the 3D run (S17 §2). */
+export type Placement = 'drop' | 'rest' | 'fixed';
+
+export const PLACEMENTS: readonly Placement[] = ['drop', 'rest', 'fixed'];
+
 export type ViewMode = 'perspective' | 'top';
 export type SimMode = 'des' | 'physics';
 
@@ -14,6 +19,9 @@ interface EditorState {
   catalogCategory: AssetCategory | 'all';
   catalogQuery: string;
   selectedAssetId: string | null;
+  /** Placement and drop height given to objects dragged from the catalogue. */
+  catalogPlacement: Placement;
+  catalogDropHeight: number;
   setLanguage(language: Language): void;
   toggleView(): void;
   setSimMode(mode: SimMode): void;
@@ -21,6 +29,8 @@ interface EditorState {
   setCatalogCategory(category: AssetCategory | 'all'): void;
   setCatalogQuery(query: string): void;
   selectAsset(id: string | null): void;
+  setCatalogPlacement(placement: Placement): void;
+  setCatalogDropHeight(metres: number): void;
 }
 
 export const useEditorStore = create<EditorState>()((set) => ({
@@ -31,11 +41,16 @@ export const useEditorStore = create<EditorState>()((set) => ({
   catalogCategory: 'all',
   catalogQuery: '',
   selectedAssetId: null,
+  catalogPlacement: 'rest',
+  catalogDropHeight: 1,
   setLanguage: (language) => set({ language }),
-  toggleView: () => set((s) => ({ viewMode: s.viewMode === 'perspective' ? 'top' : 'perspective' })),
+  toggleView: () =>
+    set((s) => ({ viewMode: s.viewMode === 'perspective' ? 'top' : 'perspective' })),
   setSimMode: (simMode) => set({ simMode }),
   toggleCatalog: () => set((s) => ({ catalogOpen: !s.catalogOpen })),
   setCatalogCategory: (catalogCategory) => set({ catalogCategory }),
   setCatalogQuery: (catalogQuery) => set({ catalogQuery }),
   selectAsset: (selectedAssetId) => set({ selectedAssetId }),
+  setCatalogPlacement: (catalogPlacement) => set({ catalogPlacement }),
+  setCatalogDropHeight: (catalogDropHeight) => set({ catalogDropHeight }),
 }));
