@@ -79,6 +79,6 @@ What we found (details in [[A17 BIMCraft Integration Analysis]]):
 
 ## Related
 
-- [[A17 BIMCraft Integration Analysis]] · [[A18 Rust Implementation Plan]]
+- [[A17 BIMCraft Integration Analysis]] · [[A18 Rust Implementation Plan]] · [[ADR-0019 Game Engine Choice for the Rust Platform]] (game engine for the 3D viewer)
 - [[ADR-0001 Toolchain and Versions]] · [[ADR-0002 Physics Engine Candidate]] · [[ADR-0006 Command Package and Geometric Port Connections]] · [[ADR-0016 Physics World Built from the Layout]]
 - Sources: [Rapier common recipes (conveyor belt)](https://www.rapier.rs/docs/user_guides/rust/common_recipes) · [`SolverContact` API](https://docs.rs/crate/rapier3d/latest/target-redirect/x86_64-unknown-linux-gnu/rapier3d/geometry/struct.SolverContact.html) · [jolt-rust bindings](https://github.com/Bantarus/jolt-rust) · [oxijolt-sys](https://docs.rs/crate/oxijolt-sys/latest/source/build/bindgen_options.rs)

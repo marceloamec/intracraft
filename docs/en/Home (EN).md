@@ -96,6 +96,7 @@ IntraCraft simulates pallet conveyor systems with **one layout and two modes**: 
 - [[ADR-0016 Physics World Built from the Layout]]
 - [[ADR-0017 Scenery Assets in the Layout and Live Spawn]]
 - [[ADR-0018 Pivot to a Simulation Module on a Rust BIM Platform]] (proposed)
+- [[ADR-0019 Game Engine Choice for the Rust Platform]] (proposed)
 
 ## Reference
 

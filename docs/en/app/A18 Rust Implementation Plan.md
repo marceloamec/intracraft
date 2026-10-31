@@ -13,20 +13,21 @@ Every phase follows the IntraCraft workflow: spec first, failing test, implement
 
 ## 1. Phases at a glance
 
-| Phase | Name                                   | The owner can …                                                                                           | Depends on |
-| ----- | -------------------------------------- | --------------------------------------------------------------------------------------------------------- | ---------- |
-| R0    | Fork and ground rules                  | Open BIMCraft built from our repository; read the merged agent rules                                      | ADR-0018   |
-| R1    | Simulation families and attributes     | Place a roller conveyor from the library, see its attribute table with inherited flags, schedule it       | R0         |
-| R2    | Ports, connections and simulation tree | Snap conveyors together, see the Simulation tree, get validation errors (open port, wrong transport type) | R1         |
-| R3    | DES engine in Rust                     | Run T1–T5 and the reference scenarios from the CLI with the same results as the TypeScript version        | R2         |
-| R4    | 2D run in the desktop                  | Press Run in a plan view, watch pallets move, pause, change speed, see statistics sheets                  | R3         |
-| R5    | Physics spike S1 in Rust               | Run the stop, rebound and chain tests on Rapier; decide Rapier or Jolt                                    | R0         |
-| R6    | 3D physics run                         | Press Run in the 3D view, watch pallets driven by rollers and chains, compare 2D/3D sensor events         | R4, R5     |
-| R7    | Controller and remaining objects       | Write if/then rules; use lifts, elevator, gravity line, stations (S11–S15)                                | R4         |
-| R8    | Budgets and reports                    | Get a budget schedule with unit prices; export statistics and budget to XLSX                              | R1         |
-| R9    | Agents and packaging                   | Drive simulations through the MCP server; install the app on Windows/macOS/Linux                          | R6, R7     |
+| Phase | Name                                    | The owner can …                                                                                           | Depends on  |
+| ----- | --------------------------------------- | --------------------------------------------------------------------------------------------------------- | ----------- |
+| R0    | Fork and ground rules                   | Open BIMCraft built from our repository; read the merged agent rules                                      | ADR-0018    |
+| R1    | Simulation families and attributes      | Place a roller conveyor from the library, see its attribute table with inherited flags, schedule it       | R0          |
+| R2    | Ports, connections and simulation tree  | Snap conveyors together, see the Simulation tree, get validation errors (open port, wrong transport type) | R1          |
+| R3    | DES engine in Rust                      | Run T1–T5 and the reference scenarios from the CLI with the same results as the TypeScript version        | R2          |
+| R4    | 2D run in the desktop                   | Press Run in a plan view, watch pallets move, pause, change speed, see statistics sheets                  | R3          |
+| R5    | Physics spike S1 in Rust                | Run the stop, rebound and chain tests on Rapier; decide Rapier or Jolt                                    | R0          |
+| R5b   | 3D viewer spike (Bevy or BIMCraft view) | See the same busy scene in both viewers and choose one by frame rate and effort                           | R0          |
+| R6    | 3D physics run                          | Press Run in the 3D view, watch pallets driven by rollers and chains, compare 2D/3D sensor events         | R4, R5, R5b |
+| R7    | Controller and remaining objects        | Write if/then rules; use lifts, elevator, gravity line, stations (S11–S15)                                | R4          |
+| R8    | Budgets and reports                     | Get a budget schedule with unit prices; export statistics and budget to XLSX                              | R1          |
+| R9    | Agents and packaging                    | Drive simulations through the MCP server; install the app on Windows/macOS/Linux                          | R6, R7      |
 
-R5 can run in parallel with R1–R4; R8 in parallel with R3–R7.
+R5 and R5b can run in parallel with R1–R4; R8 in parallel with R3–R7.
 
 ## 2. Phases in detail
 
@@ -83,11 +84,18 @@ R5 can run in parallel with R1–R4; R8 in parallel with R3–R7.
 - If Rapier fails a criterion, try Jolt through `joltc-sys`/`oxijolt-sys` behind the same trait, and record the result in an ADR.
 - **Exit:** an ADR that confirms or replaces the engine choice of ADR-0018, with numbers.
 
+### R5b – 3D viewer spike (in parallel)
+
+- Decide the viewer of the 3D run ([[ADR-0019 Game Engine Choice for the Rust Platform]]): BIMCraft's own wgpu view with instancing, or a separate Bevy viewer process fed by snapshots through the control port.
+- Same scene in both: 200 pallets, 2 000 rollers, 20 conveyors, catalogue GLB models; measure frame rate on a laptop with integrated graphics, start-up time, binary size and work needed.
+- The simulation engines never depend on the viewer: Rapier is used directly, not through a Bevy plugin.
+- **Exit:** an ADR that confirms or rejects the Bevy viewer, with numbers.
+
 ### R6 – 3D physics run
 
 - Port `sim-physics/src/world` ([[ADR-0016 Physics World Built from the Layout]]): world from the model, decks, stations, gravity line, raycast sensors, MTBH bodies ([[ADR-0015 MTBH Rigid Body from Pallet and Load Models]]), scenery ([[ADR-0017 Scenery Assets in the Layout and Live Spawn]]).
 - Same plant logic as 2D, only the motion differs (ADR-0016 §1).
-- The 3D view (BIMCraft's GPU path) draws pallet bodies from snapshots each frame; the static scene is cached.
+- The viewer chosen in R5b (BIMCraft's GPU view or the Bevy viewer) draws pallet bodies from snapshots each frame; the static scene is cached.
 - **Tests:** 2D/3D sensor events within ±50 ms on the reference scenarios; stop accuracy; statistics sheet adds impact energy and stop error.
 - **Exit:** the owner switches the same project between 2D and 3D runs and compares statistics side by side.
 
@@ -132,6 +140,7 @@ Each of these is proposed upstream as a small, generic pull request; if refused,
 | R3    | L             | Reproducing the TypeScript event times exactly (floating point, event ordering) |
 | R4    | M             | Smooth animation in egui while the engine runs on another thread                |
 | R5    | M             | Rapier contact tuning for ±5 mm                                                 |
+| R5b   | S             | Two processes (editor and viewer) kept in step                                  |
 | R6    | L             | Performance with many roller bodies; determinism across platforms               |
 | R7    | M             | Many objects, each with its own cycle                                           |
 | R8    | M             | Scope creep (a full cost-estimating product)                                    |
@@ -145,5 +154,5 @@ Each of these is proposed upstream as a small, generic pull request; if refused,
 
 ## Related
 
-- [[ADR-0018 Pivot to a Simulation Module on a Rust BIM Platform]] · [[A17 BIMCraft Integration Analysis]] · [[A12 Roadmap]]
+- [[ADR-0018 Pivot to a Simulation Module on a Rust BIM Platform]] · [[ADR-0019 Game Engine Choice for the Rust Platform]] · [[A17 BIMCraft Integration Analysis]] · [[A12 Roadmap]]
 - [[A06 DES Engine]] · [[A07 Physics Engine Wrapper]] · [[A08 Controller]] · [[A11 Testing and Validation]]
