@@ -66,5 +66,73 @@
     "unit": "pallets",
     "expected": 30,
     "relativeTolerance": 0.01
+  },
+  {
+    "id": "LIFT-C",
+    "title": {
+      "en": "C elevator to a 4 m mezzanine with one pallet a minute: every pallet gets through (60 pallets/h)",
+      "es": "Elevador en C hasta una entreplanta de 4 m con un pallet por minuto: pasan todos (60 pallets/h)"
+    },
+    "kind": "flow",
+    "inputs": {
+      "layout": "demo-elevator-c",
+      "seconds": 28800,
+      "instanceId": "sink1",
+      "statistic": "throughputPerHour"
+    },
+    "unit": "pallets/h",
+    "expected": 60,
+    "relativeTolerance": 0.01
+  },
+  {
+    "id": "LIFT-OUT",
+    "title": {
+      "en": "Manual output table: an operator taking 60 s per pallet plus the 5.05 s run-out sets the rate (3600 / 65.05 pallets/h)",
+      "es": "Mesa manual de salida: un operario que tarda 60 s por pallet más los 5,05 s de salida fija el ritmo (3600 / 65,05 pallets/h)"
+    },
+    "kind": "flow",
+    "inputs": {
+      "layout": "demo-manual-output",
+      "seconds": 28800,
+      "instanceId": "sink1",
+      "statistic": "throughputPerHour"
+    },
+    "unit": "pallets/h",
+    "expected": 55.34204458109147,
+    "relativeTolerance": 0.01
+  },
+  {
+    "id": "T10",
+    "title": {
+      "en": "Gravity line: a pallet entering at 0.2 m/s reaches the end stop (6 m − 1.2 m) / 0.2 m/s after it is fully on the line",
+      "es": "Línea por gravedad: un pallet que entra a 0,2 m/s llega al tope final (6 m − 1,2 m) / 0,2 m/s después de estar entero en la línea"
+    },
+    "kind": "flow",
+    "inputs": {
+      "layout": "flow-t10",
+      "seconds": 120,
+      "instanceId": "gravity1",
+      "statistic": "meanTransitTime"
+    },
+    "unit": "s",
+    "expected": 24,
+    "relativeTolerance": 0.01
+  },
+  {
+    "id": "T11",
+    "title": {
+      "en": "Gravity line with a saturated infeed: an operator taking 60 s per pallet sets 60 pallets/h",
+      "es": "Línea por gravedad con entrada saturada: un operario que tarda 60 s por pallet fija 60 pallets/h"
+    },
+    "kind": "flow",
+    "inputs": {
+      "layout": "demo-gravity-line",
+      "seconds": 28800,
+      "instanceId": "sink1",
+      "statistic": "throughputPerHour"
+    },
+    "unit": "pallets/h",
+    "expected": 60,
+    "relativeTolerance": 0.01
   }
 ]

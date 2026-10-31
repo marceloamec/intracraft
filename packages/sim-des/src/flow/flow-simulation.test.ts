@@ -10,14 +10,20 @@ const REL_TOL = 0.01;
 
 describe('2D flow: reference tests', () => {
   it('T1: a pallet crosses a 3 m roller conveyor from rest in 12.25 s (0.25 m/s, 0.5 m/s²)', () => {
-    const sim = run(line(['flow.source', { maxPallets: 1 }], ['conveyor.roller'], ['flow.sink']), 60);
+    const sim = run(
+      line(['flow.source', { maxPallets: 1 }], ['conveyor.roller'], ['flow.sink']),
+      60,
+    );
     const stats = sim.statistics()['roller1'];
     expect(stats?.['palletsProcessed']).toBe(1);
     expect(stats?.['meanTransitTime']).toBeCloseTo(12.25, 5);
   });
 
   it('T2: EUR long side with 150 mm gap reaches ≈ 667 pallets/h', () => {
-    const sim = run(line(['flow.source', { interval: 1 }], ['conveyor.roller', { length: 12 }], ['flow.sink']), 7200);
+    const sim = run(
+      line(['flow.source', { interval: 1 }], ['conveyor.roller', { length: 12 }], ['flow.sink']),
+      7200,
+    );
     const perHour = sim.statistics()['sink1']?.['throughputPerHour'] ?? 0;
     expect(Math.abs(perHour - 3600 * (0.25 / 1.35)) / 666.7).toBeLessThan(REL_TOL);
   });
@@ -25,7 +31,12 @@ describe('2D flow: reference tests', () => {
 
 describe('2D flow: conveyors without accumulation', () => {
   it('hands a pallet over to the next conveyor without stopping', () => {
-    const layout = line(['flow.source', { maxPallets: 1 }], ['conveyor.roller'], ['conveyor.roller'], ['flow.sink']);
+    const layout = line(
+      ['flow.source', { maxPallets: 1 }],
+      ['conveyor.roller'],
+      ['conveyor.roller'],
+      ['flow.sink'],
+    );
     const stats = run(layout, 60).statistics();
     // 12.25 s on the first conveyor, then 3 m + 20 mm gap at 0.25 m/s.
     expect(stats['roller2']?.['meanTransitTime']).toBeCloseTo(12.08, 5);
@@ -42,7 +53,10 @@ describe('2D flow: conveyors without accumulation', () => {
   });
 
   it('a blocked conveyor receives nothing: the one before it holds and the source waits', () => {
-    const sim = run(line(['flow.source', { interval: 5 }], ['conveyor.roller'], ['conveyor.roller']), 600);
+    const sim = run(
+      line(['flow.source', { interval: 5 }], ['conveyor.roller'], ['conveyor.roller']),
+      600,
+    );
     const snapshot = sim.snapshot();
     // Each 3 m conveyor holds two EUR pallets; the front ones stand exactly at the end.
     const fronts = snapshot.pallets.map((p) => [p.carrier, round(p.front)]);
@@ -50,7 +64,11 @@ describe('2D flow: conveyors without accumulation', () => {
     expect(fronts).toContainEqual(['roller1', 3]);
     expect(fronts).toContainEqual(['roller2', 3]);
     expect(snapshot.pallets.every((p) => p.speed === 0 && p.front <= 3 + 1e-6)).toBe(true);
-    expect(snapshot.status).toMatchObject({ roller1: 'blocked', roller2: 'blocked', source1: 'waiting' });
+    expect(snapshot.status).toMatchObject({
+      roller1: 'blocked',
+      roller2: 'blocked',
+      source1: 'waiting',
+    });
     expect(sim.statistics()['source1']?.['waitingTime']).toBeGreaterThan(500);
   });
 
@@ -65,7 +83,12 @@ describe('2D flow: conveyors without accumulation', () => {
   });
 
   it('moves the pallets of coupled conveyors at the speed of the slower one', () => {
-    const layout = line(['flow.source', { maxPallets: 1 }], ['conveyor.roller'], ['conveyor.roller', { nominalSpeed: 0.1 }], ['flow.sink']);
+    const layout = line(
+      ['flow.source', { maxPallets: 1 }],
+      ['conveyor.roller'],
+      ['conveyor.roller', { nominalSpeed: 0.1 }],
+      ['flow.sink'],
+    );
     const sim = new FlowSimulation(buildFlowNetwork(layout, REGISTRY), { seed: SEED });
     sim.runUntil(secondsToSimTime(9)); // the front has passed the decision point of roller1
     const [pallet] = sim.snapshot().pallets;
@@ -101,7 +124,8 @@ describe('2D flow: invariants over a long irregular run', () => {
       const pallets = sim.snapshot().pallets;
       for (const [i, pallet] of pallets.entries()) {
         const ahead = pallets[i - 1];
-        if (ahead?.carrier === pallet.carrier) expect(ahead.front - ahead.length).toBeGreaterThanOrEqual(pallet.front - 1e-6);
+        if (ahead?.carrier === pallet.carrier)
+          expect(ahead.front - ahead.length).toBeGreaterThanOrEqual(pallet.front - 1e-6);
         const key = `${pallet.id}@${pallet.carrier}`;
         expect(pallet.front).toBeGreaterThanOrEqual((lastFront.get(key) ?? -Infinity) - 1e-6);
         lastFront.set(key, pallet.front);
@@ -112,23 +136,96 @@ describe('2D flow: invariants over a long irregular run', () => {
   });
 });
 
+describe('2D flow: what the source creates (S09 §1.1)', () => {
+  const CRATE = 'asset.containers.crate_blue_a01';
+
+  it('a crate alone crosses 3 m of rollers in 12.25 s like a pallet, with its own size', () => {
+    const source = { maxPallets: 1, palletModel: 'none', loadKind: 'asset', loadAsset: CRATE };
+    const sim = run(line(['flow.source', source], ['conveyor.roller'], ['flow.sink']), 4);
+    const [crate] = sim.snapshot().pallets;
+    expect(crate?.length).toBeCloseTo(0.605, 3);
+    expect(crate?.width).toBeCloseTo(0.405, 3);
+    expect(crate?.height).toBe(0);
+    expect(crate?.loadHeight).toBeCloseTo(0.253, 3);
+    sim.runUntil(secondsToSimTime(60));
+    expect(sim.statistics()['roller1']?.['meanTransitTime']).toBeCloseTo(12.25, 5);
+    expect(sim.statistics()['sink1']?.['palletsReceived']).toBe(1);
+  });
+
+  it('takes the larger footprint of pallet and load (EUR + 1.0 × 1.2 m box → 1.202 × 1.004 m)', () => {
+    const source = {
+      maxPallets: 1,
+      loadKind: 'asset',
+      loadAsset: 'asset.boxes.box_cardboard_large_a02',
+    };
+    const [pallet] = run(
+      line(['flow.source', source], ['conveyor.roller', { length: 4 }]),
+      2,
+    ).snapshot().pallets;
+    expect(pallet?.length).toBeCloseTo(1.202, 3);
+    expect(pallet?.width).toBeCloseTo(1.004, 3);
+    expect(pallet?.height).toBeCloseTo(0.144, 3);
+    expect(pallet?.loadHeight).toBeCloseTo(0.681, 3);
+  });
+
+  it('sends an empty pallet when the load is none', () => {
+    const [pallet] = run(
+      line(['flow.source', { maxPallets: 1, loadKind: 'none' }], ['conveyor.roller']),
+      2,
+    ).snapshot().pallets;
+    expect(pallet?.loadHeight).toBe(0);
+  });
+
+  it('warns when the pallet model does not fit the pallet type (galvanized 1219 × 1221 on EUR)', () => {
+    const source = { palletModel: 'asset.pallets.pallet_steel_galvanized_a01' };
+    const sim = run(line(['flow.source', source], ['conveyor.roller'], ['flow.sink']), 1);
+    expect(sim.issues.map((i) => i.rule)).toContain('palletModelMismatch');
+  });
+
+  it('warns and sends an empty pallet when there is neither pallet nor load', () => {
+    const source = { maxPallets: 1, palletModel: 'none', loadKind: 'none' };
+    const sim = run(line(['flow.source', source], ['conveyor.roller']), 2);
+    expect(sim.issues.map((i) => i.rule)).toContain('sourceCreatesNothing');
+    expect(sim.snapshot().pallets[0]?.length).toBeCloseTo(1.2, 6);
+  });
+});
+
 describe('2D flow: source, warnings and determinism', () => {
   it('creates no more than maxPallets', () => {
-    const stats = run(line(['flow.source', { maxPallets: 3, interval: 1 }], ['conveyor.roller'], ['flow.sink']), 600).statistics();
+    const stats = run(
+      line(['flow.source', { maxPallets: 3, interval: 1 }], ['conveyor.roller'], ['flow.sink']),
+      600,
+    ).statistics();
     expect(stats['source1']?.['palletsCreated']).toBe(3);
     expect(stats['sink1']?.['palletsReceived']).toBe(3);
   });
 
   it('warns when the pallet orientation does not match the conveyor', () => {
-    const sim = run(line(['flow.source', { maxPallets: 1 }], ['conveyor.chain'], ['flow.sink']), 60);
+    const sim = run(
+      line(['flow.source', { maxPallets: 1 }], ['conveyor.chain'], ['flow.sink']),
+      60,
+    );
     expect(sim.issues.map((i) => i.rule)).toContain('palletOrientationMismatch');
   });
 
   it('holds pallets in front of objects without a 2D behaviour yet', () => {
     const registry = createBuiltInRegistry();
-    registry.register({ ...REGISTRY.get('conveyor.roller'), id: 'conveyor.future', behaviors: { des: 'des.future', physics: 'phys.future' } });
-    const layout = line(['flow.source', { maxPallets: 1 }], ['conveyor.roller'], ['conveyor.roller']);
-    const future = { ...layout, instances: layout.instances.map((i) => (i.id === 'roller2' ? { ...i, definitionId: 'conveyor.future' } : i)) };
+    registry.register({
+      ...REGISTRY.get('conveyor.roller'),
+      id: 'conveyor.future',
+      behaviors: { des: 'des.future', physics: 'phys.future' },
+    });
+    const layout = line(
+      ['flow.source', { maxPallets: 1 }],
+      ['conveyor.roller'],
+      ['conveyor.roller'],
+    );
+    const future = {
+      ...layout,
+      instances: layout.instances.map((i) =>
+        i.id === 'roller2' ? { ...i, definitionId: 'conveyor.future' } : i,
+      ),
+    };
     const sim = new FlowSimulation(buildFlowNetwork(future, registry), { seed: SEED });
     sim.runUntil(secondsToSimTime(60));
     expect(sim.issues.map((i) => i.rule)).toContain('behaviorNotAvailable');
@@ -136,12 +233,18 @@ describe('2D flow: source, warnings and determinism', () => {
   });
 
   it('gives the same results for the same seed and different ones for another seed', () => {
-    const layout = line(['flow.source', { generationMode: 'exponential', interval: 8 }], ['conveyor.roller'], ['flow.sink']);
+    const layout = line(
+      ['flow.source', { generationMode: 'exponential', interval: 8 }],
+      ['conveyor.roller'],
+      ['flow.sink'],
+    );
     const first = run(layout, 3600).statistics();
     expect(run(layout, 3600).statistics()).toEqual(first);
     const other = new FlowSimulation(buildFlowNetwork(layout, REGISTRY), { seed: SEED + 1 });
     other.runUntil(secondsToSimTime(3600));
-    expect(other.statistics()['source1']?.['palletsCreated']).not.toBe(first['source1']?.['palletsCreated']);
+    expect(other.statistics()['source1']?.['palletsCreated']).not.toBe(
+      first['source1']?.['palletsCreated'],
+    );
   });
 });
 

@@ -50,7 +50,7 @@ Tested with a two-zone ZPA template and edge/delay cases (`rules.test.ts`).
 - Cancellation semantics of delayed writes (on-delay vs pulse) — provisionally "never cancelled" (ADR-0010).
 - Signal registry with naming convention `<instance>.<signal>` and validation that every referenced signal exists.
 - Interlocks are **not** rules: they live inside component behaviours and log a warning when they block a command.
-- User scripting (sandboxed) is post-MVP.
+- User code: [[A17 IntraScript Language]] ([[ADR-0018 IntraScript Scripting Language]], proposed). Rules stay; at one instant the rules run first, then the code.
 
 ## Related
 

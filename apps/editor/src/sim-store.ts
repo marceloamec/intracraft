@@ -1,9 +1,10 @@
 // Simulation controls and results in the editor. The simulation itself runs in a Web Worker
 // (sim/sim.worker.ts); this store sends it commands and keeps the latest frame it posted.
-import type { FlowIssue, FlowSnapshot, FlowStatistics, ObjectStatus } from '@intracraft/sim-des';
+import type { FlowIssue, FlowStatistics, ObjectStatus } from '@intracraft/sim-des';
 import { create } from 'zustand';
 import { useLayoutStore } from './layout-store';
-import type { FromWorker, SimSpeed, ToWorker } from './sim/protocol';
+import type { FromWorker, SimSnapshot, SimSpeed, ToWorker } from './sim/protocol';
+import { useEditorStore } from './store';
 
 export type RunState = 'stopped' | 'playing' | 'paused';
 
@@ -25,13 +26,15 @@ interface SimState {
   step(): void;
   stop(): void;
   setSpeed(speed: SimSpeed): void;
+  /** Drops a catalogue object into the running 3D simulation (S17 §4); ignored when stopped. */
+  spawnObject(input: unknown): void;
 }
 
 /**
  * Latest snapshot for the 3D layer, outside React state: it changes 30 times per second and is
  * read every rendered frame (useFrame), so it must not trigger re-renders.
  */
-export const liveFrame: { snapshot: FlowSnapshot | null; receivedAt: number; playing: boolean } = {
+export const liveFrame: { snapshot: SimSnapshot | null; receivedAt: number; playing: boolean } = {
   snapshot: null,
   receivedAt: 0,
   playing: false,
@@ -45,7 +48,7 @@ export const useSimStore = create<SimState>()((set, get) => {
     if (get().run !== 'stopped') return;
     set({ issues: [], statistics: {}, error: null });
     const { layout, seed } = useLayoutStore.getState();
-    send({ type: 'load', layout, seed });
+    send({ type: 'load', layout, seed, mode: useEditorStore.getState().simMode });
     send({ type: 'setSpeed', speed: get().speed });
   };
 
@@ -100,6 +103,10 @@ export const useSimStore = create<SimState>()((set, get) => {
       send({ type: 'step' });
       set({ run: 'paused' });
     },
+    spawnObject(input) {
+      if (get().run === 'stopped') return;
+      send({ type: 'spawn', input, actor: 'user' });
+    },
     stop() {
       if (get().run === 'stopped') return;
       send({ type: 'pause' });
@@ -113,7 +120,11 @@ export const useSimStore = create<SimState>()((set, get) => {
   };
 });
 
-// Results belong to the layout and seed they were computed with: any change stops the run.
+// Results belong to the layout, seed and mode they were computed with: any change stops the run.
 useLayoutStore.subscribe((state, previous) => {
-  if (state.layout !== previous.layout || state.seed !== previous.seed) useSimStore.getState().stop();
+  if (state.layout !== previous.layout || state.seed !== previous.seed)
+    useSimStore.getState().stop();
+});
+useEditorStore.subscribe((state, previous) => {
+  if (state.simMode !== previous.simMode) useSimStore.getState().stop();
 });

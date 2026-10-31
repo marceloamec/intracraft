@@ -1,4 +1,4 @@
-// Conversion between stored SI values and the units shown in the editor (mm, ms, degrees).
+// Conversion between stored SI values and the units shown in the editor (mm, ms, degrees, %).
 import { degToRad, mToMm, mmToM, radToDeg } from '@intracraft/core-model';
 
 const MAX_DECIMALS = 4;
@@ -10,6 +10,7 @@ const TO_DISPLAY: Record<string, (value: number) => number> = {
   'rad>°': radToDeg,
   'rad/s>°/s': radToDeg,
   'rad/s²>°/s²': radToDeg,
+  'ratio>%': (ratio) => ratio * 100,
 };
 
 const FROM_DISPLAY: Record<string, (value: number) => number> = {
@@ -18,6 +19,7 @@ const FROM_DISPLAY: Record<string, (value: number) => number> = {
   'rad>°': degToRad,
   'rad/s>°/s': degToRad,
   'rad/s²>°/s²': degToRad,
+  'ratio>%': (percent) => percent / 100,
 };
 
 export function toDisplay(value: number, unit?: string, displayUnit?: string): number {

@@ -8,6 +8,7 @@
     ".": "./src/index.ts"
   },
   "dependencies": {
+    "@intracraft/asset-catalog": "workspace:*",
     "@intracraft/core-model": "workspace:*",
     "zod": "4.6.7"
   }

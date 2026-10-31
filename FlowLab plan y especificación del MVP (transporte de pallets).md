@@ -54,10 +54,12 @@
 - Editor: colocar, conectar, parametrizar, guardar y abrir; reproducir, pausar y acelerar.
 - Estadísticas básicas por objeto, exportación a CSV/JSON y ejecución sin interfaz (CLI).
 - Librería integrada con presets y componentes propios (duplicar y editar).
+- Ampliación del 30-10-2026 (ADR-0012): mesa elevadora manual para transpaleta, mesa de tijera, elevador de dos niveles y línea de rodillos por gravedad con separador (especificaciones S12–S15 en `docs/en/specs/`).
+- Ampliación del 31-10-2026 (ADR-0018): lenguaje de programación propio **IntraScript** (`docs/en/app/A17 IntraScript Language.md`) y objetos de información: variable, tabla, lista, bloque de código y zona (especificaciones S18–S22).
 
 ### 2.2 Fuera del MVP (post-MVP)
 
-Curvas, elevadores, lanzaderas y desviadores; cajas y cubetas; fallos (MTBF/MTTR) y energía; scripting de usuario; traspaso de estado entre modos en mitad de la simulación; calibración automática 2D↔3D; experimentos y optimización; OPC UA/PLC; importación de CAD; trabajo en equipo.
+Curvas, elevadores de tres o más niveles, lanzaderas y desviadores; cajas y cubetas; fallos (MTBF/MTTR) y energía; traspaso de estado entre modos en mitad de la simulación; calibración automática 2D↔3D; experimentos y optimización; OPC UA/PLC; importación de CAD; trabajo en equipo.
 
 ### 2.3 Definición de “hecho” del MVP
 
@@ -146,7 +148,7 @@ Herramientas: pnpm (espacios de trabajo), Vite, Vitest, TypeScript en modo estri
 - Señales booleanas con nombre: de sensores (entradas) y de actuadores (salidas: marcha, tope arriba, giro a estación N, elevar cadenas…).
 - **Reglas Si/Entonces** con condiciones booleanas, retardos (ms) y flancos; se evalúan por eventos en 2D y en cada ciclo de control en 3D (por defecto 10 ms).
 - Plantillas incluidas: acumulación sin presión (ZPA), parada en tope con sensor, giratoria que espera pallet centrado y transferencia con secuencia completa.
-- El scripting de usuario (por ejemplo QuickJS en sandbox) queda para después del MVP.
+- Programación de usuario con el lenguaje propio IntraScript (ampliación del 31-10-2026, ADR-0018); las reglas Si/Entonces se mantienen y se evalúan antes que el código.
 
 ### 4.4 Archivo de proyecto
 
@@ -311,7 +313,7 @@ Tramo recto de rodillos que transporta el pallet con las tablas inferiores en el
 
 - **Modo 2D:** el pallet acelera, cruza y frena con perfil trapezoidal. En acumulación sin presión (ZPA) cada zona arranca solo si la siguiente está libre; en acumulación con presión los pallets se empujan hasta quedar a la separación mínima.
 - **Modo 3D:** cada rodillo es un cilindro cinemático con velocidad angular ω = v / (diámetro / 2), agrupado por zona. El pallet avanza por rozamiento con sus tablas inferiores, así que puede patinar si el par de fricción es bajo o si está retenido.
-- **Rodillos libres (gravedad):** sin accionamiento; el pallet solo los cruza si lo empuja un tramo motorizado (el MVP no incluye pendiente).
+- **Rodillos libres (gravedad):** sin accionamiento; el pallet solo los cruza si lo empuja un tramo motorizado (sin pendiente; la línea de gravedad con pendiente, frenos y separador es un objeto aparte: S15).
 - **Validaciones:** regla de 3 rodillos, ancho útil frente al pallet y longitud de zona ≥ largo del pallet + 100 mm.
 
 ### 8.2 Mesa de cadenas (`transp.cadenas`)
@@ -640,10 +642,10 @@ Orden pensado para atacar primero el mayor riesgo (la física de las cadenas) y 
 
 1. Traspaso de estado entre modos en mitad de la simulación.
 2. Calibración automática 2D↔3D.
-3. Curvas, desviadores, elevadores y lanzaderas.
+3. Curvas, desviadores, elevadores de varios niveles y lanzaderas.
 4. Cajas y cubetas.
 5. Fallos (MTBF/MTTR) y consumo de energía.
-6. Scripting de usuario.
+6. ~~Scripting de usuario~~ (adelantado el 31-10-2026: IntraScript, ADR-0018).
 7. Experimentos, réplicas y optimización.
 8. Conexión OPC UA/PLC.
 9. Importación de modelos 3D de fabricantes (con licencia) y de planos DXF.

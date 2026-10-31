@@ -1,0 +1,82 @@
+{
+  "schemaVersion": 1,
+  "name": "C elevator from the floor to a 4 m mezzanine",
+  "seed": 1,
+  "layout": {
+    "instances": [
+      {
+        "id": "source1",
+        "definitionId": "flow.source",
+        "definitionVersion": "0.1.0",
+        "name": "Source",
+        "position": {
+          "x": -3.44,
+          "y": 0,
+          "z": 0
+        },
+        "yaw": 0,
+        "params": {
+          "interval": 60
+        },
+        "attributes": {}
+      },
+      {
+        "id": "roller1",
+        "definitionId": "conveyor.roller",
+        "definitionVersion": "0.1.0",
+        "name": "Infeed (floor)",
+        "position": {
+          "x": -3.02,
+          "y": 0,
+          "z": 0
+        },
+        "yaw": 0,
+        "params": {},
+        "attributes": {}
+      },
+      {
+        "id": "elevator1",
+        "definitionId": "conveyor.elevator",
+        "definitionVersion": "0.1.0",
+        "name": "Elevator 0.6 → 4.6 m",
+        "position": {
+          "x": 0,
+          "y": 0,
+          "z": 0
+        },
+        "yaw": 0,
+        "params": {},
+        "attributes": {}
+      },
+      {
+        "id": "roller2",
+        "definitionId": "conveyor.roller",
+        "definitionVersion": "0.1.0",
+        "name": "Outfeed (mezzanine)",
+        "position": {
+          "x": -0.02,
+          "y": 4,
+          "z": 0
+        },
+        "yaw": 3.141592653589793,
+        "params": {},
+        "attributes": {}
+      },
+      {
+        "id": "sink1",
+        "definitionId": "flow.sink",
+        "definitionVersion": "0.1.0",
+        "name": "Sink (mezzanine)",
+        "position": {
+          "x": -3.04,
+          "y": 4,
+          "z": 0
+        },
+        "yaw": 3.141592653589793,
+        "params": {},
+        "attributes": {}
+      }
+    ],
+    "connections": []
+  }
+}

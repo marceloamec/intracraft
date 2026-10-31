@@ -1,0 +1,631 @@
+[
+  {
+    "key": "mtbhType",
+    "type": "enum",
+    "options": ["eur-wood-cartons", "eur-wood", "plastic"],
+    "default": "eur-wood-cartons",
+    "group": "load",
+    "affects": "3d",
+    "label": { "en": "Pallet and load", "es": "Pallet y carga" },
+    "description": {
+      "en": "Real models: wooden EUR pallet with mixed cartons, empty wooden EUR pallet, or 1200 × 800 plastic pallet",
+      "es": "Modelos reales: europallet de madera con cajas mixtas, europallet de madera vacía o pallet de plástico 1200 × 800"
+    }
+  },
+  {
+    "key": "loadMass",
+    "type": "number",
+    "unit": "kg",
+    "displayUnit": "kg",
+    "default": 600,
+    "min": 0,
+    "max": 1500,
+    "group": "load",
+    "affects": "3d",
+    "dependsOn": "mtbhType=eur-wood-cartons",
+    "label": { "en": "Load mass", "es": "Masa de la carga" },
+    "description": {
+      "en": "Mass of the goods; the model's own mass is that of empty packaging",
+      "es": "Masa de la mercancía; la masa propia del modelo es la del embalaje vacío"
+    }
+  },
+  {
+    "key": "comOffsetX",
+    "type": "number",
+    "unit": "m",
+    "displayUnit": "mm",
+    "default": 0,
+    "min": -0.3,
+    "max": 0.3,
+    "group": "load",
+    "affects": "3d",
+    "dependsOn": "mtbhType=eur-wood-cartons",
+    "label": {
+      "en": "Load COG offset forward",
+      "es": "Desplazamiento del CDG de la carga hacia delante"
+    },
+    "description": {
+      "en": "Shift of the load's centre of gravity from the centre of its block, along travel (+ forward)",
+      "es": "Desplazamiento del centro de gravedad de la carga respecto al centro de su bloque, en el sentido de avance (+ hacia delante)"
+    }
+  },
+  {
+    "key": "comOffsetY",
+    "type": "number",
+    "unit": "m",
+    "displayUnit": "mm",
+    "default": 0,
+    "min": -0.25,
+    "max": 0.25,
+    "group": "load",
+    "affects": "3d",
+    "dependsOn": "mtbhType=eur-wood-cartons",
+    "label": {
+      "en": "Load COG offset up",
+      "es": "Desplazamiento del CDG de la carga hacia arriba"
+    },
+    "description": {
+      "en": "Shift of the load's centre of gravity upwards (+) or downwards (−)",
+      "es": "Desplazamiento del centro de gravedad de la carga hacia arriba (+) o hacia abajo (−)"
+    }
+  },
+  {
+    "key": "comOffsetZ",
+    "type": "number",
+    "unit": "m",
+    "displayUnit": "mm",
+    "default": 0,
+    "min": -0.2,
+    "max": 0.2,
+    "group": "load",
+    "affects": "3d",
+    "dependsOn": "mtbhType=eur-wood-cartons",
+    "label": {
+      "en": "Load COG offset across (+Z)",
+      "es": "Desplazamiento transversal del CDG de la carga (+Z)"
+    },
+    "description": {
+      "en": "Shift of the load's centre of gravity across the conveyor, towards +Z",
+      "es": "Desplazamiento del centro de gravedad de la carga a lo ancho del transportador, hacia +Z"
+    }
+  },
+  {
+    "key": "conveyorLength",
+    "type": "number",
+    "unit": "m",
+    "displayUnit": "mm",
+    "default": 3,
+    "min": 1.5,
+    "max": 6,
+    "group": "conveyor",
+    "affects": "3d",
+    "label": { "en": "Conveyor length", "es": "Longitud del transportador" },
+    "description": { "en": "Length of the roller section", "es": "Longitud del tramo de rodillos" }
+  },
+  {
+    "key": "rollerDiameter",
+    "type": "number",
+    "unit": "m",
+    "displayUnit": "mm",
+    "choices": [0.076, 0.089],
+    "default": 0.089,
+    "group": "conveyor",
+    "affects": "3d",
+    "label": { "en": "Roller diameter", "es": "Diámetro del rodillo" },
+    "description": { "en": "Roller diameter", "es": "Diámetro del rodillo" }
+  },
+  {
+    "key": "rollerPitch",
+    "type": "number",
+    "unit": "m",
+    "displayUnit": "mm",
+    "choices": [0.133, 0.2063],
+    "default": 0.2063,
+    "group": "conveyor",
+    "affects": "3d",
+    "label": { "en": "Roller pitch", "es": "Paso de rodillos" },
+    "description": {
+      "en": "Distance between roller axes",
+      "es": "Distancia entre ejes de rodillos"
+    }
+  },
+  {
+    "key": "rollerMaterial",
+    "type": "enum",
+    "options": ["steel-zinc", "rubber", "polyurethane"],
+    "default": "steel-zinc",
+    "group": "conveyor",
+    "affects": "3d",
+    "label": { "en": "Roller surface", "es": "Superficie del rodillo" },
+    "description": {
+      "en": "Zinc-plated steel, rubber-coated or polyurethane-coated; friction comes from the pair table (S16)",
+      "es": "Acero cincado, engomado o con poliuretano; el rozamiento sale de la tabla de parejas (S16)"
+    }
+  },
+  {
+    "key": "rollerMuOverride",
+    "type": "boolean",
+    "default": false,
+    "group": "conveyor",
+    "affects": "3d",
+    "advanced": true,
+    "label": { "en": "Manual roller friction", "es": "Rozamiento de rodillo manual" },
+    "description": {
+      "en": "Use the value below instead of the pair table",
+      "es": "Usar el valor de abajo en lugar de la tabla de parejas"
+    }
+  },
+  {
+    "key": "rollerMu",
+    "type": "number",
+    "default": 0.35,
+    "min": 0,
+    "max": 1,
+    "group": "conveyor",
+    "affects": "3d",
+    "advanced": true,
+    "dependsOn": "rollerMuOverride=true",
+    "label": { "en": "Roller friction μ", "es": "Rozamiento del rodillo μ" },
+    "description": {
+      "en": "Pallet–roller friction coefficient",
+      "es": "Coeficiente de rozamiento pallet–rodillo"
+    }
+  },
+  {
+    "key": "speed",
+    "type": "number",
+    "unit": "m/s",
+    "displayUnit": "m/s",
+    "default": 0.25,
+    "min": 0.05,
+    "max": 1,
+    "group": "conveyor",
+    "affects": "3d",
+    "label": { "en": "Speed", "es": "Velocidad" },
+    "description": { "en": "Roller surface speed", "es": "Velocidad de la superficie del rodillo" }
+  },
+  {
+    "key": "accel",
+    "type": "number",
+    "unit": "m/s²",
+    "displayUnit": "m/s²",
+    "default": 0.5,
+    "min": 0.1,
+    "max": 10,
+    "group": "conveyor",
+    "affects": "3d",
+    "label": { "en": "Acceleration ramp", "es": "Rampa de aceleración" },
+    "description": {
+      "en": "Roller start-up ramp; above μ·g the pallet slips",
+      "es": "Rampa de arranque de los rodillos; por encima de μ·g el pallet desliza"
+    }
+  },
+  {
+    "key": "startAtSpeed",
+    "type": "boolean",
+    "default": false,
+    "group": "conveyor",
+    "affects": "3d",
+    "advanced": true,
+    "label": { "en": "Pallet starts at speed", "es": "El pallet arranca a velocidad" },
+    "description": {
+      "en": "The pallet enters already moving at the conveyor speed",
+      "es": "El pallet entra ya moviéndose a la velocidad del transportador"
+    }
+  },
+  {
+    "key": "stopEnabled",
+    "type": "boolean",
+    "default": true,
+    "group": "stop",
+    "affects": "3d",
+    "label": { "en": "Stop", "es": "Tope" },
+    "description": {
+      "en": "Fixed stop across the conveyor; without it the pallet runs off the end",
+      "es": "Tope fijo en el transportador; sin él el pallet sale por el final"
+    }
+  },
+  {
+    "key": "stopPosition",
+    "type": "number",
+    "unit": "m",
+    "displayUnit": "mm",
+    "default": 2.8,
+    "min": 1.3,
+    "max": 6,
+    "group": "stop",
+    "affects": "3d",
+    "dependsOn": "stopEnabled=true",
+    "label": { "en": "Stop position", "es": "Posición del tope" },
+    "description": {
+      "en": "Contact face measured from the conveyor start",
+      "es": "Cara de contacto medida desde el inicio del transportador"
+    }
+  },
+  {
+    "key": "stopMaterial",
+    "type": "enum",
+    "options": ["steel-painted", "polyurethane", "rubber"],
+    "default": "steel-painted",
+    "group": "stop",
+    "affects": "3d",
+    "dependsOn": "stopEnabled=true",
+    "label": { "en": "Stop face", "es": "Cara del tope" },
+    "description": {
+      "en": "Steel plate or elastomer buffer; sets the rebound (restitution e) from the pair table",
+      "es": "Placa de acero o amortiguador de elastómero; fija el rebote (restitución e) según la tabla de parejas"
+    }
+  },
+  {
+    "key": "stopRestitutionOverride",
+    "type": "boolean",
+    "default": false,
+    "group": "stop",
+    "affects": "3d",
+    "advanced": true,
+    "dependsOn": "stopEnabled=true",
+    "label": { "en": "Manual rebound", "es": "Rebote manual" },
+    "description": {
+      "en": "Use the value below instead of the pair table",
+      "es": "Usar el valor de abajo en lugar de la tabla de parejas"
+    }
+  },
+  {
+    "key": "stopRestitution",
+    "type": "number",
+    "default": 0.1,
+    "min": 0,
+    "max": 1,
+    "group": "stop",
+    "affects": "3d",
+    "advanced": true,
+    "dependsOn": "stopRestitutionOverride=true",
+    "label": { "en": "Restitution e", "es": "Restitución e" },
+    "description": {
+      "en": "Rebound speed / impact speed; the stop absorbs 1 − e² of the impact energy",
+      "es": "Velocidad de rebote / velocidad de impacto; el tope absorbe 1 − e² de la energía del impacto"
+    }
+  },
+  {
+    "key": "stopWidth",
+    "type": "number",
+    "unit": "m",
+    "displayUnit": "mm",
+    "default": 0.1,
+    "min": 0.02,
+    "max": 0.4,
+    "group": "stop",
+    "affects": "3d",
+    "dependsOn": "stopEnabled=true",
+    "label": { "en": "Stop width", "es": "Ancho del tope" },
+    "description": {
+      "en": "Transverse width of the stop (S07)",
+      "es": "Ancho transversal del tope (S07)"
+    }
+  },
+  {
+    "key": "stopHeight",
+    "type": "number",
+    "unit": "m",
+    "displayUnit": "mm",
+    "default": 0.1,
+    "min": 0.03,
+    "max": 0.3,
+    "group": "stop",
+    "affects": "3d",
+    "dependsOn": "stopEnabled=true",
+    "label": { "en": "Stop height", "es": "Altura del tope" },
+    "description": {
+      "en": "Height above the conveying surface (S07)",
+      "es": "Altura sobre la superficie de transporte (S07)"
+    }
+  },
+  {
+    "key": "deck",
+    "type": "enum",
+    "options": ["rollers", "chains", "chainsPlanA"],
+    "default": "rollers",
+    "group": "conveyor",
+    "affects": "3d",
+    "label": { "en": "Deck", "es": "Cubierta" },
+    "description": {
+      "en": "Driven rollers; chain strands as static strips with a surface velocity (plan B); or chain strands carried by small driven rollers (plan A)",
+      "es": "Rodillos motorizados; ramales de cadena como tiras fijas con velocidad de superficie (plan B); o ramales sobre rodillos pequeños motorizados (plan A)"
+    }
+  },
+  {
+    "key": "chainCount",
+    "type": "integer",
+    "default": 3,
+    "min": 2,
+    "max": 4,
+    "group": "conveyor",
+    "affects": "3d",
+    "dependsOn": "deck!=rollers",
+    "label": { "en": "Chain strands", "es": "Ramales de cadena" },
+    "description": {
+      "en": "Number of strands, spread evenly over the track gauge",
+      "es": "Número de ramales, repartidos por igual en el ancho de vía"
+    }
+  },
+  {
+    "key": "chainGauge",
+    "type": "number",
+    "unit": "m",
+    "displayUnit": "mm",
+    "default": 1.05,
+    "min": 0.6,
+    "max": 1.2,
+    "group": "conveyor",
+    "affects": "3d",
+    "dependsOn": "deck!=rollers",
+    "label": { "en": "Track gauge", "es": "Ancho de vía" },
+    "description": {
+      "en": "Distance between the outer strand axes",
+      "es": "Distancia entre los ejes de los ramales exteriores"
+    }
+  },
+  {
+    "key": "palletSideAlongTravel",
+    "type": "enum",
+    "options": ["long", "short"],
+    "default": "long",
+    "group": "load",
+    "affects": "3d",
+    "label": { "en": "Pallet side along travel", "es": "Lado del pallet en el avance" },
+    "description": {
+      "en": "Long side first (rollers) or short side first, the pallet turned 90° (chains)",
+      "es": "Lado largo primero (rodillos) o lado corto primero, con el pallet girado 90° (cadenas)"
+    }
+  },
+  {
+    "key": "startOffsetZ",
+    "type": "number",
+    "unit": "m",
+    "displayUnit": "mm",
+    "default": 0,
+    "min": -0.2,
+    "max": 0.2,
+    "group": "load",
+    "affects": "3d",
+    "label": { "en": "Start offset across", "es": "Desplazamiento lateral inicial" },
+    "description": {
+      "en": "Lateral distance of the pallet centre from the conveyor axis at the start",
+      "es": "Distancia lateral del centro del pallet al eje del transportador al empezar"
+    }
+  },
+  {
+    "key": "startYaw",
+    "type": "number",
+    "unit": "rad",
+    "displayUnit": "°",
+    "default": 0,
+    "min": -0.35,
+    "max": 0.35,
+    "group": "load",
+    "affects": "3d",
+    "label": { "en": "Start angle", "es": "Ángulo inicial" },
+    "description": {
+      "en": "Rotation of the pallet about the vertical at the start (positive: the front turns to the right)",
+      "es": "Giro del pallet alrededor de la vertical al empezar (positivo: el frente gira a la derecha)"
+    }
+  },
+  {
+    "key": "guidesEnabled",
+    "type": "boolean",
+    "default": false,
+    "group": "guides",
+    "affects": "3d",
+    "label": { "en": "Side guides", "es": "Guías laterales" },
+    "description": {
+      "en": "Two guide rails with a funnel entry (S08)",
+      "es": "Dos guías laterales con entrada en embudo (S08)"
+    }
+  },
+  {
+    "key": "guideStart",
+    "type": "number",
+    "unit": "m",
+    "displayUnit": "mm",
+    "default": 2.0,
+    "min": 0.5,
+    "max": 5,
+    "group": "guides",
+    "affects": "3d",
+    "dependsOn": "guidesEnabled=true",
+    "label": { "en": "Guide start", "es": "Inicio de la guía" },
+    "description": {
+      "en": "Where the straight rails start; the funnel lies before it",
+      "es": "Dónde empiezan las guías rectas; el embudo queda antes"
+    }
+  },
+  {
+    "key": "guideClearance",
+    "type": "number",
+    "unit": "m",
+    "displayUnit": "mm",
+    "default": 0.025,
+    "min": 0,
+    "max": 0.1,
+    "group": "guides",
+    "affects": "3d",
+    "dependsOn": "guidesEnabled=true",
+    "label": { "en": "Clearance per side", "es": "Holgura por lado" },
+    "description": {
+      "en": "Gap between the pallet side and each rail (S08)",
+      "es": "Hueco entre el lado del pallet y cada guía (S08)"
+    }
+  },
+  {
+    "key": "guideHeight",
+    "type": "number",
+    "unit": "m",
+    "displayUnit": "mm",
+    "default": 0.15,
+    "min": 0.05,
+    "max": 0.4,
+    "group": "guides",
+    "affects": "3d",
+    "dependsOn": "guidesEnabled=true",
+    "label": { "en": "Guide height", "es": "Altura de la guía" },
+    "description": {
+      "en": "Height of the rails above the conveying surface (S08)",
+      "es": "Altura de las guías sobre la superficie de transporte (S08)"
+    }
+  },
+  {
+    "key": "funnelAngle",
+    "type": "number",
+    "unit": "rad",
+    "displayUnit": "°",
+    "default": 0.174533,
+    "min": 0.05236,
+    "max": 0.523599,
+    "group": "guides",
+    "affects": "3d",
+    "dependsOn": "guidesEnabled=true",
+    "label": { "en": "Funnel angle", "es": "Ángulo del embudo" },
+    "description": {
+      "en": "Angle of the entry plates to the travel direction (S08)",
+      "es": "Ángulo de las placas de entrada respecto al avance (S08)"
+    }
+  },
+  {
+    "key": "funnelLength",
+    "type": "number",
+    "unit": "m",
+    "displayUnit": "mm",
+    "default": 0.3,
+    "min": 0.1,
+    "max": 0.8,
+    "group": "guides",
+    "affects": "3d",
+    "dependsOn": "guidesEnabled=true",
+    "label": { "en": "Funnel length", "es": "Longitud del embudo" },
+    "description": {
+      "en": "Length of the entry plates along travel; capture = clearance + length · tan(angle)",
+      "es": "Longitud de las placas de entrada en el avance; captura = holgura + longitud · tan(ángulo)"
+    }
+  },
+  {
+    "key": "guideMaterial",
+    "type": "enum",
+    "options": ["steel-painted", "polyethylene"],
+    "default": "steel-painted",
+    "group": "guides",
+    "affects": "3d",
+    "dependsOn": "guidesEnabled=true",
+    "label": { "en": "Guide surface", "es": "Superficie de la guía" },
+    "description": {
+      "en": "Painted steel or low-friction polyethylene strips; friction from the pair table (S16)",
+      "es": "Acero pintado o perfiles de polietileno de bajo rozamiento; el rozamiento sale de la tabla de parejas (S16)"
+    }
+  },
+  {
+    "key": "turntable",
+    "type": "boolean",
+    "default": false,
+    "group": "turntable",
+    "affects": "3d",
+    "label": { "en": "On a turntable", "es": "Sobre una giratoria" },
+    "description": {
+      "en": "The rollers sit on a platform that turns once with the pallet centred on it; the rollers are locked (S04)",
+      "es": "Los rodillos están sobre una plataforma que gira una vez con el pallet centrado; los rodillos están bloqueados (S04)"
+    }
+  },
+  {
+    "key": "turnAngle",
+    "type": "number",
+    "unit": "rad",
+    "displayUnit": "°",
+    "default": 1.570796,
+    "min": 0.261799,
+    "max": 4.712389,
+    "group": "turntable",
+    "affects": "3d",
+    "dependsOn": "turntable=true",
+    "label": { "en": "Turn", "es": "Giro" },
+    "description": { "en": "Angle of the turn", "es": "Ángulo del giro" }
+  },
+  {
+    "key": "maxAngularSpeed",
+    "type": "number",
+    "unit": "rad/s",
+    "displayUnit": "°/s",
+    "default": 0.261799,
+    "min": 0.034907,
+    "max": 0.785398,
+    "group": "turntable",
+    "affects": "3d",
+    "dependsOn": "turntable=true",
+    "label": { "en": "Angular speed", "es": "Velocidad angular" },
+    "description": {
+      "en": "Cruise angular speed (S03)",
+      "es": "Velocidad angular de crucero (S03)"
+    }
+  },
+  {
+    "key": "angularAccel",
+    "type": "number",
+    "unit": "rad/s²",
+    "displayUnit": "°/s²",
+    "default": 0.523599,
+    "min": 0.087266,
+    "max": 2.094395,
+    "group": "turntable",
+    "affects": "3d",
+    "dependsOn": "turntable=true",
+    "label": { "en": "Angular acceleration", "es": "Aceleración angular" },
+    "description": {
+      "en": "Start and stop ramp of the turn (S03)",
+      "es": "Rampa de arranque y parada del giro (S03)"
+    }
+  },
+  {
+    "key": "turnStart",
+    "type": "number",
+    "unit": "s",
+    "displayUnit": "s",
+    "default": 0.5,
+    "min": 0,
+    "max": 10,
+    "group": "turntable",
+    "affects": "3d",
+    "dependsOn": "turntable=true",
+    "label": { "en": "Turn start", "es": "Inicio del giro" },
+    "description": {
+      "en": "Time at which the platform starts turning, after the pallet has settled",
+      "es": "Instante en que la plataforma empieza a girar, cuando el pallet ya se ha asentado"
+    }
+  },
+  {
+    "key": "lanes",
+    "type": "integer",
+    "default": 1,
+    "min": 1,
+    "max": 40,
+    "group": "performance",
+    "affects": "3d",
+    "advanced": true,
+    "label": { "en": "Lanes", "es": "Carriles" },
+    "description": {
+      "en": "Copies of the conveyor side by side, 1.5 m apart, for performance runs",
+      "es": "Copias del transportador una al lado de otra, a 1,5 m, para medir el rendimiento"
+    }
+  },
+  {
+    "key": "loadedLanes",
+    "type": "integer",
+    "default": 1,
+    "min": 0,
+    "max": 40,
+    "group": "performance",
+    "affects": "3d",
+    "advanced": true,
+    "label": { "en": "Lanes with a pallet", "es": "Carriles con pallet" },
+    "description": {
+      "en": "The first lanes each get one pallet",
+      "es": "Los primeros carriles reciben un pallet cada uno"
+    }
+  }
+]

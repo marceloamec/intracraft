@@ -38,10 +38,10 @@ Integrated in every conveyor (`guides` group) and also available as a standalone
 
 ## 4. Tests
 
-| Test       | Criterion                                             | Status                     |
-| ---------- | ----------------------------------------------------- | -------------------------- |
-| S1-d / P3  | 50 mm and 5° misalignment corrected to ±10 mm and ±1° | ⏳ S1 / phase 4            |
-| Validation | Usable width ≥ pallet + 2 × clearance                 | ✅ `usableWidthFitsPallet` |
+| Test       | Criterion                                             | Status                                                                                      |
+| ---------- | ----------------------------------------------------- | ------------------------------------------------------------------------------------------- |
+| S1-d / P9  | 50 mm and 5° misalignment corrected to ±10 mm and ±1° | ✅ with polyethylene strips; painted steel up to 3° ([[ADR-0002 Physics Engine Candidate]]) |
+| Validation | Usable width ≥ pallet + 2 × clearance                 | ✅ `usableWidthFitsPallet`                                                                  |
 
 ## Related
 

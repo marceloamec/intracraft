@@ -4,8 +4,16 @@ import type { StringKey } from '../i18n/strings';
 import { useT } from '../i18n/useT';
 import { useSimStore } from '../sim-store';
 
-const PERCENT = new Set(['utilization', 'occupancy']);
-const SECONDS = new Set(['blockedTime', 'emptyTime', 'meanTransitTime', 'waitingTime', 'meanCycleTime', 'occupiedTime']);
+const PERCENT = new Set(['utilization', 'occupancy', 'blockedShare', 'idleShare', 'fullShare', 'pickupWaitShare']);
+const SECONDS = new Set([
+  'blockedTime',
+  'emptyTime',
+  'meanTransitTime',
+  'waitingTime',
+  'meanCycleTime',
+  'occupiedTime',
+  'meanProcessingTime',
+]);
 const PER_HOUR = new Set(['throughputPerHour']);
 
 /** Statistics of one instance; nothing before the first run. */

@@ -1,13 +1,15 @@
 // Pallets of the running simulation, drawn from the latest worker frame. Each pallet is a wooden
 // base plus a load block, as two InstancedMeshes (one draw call each); the load is red while its
 // conveyor is blocked and amber while the controller has it switched off. Between frames the position
-// is extrapolated with the pallet's speed and acceleration so the motion looks smooth.
+// is extrapolated with the pallet's speed and acceleration so the motion looks smooth. A 3D run sends
+// each pallet's real pose (ADR-0016): it is drawn as it is, turned or tilted by the physics.
 import { instanceParams, num } from '@intracraft/library';
 import { useFrame } from '@react-three/fiber';
 import { useLayoutEffect, useMemo, useRef } from 'react';
-import { Color, type InstancedMesh, Matrix4, Quaternion, Vector3 } from 'three';
+import { Color, Euler, type InstancedMesh, Matrix4, Quaternion, Vector3 } from 'three';
 import { registry, useLayoutStore } from '../layout-store';
 import { liveFrame, useSimStore } from '../sim-store';
+import { hasModels } from './RunModelLayer';
 
 const CAPACITY = 1024;
 /** Longest wall-clock time a frame is extrapolated (ms). */
@@ -17,7 +19,6 @@ const COLOR_BASE = new Color('#b0865a');
 const COLOR_LOAD = new Color('#d8b77a');
 const COLOR_BLOCKED = new Color('#d0574a');
 const COLOR_STOPPED = new Color('#e0b341');
-const UP = new Vector3(0, 1, 0);
 
 interface Carrier {
   x: number;
@@ -34,7 +35,13 @@ export function PalletLayer() {
     const map = new Map<string, Carrier>();
     for (const instance of layout.instances) {
       const params = instanceParams(registry.get(instance.definitionId), instance.params);
-      map.set(instance.id, { x: instance.position.x, z: instance.position.z, yaw: instance.yaw, height: num(params, 'surfaceHeight', 0) });
+      // A lift's deck height comes with each pallet (pathY); objects on a raised base add its height.
+      map.set(instance.id, {
+        x: instance.position.x,
+        z: instance.position.z,
+        yaw: instance.yaw,
+        height: instance.position.y + num(params, 'surfaceHeight', 0),
+      });
     }
     return map;
   }, [layout]);
@@ -44,7 +51,17 @@ export function PalletLayer() {
     if (load === null) return;
     for (let i = 0; i < CAPACITY; i++) load.setColorAt(i, COLOR_LOAD);
   }, []);
-  const scratch = useMemo(() => ({ matrix: new Matrix4(), rotation: new Quaternion(), position: new Vector3(), scale: new Vector3() }), []);
+  const scratch = useMemo(
+    () => ({
+      matrix: new Matrix4(),
+      rotation: new Quaternion(),
+      euler: new Euler(),
+      position: new Vector3(),
+      scale: new Vector3(),
+      up: new Vector3(),
+    }),
+    [],
+  );
 
   useFrame(() => {
     const base = bases.current;
@@ -54,10 +71,48 @@ export function PalletLayer() {
     const pallets = snapshot?.pallets.slice(0, CAPACITY) ?? [];
     const speed = useSimStore.getState().speed;
     const factor = liveFrame.playing && (speed === 1 || speed === 10) ? speed : 0;
-    const ahead = (Math.min(performance.now() - liveFrame.receivedAt, MAX_EXTRAPOLATION_MS) / 1000) * factor;
+    const ahead =
+      (Math.min(performance.now() - liveFrame.receivedAt, MAX_EXTRAPOLATION_MS) / 1000) * factor;
 
-    const { matrix, rotation, position, scale } = scratch;
+    const { matrix, rotation, euler, position, scale, up } = scratch;
+    const poses = snapshot?.poses;
     pallets.forEach((pallet, i) => {
+      const status = snapshot?.status[pallet.carrier];
+      load.setColorAt(
+        i,
+        status === 'blocked' ? COLOR_BLOCKED : status === 'stopped' ? COLOR_STOPPED : COLOR_LOAD,
+      );
+      if (hasModels(snapshot?.looks?.[pallet.id])) {
+        // Drawn with its catalogue models by RunModelLayer.
+        base.setMatrixAt(i, matrix.makeScale(0, 0, 0));
+        load.setMatrixAt(i, matrix);
+        return;
+      }
+      const pose = poses?.[pallet.id];
+      if (pose !== undefined) {
+        // Body frame: X along the pallet's long side, origin at the footprint centre on the underside.
+        const long = Math.max(pallet.length, pallet.width);
+        const short = Math.min(pallet.length, pallet.width);
+        const loadHeight = Math.max(pallet.loadHeight, 0.01);
+        rotation.set(pose.rotation.x, pose.rotation.y, pose.rotation.z, pose.rotation.w);
+        up.set(0, pallet.height / 2, 0).applyQuaternion(rotation);
+        position.set(pose.position.x + up.x, pose.position.y + up.y, pose.position.z + up.z);
+        base.setMatrixAt(
+          i,
+          matrix.compose(position, rotation, scale.set(long, pallet.height, short)),
+        );
+        up.set(0, pallet.height + loadHeight / 2, 0).applyQuaternion(rotation);
+        position.set(pose.position.x + up.x, pose.position.y + up.y, pose.position.z + up.z);
+        load.setMatrixAt(
+          i,
+          matrix.compose(
+            position,
+            rotation,
+            scale.set(long * LOAD_INSET, loadHeight, short * LOAD_INSET),
+          ),
+        );
+        return;
+      }
       const carrier = carriers.get(pallet.carrier);
       if (carrier === undefined) return;
       const dt = pallet.accel < 0 ? Math.min(ahead, pallet.speed / -pallet.accel) : ahead;
@@ -70,9 +125,12 @@ export function PalletLayer() {
       const sin = Math.sin(carrier.yaw);
       const x = carrier.x + localX * cos + localZ * sin;
       const z = carrier.z - localX * sin + localZ * cos;
-      rotation.setFromAxisAngle(UP, carrier.yaw + pallet.heading);
+      // On a gravity line the pallet sinks along the path and tilts nose down with the slope.
+      const slope = pallet.slope ?? 0;
+      euler.set(0, carrier.yaw + pallet.heading, -Math.atan(slope), 'YXZ');
+      rotation.setFromEuler(euler);
 
-      const floor = carrier.height + pallet.pathY;
+      const floor = carrier.height + pallet.pathY - slope * along;
       position.set(x, floor + pallet.height / 2, z);
       scale.set(pallet.length, pallet.height, pallet.width);
       base.setMatrixAt(i, matrix.compose(position, rotation, scale));
@@ -81,8 +139,6 @@ export function PalletLayer() {
       position.set(x, floor + pallet.height + loadHeight / 2, z);
       scale.set(pallet.length * LOAD_INSET, loadHeight, pallet.width * LOAD_INSET);
       load.setMatrixAt(i, matrix.compose(position, rotation, scale));
-      const status = snapshot?.status[pallet.carrier];
-      load.setColorAt(i, status === 'blocked' ? COLOR_BLOCKED : status === 'stopped' ? COLOR_STOPPED : COLOR_LOAD);
     });
     base.count = pallets.length;
     load.count = pallets.length;
@@ -93,11 +149,23 @@ export function PalletLayer() {
 
   return (
     <group userData={{ noPick: true }}>
-      <instancedMesh ref={bases} args={[undefined, undefined, CAPACITY]} count={0} castShadow frustumCulled={false}>
+      <instancedMesh
+        ref={bases}
+        args={[undefined, undefined, CAPACITY]}
+        count={0}
+        castShadow
+        frustumCulled={false}
+      >
         <boxGeometry args={[1, 1, 1]} />
         <meshStandardMaterial color={COLOR_BASE} roughness={0.9} />
       </instancedMesh>
-      <instancedMesh ref={loads} args={[undefined, undefined, CAPACITY]} count={0} castShadow frustumCulled={false}>
+      <instancedMesh
+        ref={loads}
+        args={[undefined, undefined, CAPACITY]}
+        count={0}
+        castShadow
+        frustumCulled={false}
+      >
         <boxGeometry args={[1, 1, 1]} />
         <meshStandardMaterial roughness={0.8} />
       </instancedMesh>

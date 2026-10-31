@@ -1,10 +1,13 @@
-// Simulation Web Worker: runs the 2D model off the UI thread and posts frames (A02 §3).
+// Simulation Web Worker: runs the 2D model or the 3D physics run off the UI thread and posts frames (A02 §3).
 import type { FromWorker, ToWorker } from './protocol';
 import { SimRunner } from './sim-runner';
 
 const TICK_MS = 33;
 
-const runner = new SimRunner(() => performance.now());
+const runner = new SimRunner(
+  () => performance.now(),
+  (message) => self.postMessage(message),
+);
 let last = performance.now();
 
 self.onmessage = (event: MessageEvent<ToWorker>) => {
@@ -23,6 +26,9 @@ function respond(work: () => FromWorker | undefined): void {
     const message = work();
     if (message !== undefined) self.postMessage(message);
   } catch (error) {
-    self.postMessage({ type: 'error', message: error instanceof Error ? error.message : String(error) } satisfies FromWorker);
+    self.postMessage({
+      type: 'error',
+      message: error instanceof Error ? error.message : String(error),
+    } satisfies FromWorker);
   }
 }

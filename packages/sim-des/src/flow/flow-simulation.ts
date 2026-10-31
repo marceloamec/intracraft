@@ -1,5 +1,6 @@
 // 2D (discrete-event) run of a layout: sources, conveyors without accumulation, stations
-// (turntables, transfer tables), sinks and photoelectric sensors.
+// (turntables, transfer tables, process stations, lift tables and elevators), gravity lines, sinks and
+// photoelectric sensors.
 //
 // Every event "settles" the plant at the current time:
 //   1. pallets whose tail cleared a conveyor end move to the next object;
@@ -14,18 +15,21 @@
 import { type Rule, type SignalValues, evaluateRules } from '@intracraft/control';
 import { type SimTime, US_PER_S, msToSimTime } from '@intracraft/core-model';
 import { timeToReach } from '../kinematics';
+import { GravityLine } from './gravity-line';
 import { DesSimulator } from '../simulator';
 import { EPS, LineConveyor, type LineStatus, SPEED_EPS } from './line-conveyor';
 import type {
   FlowIssue,
   FlowNetwork,
   FlowNode,
+  LiftNode,
   LineNode,
   ProcessNode,
   SourceNode,
   TransferNode,
   TurntableNode,
 } from './network';
+import { LiftStation } from './lift-station';
 import type { Pallet } from './pallet';
 import { Photoeye } from './photoeye';
 import { ProcessStation } from './process-station';
@@ -59,6 +63,8 @@ export interface PalletView {
   pathY: number;
   pathZ: number;
   heading: number;
+  /** Fall per metre along the path (gravity line); the pallet sinks and tilts with it. */
+  slope?: number;
   speed: number;
   accel: number;
   length: number;
@@ -88,6 +94,8 @@ export interface FlowSnapshot {
   signals: Record<string, boolean>;
   /** Deck heading of every turntable (rad, its own frame), following the platform while it turns. */
   angles: Record<string, number>;
+  /** Deck height of every lift table and elevator (m above its base), following the vertical move. */
+  heights: Record<string, number>;
 }
 
 /** Statistics per instance id, keyed like the definition's `statistics` list (times in s). */
@@ -101,6 +109,7 @@ export class FlowSimulation {
   private readonly lineById = new Map<string, LineConveyor>();
   private readonly sources: PalletSource[] = [];
   private readonly sinks = new Map<string, PalletSink>();
+  private readonly gravityLines = new Map<string, GravityLine>();
   private readonly stations = new Map<string, Station>();
   private readonly deckOwner = new Map<LineConveyor, Station>();
   private readonly sensors: Photoeye[] = [];
@@ -128,9 +137,16 @@ export class FlowSimulation {
         this.sources.push(new PalletSource(node, options.seed, index + 1));
       } else if (node.kind === 'sink') {
         this.sinks.set(node.id, new PalletSink(node));
+      } else if (node.kind === 'gravity') {
+        this.gravityLines.set(node.id, new GravityLine(node));
       } else if (node.kind === 'sensor') {
         this.sensors.push(new Photoeye(node));
-      } else if (node.kind === 'turntable' || node.kind === 'transfer' || node.kind === 'process') {
+      } else if (
+        node.kind === 'turntable' ||
+        node.kind === 'transfer' ||
+        node.kind === 'process' ||
+        node.kind === 'lift'
+      ) {
         const station = createStation(node, options.seed, index + 1);
         this.stations.set(node.id, station);
         for (const deck of station.decks) {
@@ -147,6 +163,8 @@ export class FlowSimulation {
     });
     this.sim.on('sink.free', () => this.settle());
     this.sim.on('station.done', (sim, event) => {
+      // The time of the step belongs to the phase that ends now (processing, lifting…).
+      this.accumulate(sim.now);
       this.stations.get(event.target)?.finishTimedStep(sim.now);
       this.settle();
     });
@@ -166,9 +184,15 @@ export class FlowSimulation {
       this.motionTicket = undefined;
       this.settle();
     });
+    this.sim.on('gravity.motion', (_sim, event) => {
+      const line = this.gravityLines.get(event.target);
+      if (line !== undefined) line.ticket = undefined;
+      this.settle();
+    });
 
     // Inputs start switched on; outputs start from the empty plant.
-    for (const line of this.lines) if (!this.deckOwner.has(line)) this.signals.set(`${line.node.id}.run`, true);
+    for (const line of this.lines)
+      if (!this.deckOwner.has(line)) this.signals.set(`${line.node.id}.run`, true);
     for (const source of this.sources) this.signals.set(`${source.node.id}.enable`, true);
     this.updateOutputs();
     this.evaluated = Object.fromEntries(this.signals);
@@ -195,7 +219,7 @@ export class FlowSimulation {
 
   snapshot(): FlowSnapshot {
     const t = this.sim.now / US_PER_S;
-    const pallets = this.lines.flatMap((line) => {
+    const pallets: PalletView[] = this.lines.flatMap((line) => {
       const path = this.pathOf(line);
       return line.pallets.map((pallet) => ({
         id: pallet.id,
@@ -211,17 +235,52 @@ export class FlowSimulation {
         loadHeight: pallet.loadHeight,
       }));
     });
+    for (const gravity of this.gravityLines.values()) {
+      for (const p of gravity.pallets) {
+        pallets.push({
+          id: p.pallet.id,
+          typeId: p.pallet.typeId,
+          carrier: gravity.node.id,
+          front: gravity.frontAt(p, t),
+          pathX: 0,
+          pathY: gravity.node.entryHeight,
+          pathZ: 0,
+          heading: 0,
+          slope: gravity.node.slope,
+          speed: gravity.speedAt(p, t),
+          accel: p.stopped ? 0 : p.accel,
+          length: p.pallet.length,
+          width: p.pallet.width,
+          height: p.pallet.height,
+          loadHeight: p.pallet.loadHeight,
+        });
+      }
+    }
     const status: Record<string, ObjectStatus> = {};
-    for (const line of this.lines) if (!this.deckOwner.has(line)) status[line.node.id] = line.status;
-    for (const source of this.sources) status[source.node.id] = source.dueSince === undefined ? 'idle' : 'waiting';
-    for (const sink of this.sinks.values()) status[sink.node.id] = this.sim.now < sink.busyUntil ? 'busy' : 'idle';
+    for (const line of this.lines)
+      if (!this.deckOwner.has(line)) status[line.node.id] = line.status;
+    for (const gravity of this.gravityLines.values()) status[gravity.node.id] = gravity.status;
+    for (const source of this.sources)
+      status[source.node.id] = source.dueSince === undefined ? 'idle' : 'waiting';
+    for (const sink of this.sinks.values())
+      status[sink.node.id] = this.sim.now < sink.busyUntil ? 'busy' : 'idle';
     const angles: Record<string, number> = {};
-    for (const sensor of this.sensors) status[sensor.node.id] = sensor.detecting ? 'detecting' : 'clear';
+    const heights: Record<string, number> = {};
+    for (const sensor of this.sensors)
+      status[sensor.node.id] = sensor.detecting ? 'detecting' : 'clear';
     for (const station of this.stations.values()) {
       status[station.id] = station.busyStatus ?? deckStatus(station.decks);
       if (station instanceof Turntable) angles[station.id] = station.angleAt(this.sim.now);
+      if (station instanceof LiftStation) heights[station.id] = station.heightAt(this.sim.now);
     }
-    return { time: this.sim.now, pallets, status, signals: Object.fromEntries(this.signals), angles };
+    return {
+      time: this.sim.now,
+      pallets,
+      status,
+      signals: Object.fromEntries(this.signals),
+      angles,
+      heights,
+    };
   }
 
   statistics(): FlowStatistics {
@@ -252,6 +311,8 @@ export class FlowSimulation {
     }
     for (const station of this.stations.values()) result[station.id] = station.statistics();
     for (const sensor of this.sensors) result[sensor.node.id] = sensor.statistics();
+    for (const gravity of this.gravityLines.values())
+      result[gravity.node.id] = gravity.statistics();
     for (const { node, stats } of this.sinks.values()) {
       result[node.id] = {
         palletsReceived: stats.received,
@@ -265,7 +326,8 @@ export class FlowSimulation {
   /** Settles the plant, then lets the controller react; its immediate writes settle the plant again. */
   private settle(): void {
     for (let pass = 0; ; pass++) {
-      if (pass > MAX_CONTROL_PASSES) throw new Error(`The controller rules keep changing signals at ${this.sim.now} µs`);
+      if (pass > MAX_CONTROL_PASSES)
+        throw new Error(`The controller rules keep changing signals at ${this.sim.now} µs`);
       this.settlePlant();
       if (!this.control()) break;
     }
@@ -275,6 +337,7 @@ export class FlowSimulation {
     const now = this.sim.now;
     this.accumulate(now);
     for (const line of this.lines) line.advanceTo(now / US_PER_S);
+    for (const gravity of this.gravityLines.values()) gravity.advanceTo(now / US_PER_S);
 
     for (let pass = 0; ; pass++) {
       if (pass > MAX_SETTLE_PASSES) throw new Error(`Flow did not settle at ${now} µs`);
@@ -283,12 +346,45 @@ export class FlowSimulation {
       changed = this.feedSources(now) || changed;
       changed = this.decide(now) || changed;
       changed = this.advanceStations(now) || changed;
+      changed = this.serveGravityLines(now) || changed;
       if (!changed) break;
     }
 
     this.updateSensors();
     for (const group of this.groups) this.planGroup(group);
     this.scheduleMotion();
+    this.scheduleGravity(now);
+  }
+
+  /** The operator (sink) takes the pallet resting at a gravity line's end stop when free (S15 §2.5). */
+  private serveGravityLines(now: SimTime): boolean {
+    let changed = false;
+    for (const gravity of this.gravityLines.values()) {
+      const sink =
+        gravity.node.downstream === undefined ? undefined : this.sinks.get(gravity.node.downstream);
+      if (sink === undefined || gravity.atEndStop === undefined || !sink.accepts(now)) continue;
+      sink.incoming += 1;
+      sink.receive(gravity.take(now), now);
+      if (sink.busyUntil > now)
+        this.sim.schedule(sink.busyUntil - now, { type: 'sink.free', target: sink.node.id });
+      changed = true;
+    }
+    return changed;
+  }
+
+  /** One wake-up per gravity line at its next predicted change. */
+  private scheduleGravity(now: SimTime): void {
+    for (const gravity of this.gravityLines.values()) {
+      if (gravity.ticket !== undefined) this.sim.cancel(gravity.ticket);
+      gravity.ticket = undefined;
+      const next = gravity.nextChange();
+      if (next === undefined) continue;
+      const delay = Math.max(1, Math.round(next * US_PER_S) - now);
+      gravity.ticket = this.sim.schedule(delay, {
+        type: 'gravity.motion',
+        target: gravity.node.id,
+      });
+    }
   }
 
   /** Pallets whose tail cleared the conveyor end now belong to the next object. */
@@ -299,7 +395,10 @@ export class FlowSimulation {
       if (pallet === undefined || pallet.front - pallet.length < line.node.length - EPS) continue;
       line.release(now);
       const next = this.nodeAfter(line.node);
-      if (next?.kind === 'sink') {
+      const gravity = next === undefined ? undefined : this.gravityLines.get(next.id);
+      if (gravity !== undefined) {
+        gravity.receive(pallet, line.speed, now);
+      } else if (next?.kind === 'sink') {
         const sink = this.sinks.get(next.id);
         sink?.receive(pallet, now);
         if (sink !== undefined && sink.busyUntil > now) {
@@ -307,7 +406,8 @@ export class FlowSimulation {
         }
       } else {
         const target = this.lineAfter(line.node);
-        if (target === undefined) throw new Error(`${line.node.id}: crossing pallet has no destination`);
+        if (target === undefined)
+          throw new Error(`${line.node.id}: crossing pallet has no destination`);
         pallet.front -= line.node.length + line.node.downstreamGap;
         pallet.enteredAt = now;
         target.pallets.push(pallet);
@@ -322,19 +422,28 @@ export class FlowSimulation {
     let changed = false;
     for (const source of this.sources) {
       const line = this.lineAfter(source.node);
-      if (source.dueSince === undefined || line === undefined || this.signals.get(`${source.node.id}.enable`) === false) continue;
-      const { palletType, orientation } = source.node;
+      if (
+        source.dueSince === undefined ||
+        line === undefined ||
+        this.signals.get(`${source.node.id}.enable`) === false
+      )
+        continue;
+      const { palletType, orientation, item } = source.node;
       const length = alongLength(source.node);
-      if (this.canEnter(line, length + line.node.minGap)) {
+      // A source can feed a station directly (the operator at a manual lift table, S12).
+      const station = this.deckOwner.get(line);
+      const accepts = station === undefined || station.canReceive(source.node.downstreamPort);
+      if (accepts && this.canEnter(line, length + line.node.minGap)) {
+        station?.receive(source.node.downstreamPort, length, now);
         const pallet: Pallet = {
           id: this.nextPalletId++,
           typeId: palletType.id,
           along: orientation,
           length,
-          width: orientation === 'long' ? palletType.width : palletType.length,
-          height: palletType.height,
+          width: orientation === 'long' ? item.short : item.long,
+          height: item.palletHeight,
           loadMass: source.node.loadMass,
-          loadHeight: source.node.loadHeight,
+          loadHeight: item.loadHeight,
           createdAt: now,
           enteredAt: now,
           front: length,
@@ -347,7 +456,8 @@ export class FlowSimulation {
       } else {
         continue;
       }
-      if (source.active) this.sim.schedule(source.nextDelay(), { type: 'source.arrival', target: source.node.id });
+      if (source.active)
+        this.sim.schedule(source.nextDelay(), { type: 'source.arrival', target: source.node.id });
       changed = true;
     }
     return changed;
@@ -374,6 +484,19 @@ export class FlowSimulation {
 
   private reserve(line: LineConveyor, pallet: Pallet, now: SimTime): boolean {
     const next = this.nodeAfter(line.node);
+    const gravity = next === undefined ? undefined : this.gravityLines.get(next.id);
+    if (gravity !== undefined) {
+      // Like a sink: the conveyor pushes the pallet in once a whole pallet fits behind the last one.
+      if (!gravity.canAccept(pallet.length)) {
+        gravity.waitingLength = pallet.length;
+        return false;
+      }
+      gravity.waitingLength = undefined;
+      gravity.incoming += 1;
+      line.outgoing = pallet;
+      this.checkOrientation(line, pallet);
+      return true;
+    }
     if (next?.kind === 'sink') {
       const sink = this.sinks.get(next.id);
       if (sink === undefined || !sink.accepts(now)) return false;
@@ -383,7 +506,8 @@ export class FlowSimulation {
     }
     const target = this.lineAfter(line.node);
     const travel = line.node.length - (pallet.front - pallet.length) + line.node.downstreamGap;
-    if (target === undefined || !this.canEnter(target, 0) || !hasRoomFor(target, travel)) return false;
+    if (target === undefined || !this.canEnter(target, 0) || !hasRoomFor(target, travel))
+      return false;
     // A conveyor switched off cannot pull a pallet across.
     if (!(this.groupOf.get(target) ?? [target]).every((l) => this.runs(l))) return false;
     const station = this.deckOwner.get(target);
@@ -459,7 +583,14 @@ export class FlowSimulation {
     const held = this.isHeld(group);
     const switchedOff = !group.every((line) => this.runs(line));
     for (const line of group) {
-      line.status = line.pallets.length === 0 ? 'empty' : held ? 'blocked' : switchedOff ? 'stopped' : 'working';
+      line.status =
+        line.pallets.length === 0
+          ? 'empty'
+          : held
+            ? 'blocked'
+            : switchedOff
+              ? 'stopped'
+              : 'working';
     }
     if (carriers.length === 0) {
       for (const line of group) setMotion(line, 0, 0);
@@ -470,7 +601,9 @@ export class FlowSimulation {
     let speed = Math.min(...carriers.map((line) => line.speed));
     let rate: number;
     if (held) {
-      const room = Math.min(...group.filter((l) => l.holding).map((l) => l.end - (l.front?.front ?? 0)));
+      const room = Math.min(
+        ...group.filter((l) => l.holding).map((l) => l.end - (l.front?.front ?? 0)),
+      );
       if (speed <= SPEED_EPS || room <= EPS) {
         speed = 0;
         rate = 0;
@@ -555,7 +688,9 @@ export class FlowSimulation {
       if (source.node.downstream !== line.node.id || source.dueSince === undefined) continue;
       return alongLength(source.node) + line.node.minGap;
     }
-    const feeder = this.lines.find((l) => l.outgoing === undefined && this.lineAfter(l.node) === line);
+    const feeder = this.lines.find(
+      (l) => l.outgoing === undefined && this.lineAfter(l.node) === line,
+    );
     return feeder?.holding === true ? 0 : undefined;
   }
 
@@ -583,7 +718,11 @@ export class FlowSimulation {
     let changed = false;
     for (const write of writes) {
       if (write.delayMs > 0) {
-        this.sim.schedule(msToSimTime(write.delayMs), { type: 'signal.write', target: write.signal, data: write.value });
+        this.sim.schedule(msToSimTime(write.delayMs), {
+          type: 'signal.write',
+          target: write.signal,
+          data: write.value,
+        });
       } else if (this.signals.get(write.signal) !== write.value) {
         this.signals.set(write.signal, write.value);
         changed = true;
@@ -596,14 +735,20 @@ export class FlowSimulation {
   private updateSensors(): void {
     for (const sensor of this.sensors) {
       const host = this.lineById.get(sensor.node.host);
-      const raw = host !== undefined && this.palletsOver(host).some(({ pallet, front }) => sensor.blockedBy(pallet, front));
+      const raw =
+        host !== undefined &&
+        this.palletsOver(host).some(({ pallet, front }) => sensor.blockedBy(pallet, front));
       if (raw === sensor.raw) continue;
       sensor.raw = raw;
       if (sensor.pendingTicket !== undefined) this.sim.cancel(sensor.pendingTicket);
       sensor.pendingTicket = undefined;
       const delay = sensor.delayFor(raw);
       if (delay === 0) sensor.commit(raw);
-      else sensor.pendingTicket = this.sim.schedule(delay, { type: 'sensor.output', target: sensor.node.id });
+      else
+        sensor.pendingTicket = this.sim.schedule(delay, {
+          type: 'sensor.output',
+          target: sensor.node.id,
+        });
     }
   }
 
@@ -611,9 +756,13 @@ export class FlowSimulation {
   private palletsOver(line: LineConveyor): { pallet: Pallet; front: number }[] {
     const over = line.pallets.map((pallet) => ({ pallet, front: pallet.front }));
     const incoming = line.incoming;
-    const feeder = incoming === undefined ? undefined : this.lines.find((l) => l.outgoing === incoming);
+    const feeder =
+      incoming === undefined ? undefined : this.lines.find((l) => l.outgoing === incoming);
     if (incoming !== undefined && feeder !== undefined) {
-      over.push({ pallet: incoming, front: incoming.front - feeder.node.length - feeder.node.downstreamGap });
+      over.push({
+        pallet: incoming,
+        front: incoming.front - feeder.node.length - feeder.node.downstreamGap,
+      });
     }
     return over;
   }
@@ -638,7 +787,14 @@ export class FlowSimulation {
 
   /** Path start and heading of a carrier in its own frame (see PalletView). */
   private pathOf(line: LineConveyor): DeckPath {
-    return this.deckOwner.get(line)?.pathOf(line, this.sim.now) ?? { pathX: 0, pathY: 0, pathZ: 0, heading: 0 };
+    return (
+      this.deckOwner.get(line)?.pathOf(line, this.sim.now) ?? {
+        pathX: 0,
+        pathY: 0,
+        pathZ: 0,
+        heading: 0,
+      }
+    );
   }
 
   private accumulate(now: SimTime): void {
@@ -647,6 +803,7 @@ export class FlowSimulation {
     for (const line of this.lines) line.accumulate(seconds);
     for (const station of this.stations.values()) station.accumulate(seconds);
     for (const sensor of this.sensors) sensor.accumulate(seconds);
+    for (const gravity of this.gravityLines.values()) gravity.accumulate(seconds);
     this.statsTime = now;
   }
 
@@ -667,12 +824,20 @@ export class FlowSimulation {
   /** Conveyor or station deck that receives what `node` delivers. */
   private lineAfter(node: FlowNode): LineConveyor | undefined {
     if (node.downstream === undefined) return undefined;
-    return this.stations.get(node.downstream)?.entryDeck(node.downstreamPort) ?? this.lineById.get(node.downstream);
+    return (
+      this.stations.get(node.downstream)?.entryDeck(node.downstreamPort) ??
+      this.lineById.get(node.downstream)
+    );
   }
 }
 
-function createStation(node: TurntableNode | TransferNode | ProcessNode, seed: number, stream: number): Station {
+function createStation(
+  node: TurntableNode | TransferNode | ProcessNode | LiftNode,
+  seed: number,
+  stream: number,
+): Station {
   if (node.kind === 'turntable') return new Turntable(node, seed, stream);
+  if (node.kind === 'lift') return new LiftStation(node);
   return node.kind === 'transfer' ? new Transfer(node) : new ProcessStation(node, seed, stream);
 }
 
@@ -696,8 +861,8 @@ function hasRoomFor(target: LineConveyor, travel: number): boolean {
 }
 
 /** Size along travel of the pallets a source creates. */
-function alongLength({ palletType, orientation }: SourceNode): number {
-  return orientation === 'long' ? palletType.length : palletType.width;
+function alongLength({ item, orientation }: SourceNode): number {
+  return orientation === 'long' ? item.long : item.short;
 }
 
 /** Status of a station from its decks: blocked wins over working, working over empty. */

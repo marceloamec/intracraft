@@ -38,6 +38,45 @@
       "description": { "en": "Load height above the pallet", "es": "Altura de la carga sobre el pallet", "de": "Lasthöhe über der Palette" }
     },
     {
+      "key": "palletModel", "type": "enum", "options": ["auto", "none"], "optionsFrom": "catalogue:pallets",
+      "default": "auto", "group": "pallet", "affects": "both",
+      "optionLabels": {
+        "auto": { "en": "Model of the pallet type", "es": "Modelo del tipo de pallet", "de": "Modell des Palettentyps" },
+        "none": { "en": "No pallet (load alone)", "es": "Sin pallet (solo la carga)", "de": "Keine Palette (nur die Last)" }
+      },
+      "label": { "en": "Pallet model", "es": "Modelo de pallet", "de": "Palettenmodell" },
+      "description": {
+        "en": "Catalogue model drawn and simulated; its contact shape follows the pallet type's construction (S09 §1.1)",
+        "es": "Modelo del catálogo que se dibuja y se simula; su forma de contacto sigue la construcción del tipo de pallet (S09 §1.1)",
+        "de": "Katalogmodell für Darstellung und Simulation; die Kontaktform folgt dem Aufbau des Palettentyps (S09 §1.1)"
+      }
+    },
+    {
+      "key": "loadKind", "type": "enum", "options": ["block", "none", "asset"],
+      "default": "block", "group": "pallet", "affects": "both",
+      "optionLabels": {
+        "block": { "en": "Uniform block", "es": "Bloque uniforme", "de": "Gleichmäßiger Block" },
+        "none": { "en": "No load", "es": "Sin carga", "de": "Keine Last" },
+        "asset": { "en": "Catalogue object", "es": "Objeto del catálogo", "de": "Katalogobjekt" }
+      },
+      "label": { "en": "Load", "es": "Carga", "de": "Last" },
+      "description": {
+        "en": "What sits on the pallet: a block of load mass and height, nothing, or a catalogue object",
+        "es": "Qué va sobre el pallet: un bloque con la masa y la altura de carga, nada, o un objeto del catálogo",
+        "de": "Was auf der Palette liegt: ein Block mit Lastmasse und -höhe, nichts oder ein Katalogobjekt"
+      }
+    },
+    {
+      "key": "loadAsset", "type": "enum", "optionsFrom": "catalogue:boxes,containers,drums",
+      "default": "asset.boxes.box_cardboard_a01", "group": "pallet", "affects": "both", "dependsOn": "loadKind=asset",
+      "label": { "en": "Load object", "es": "Objeto de carga", "de": "Lastobjekt" },
+      "description": {
+        "en": "Catalogue object on the pallet; its mass is the load mass (catalogue masses describe empty packaging)",
+        "es": "Objeto del catálogo sobre el pallet; su masa es la masa de carga (las masas del catálogo son de embalaje vacío)",
+        "de": "Katalogobjekt auf der Palette; seine Masse ist die Lastmasse (Katalogmassen beschreiben leere Verpackung)"
+      }
+    },
+    {
       "key": "generationMode", "type": "enum", "options": ["fixedInterval", "exponential"],
       "default": "fixedInterval", "group": "arrivals", "affects": "2d",
       "label": { "en": "Arrival rule", "es": "Regla de llegadas", "de": "Ankunftsregel" },
@@ -71,7 +110,7 @@
     },
     {
       "key": "surfaceHeight", "type": "number", "unit": "m", "displayUnit": "mm",
-      "default": 0.6, "min": 0.2, "max": 1.5, "group": "geometry", "affects": "geometry",
+      "default": 0.6, "min": 0.05, "max": 1.5, "group": "geometry", "affects": "geometry",
       "label": { "en": "Port height", "es": "Altura del puerto", "de": "Anschlusshöhe" },
       "description": { "en": "Height of the output port; match the conveyor surface height", "es": "Altura del puerto de salida; debe coincidir con la del transportador", "de": "Höhe des Ausgangs; muss zur Förderhöhe passen" }
     }

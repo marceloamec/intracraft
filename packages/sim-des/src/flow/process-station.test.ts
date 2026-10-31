@@ -23,6 +23,12 @@ describe('2D process station (S11)', () => {
     expect(Math.abs(perHour - 3600 / cycle) / (3600 / cycle)).toBeLessThan(0.03);
   });
 
+  it('counts the processing time as utilization, not as blocked (one 30 s pallet in 120 s → 25 %)', () => {
+    const stats = station({ processingTime: 30 }, 120);
+    expect(stats['utilization']).toBeCloseTo(0.25, 9);
+    expect(stats['blockedShare']).toBe(0);
+  });
+
   it('splits the time into processing, blocked and idle shares that add up to 1', () => {
     const stats = run(chain({ processingTime: 5 }, { withSink: false }), 600).statistics()['process_station1'] ?? {};
     expect(stats['blockedShare']).toBeGreaterThan(0.3);

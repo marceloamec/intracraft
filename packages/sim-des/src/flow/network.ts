@@ -2,18 +2,37 @@
 // the instance connected to its output port. Built from the layout and the library definitions.
 import type { Layout, RuleData, Vec3 } from '@intracraft/core-model';
 import {
+  type ComponentDefinition,
   type DefinitionRegistry,
   PALLET_TYPES,
   type ParamValues,
   type PalletType,
   instanceParams,
   num,
+  resolvePorts,
 } from '@intracraft/library';
+import {
+  type LoadKind,
+  MODEL_MISMATCH,
+  type SourceItem,
+  palletModelMismatch,
+  sourceItem,
+} from './source-item';
+
+/** `behaviors.des` of definitions the 2D model ignores (scenery objects, S17). */
+export const NO_2D_BEHAVIOR = 'des.none';
+
+const LOAD_KINDS: readonly LoadKind[] = ['block', 'none', 'asset'];
 
 /** Behaviours of the 2D mode, keyed by the definition's `behaviors.des`. */
 const LINE_BEHAVIORS = new Set(['des.roller_conveyor', 'des.chain_conveyor']);
 /** Turntable station ports and their angles (rad, right-hand about +Y; 0 = local +x). */
-const STATION_PORTS: Record<string, number> = { P0: 0, P90: Math.PI / 2, P180: Math.PI, P270: (3 * Math.PI) / 2 };
+const STATION_PORTS: Record<string, number> = {
+  P0: 0,
+  P90: Math.PI / 2,
+  P180: Math.PI,
+  P270: (3 * Math.PI) / 2,
+};
 
 export interface FlowIssue {
   instanceId: string;
@@ -52,6 +71,8 @@ export interface SourceNode extends NodeBase {
   orientation: 'long' | 'short';
   loadMass: number;
   loadHeight: number;
+  /** What it creates and its sizes (S09 §1.1). */
+  item: SourceItem;
   generationMode: 'fixedInterval' | 'exponential';
   interval: number;
   maxPallets: number;
@@ -125,6 +146,53 @@ export interface ProcessNode extends NodeBase {
   processingStdDev: number;
 }
 
+/** A port of a lift station: its id, which deck end it is at and the deck height there (m). */
+export interface LiftPort {
+  portId: string;
+  /** At x = length (the far end); otherwise at x = 0. */
+  atEnd: boolean;
+  height: number;
+}
+
+/**
+ * Manual lift table, scissor lift table or pallet elevator (S12–S14, ADR-0013): one deck takes a
+ * pallet at the entry height, the station moves it to the exit height and gives it out.
+ */
+export interface LiftNode extends NodeBase {
+  kind: 'lift';
+  length: number;
+  nominalSpeed: number;
+  accel: number;
+  palletSideAlongTravel: 'long' | 'short';
+  entry: LiftPort;
+  /** Exit ports in order of preference (the elevator prefers OUT_NEAR, S14 §1). */
+  exitPorts: LiftPort[];
+  upSpeed: number;
+  downSpeed: number;
+  verticalAccel: number;
+  /** Operator side of a manual lift table (S12): checked for a source or sink there. */
+  operatorPort?: string;
+  /** Connected ports leading out of the station, and what they lead to. */
+  exits: Record<string, { target: string; gap: number; port: string }>;
+}
+
+/** Gravity roller line (S15, ADR-0014): pallets roll down one by one to a separator and an end stop. */
+export interface GravityNode extends NodeBase {
+  kind: 'gravity';
+  /** Plan length (m). */
+  length: number;
+  palletSideAlongTravel: 'long' | 'short';
+  /** Fall per metre (ratio). */
+  slope: number;
+  /** Roller height at the entry (m), derived from the exit height and the slope. */
+  entryHeight: number;
+  brakeSpeed: number;
+  rollingResistance: number;
+  startDelay: number;
+  pickupLength: number;
+  separatorTime: number;
+}
+
 /** Photoelectric sensor mounted on a conveyor (S06); all positions in the host's frame (m). */
 export interface SensorNode extends NodeBase {
   kind: 'sensor';
@@ -157,6 +225,8 @@ export type FlowNode =
   | TurntableNode
   | TransferNode
   | ProcessNode
+  | LiftNode
+  | GravityNode
   | SensorNode
   | InertNode;
 
@@ -171,6 +241,8 @@ export function buildFlowNetwork(layout: Layout, registry: DefinitionRegistry): 
   const issues: FlowIssue[] = [];
   const nodes = layout.instances
     .filter((instance) => registry.has(instance.definitionId))
+    // Scenery objects (S17) exist only in the 3D run.
+    .filter((instance) => registry.get(instance.definitionId).behaviors.des !== NO_2D_BEHAVIOR)
     .map((instance) => {
       const definition = registry.get(instance.definitionId);
       const params = instanceParams(definition, instance.params);
@@ -182,7 +254,7 @@ export function buildFlowNetwork(layout: Layout, registry: DefinitionRegistry): 
         surfaceHeight: num(params, 'surfaceHeight', 0),
         downstreamGap: 0,
       };
-      return createNode(definition.behaviors.des, base, params, issues);
+      return createNode(definition, base, params, issues);
     });
 
   const byId = new Map(nodes.map((n) => [n.id, n]));
@@ -193,14 +265,33 @@ export function buildFlowNetwork(layout: Layout, registry: DefinitionRegistry): 
     if (from.kind === 'turntable') {
       const angle = STATION_PORTS[connection.from.portId];
       if (to.kind === 'turntable') {
-        issues.push(issue(from, 'turntableToTurntable', `pallets cannot yet pass directly to the turntable ${to.id}`));
+        issues.push(
+          issue(
+            from,
+            'turntableToTurntable',
+            `pallets cannot yet pass directly to the turntable ${to.id}`,
+          ),
+        );
       } else if (angle !== undefined) {
-        from.exits.push({ portId: connection.from.portId, angle, target: to.id, gap: connection.gap });
+        from.exits.push({
+          portId: connection.from.portId,
+          angle,
+          target: to.id,
+          gap: connection.gap,
+        });
       }
       continue;
     }
     if (from.kind === 'transfer') {
       from.exits[connection.from.portId] = { target: to.id, gap: connection.gap };
+      continue;
+    }
+    if (from.kind === 'lift') {
+      from.exits[connection.from.portId] = {
+        target: to.id,
+        gap: connection.gap,
+        port: connection.to.portId,
+      };
       continue;
     }
     if (connection.from.portId !== OUTPUT_PORT[from.kind]) continue;
@@ -209,7 +300,7 @@ export function buildFlowNetwork(layout: Layout, registry: DefinitionRegistry): 
     from.downstreamGap = connection.gap;
   }
 
-  for (const node of nodes) issues.push(...connectionIssues(node, byId));
+  for (const node of nodes) issues.push(...connectionIssues(node, byId, nodes));
   return { nodes, issues, rules: layout.rules ?? [] };
 }
 
@@ -220,17 +311,37 @@ const OUTPUT_PORT: Record<FlowNode['kind'], string | undefined> = {
   turntable: undefined,
   transfer: undefined,
   process: 'OUT',
+  lift: undefined,
+  gravity: 'OUT',
   sensor: undefined,
   inert: undefined,
 };
 
-function createNode(behavior: string, base: NodeBase, params: ParamValues, issues: FlowIssue[]): FlowNode {
+function createNode(
+  definition: ComponentDefinition,
+  base: NodeBase,
+  params: ParamValues,
+  issues: FlowIssue[],
+): FlowNode {
+  const behavior = definition.behaviors.des;
   if (LINE_BEHAVIORS.has(behavior)) {
     if (params['accumulationMode'] !== 'none') {
-      issues.push(issue(base, 'accumulationNotSimulated', `accumulation "${params['accumulationMode']}" is simulated as "none" for now`));
+      issues.push(
+        issue(
+          base,
+          'accumulationNotSimulated',
+          `accumulation "${params['accumulationMode']}" is simulated as "none" for now`,
+        ),
+      );
     }
     if (params['direction'] !== undefined && params['direction'] !== 'forward') {
-      issues.push(issue(base, 'directionNotSimulated', `direction "${params['direction']}" is simulated as "forward" for now`));
+      issues.push(
+        issue(
+          base,
+          'directionNotSimulated',
+          `direction "${params['direction']}" is simulated as "forward" for now`,
+        ),
+      );
     }
     return {
       ...base,
@@ -246,10 +357,37 @@ function createNode(behavior: string, base: NodeBase, params: ParamValues, issue
   if (behavior === 'des.source') {
     const palletType = PALLET_TYPES.find((p) => p.id === params['palletType']) ?? PALLET_TYPES[0];
     if (palletType === undefined) throw new Error('The library has no pallet types');
+    const choice = {
+      palletModel: String(params['palletModel'] ?? 'auto'),
+      loadKind: LOAD_KINDS.find((k) => k === params['loadKind']) ?? 'block',
+      loadAsset: String(params['loadAsset'] ?? ''),
+      loadHeight: num(params, 'loadHeight', 0),
+    };
+    const { nothing, ...item } = sourceItem(palletType, choice);
+    if (nothing) {
+      issues.push(
+        issue(
+          base,
+          'sourceCreatesNothing',
+          'has neither pallet nor load; it sends an empty pallet of its type',
+        ),
+      );
+    }
+    const mismatch = palletModelMismatch(palletType, item.palletModel);
+    if (mismatch > MODEL_MISMATCH) {
+      issues.push(
+        issue(
+          base,
+          'palletModelMismatch',
+          `the pallet model differs by ${round(mismatch * MM)} mm from the ${palletType.id} footprint`,
+        ),
+      );
+    }
     return {
       ...base,
       kind: 'source',
       palletType,
+      item,
       orientation: params['orientation'] === 'short' ? 'short' : 'long',
       loadMass: num(params, 'loadMass', 0),
       loadHeight: num(params, 'loadHeight', 0),
@@ -277,7 +415,10 @@ function createNode(behavior: string, base: NodeBase, params: ParamValues, issue
       settleTime: num(params, 'settleTime', 0),
       stations,
       palletSideAlongTravel: params['palletSideAlongTravel'] === 'short' ? 'short' : 'long',
-      exitRule: params['exitRule'] === 'firstExit' || params['exitRule'] === 'random' ? params['exitRule'] : 'alternate',
+      exitRule:
+        params['exitRule'] === 'firstExit' || params['exitRule'] === 'random'
+          ? params['exitRule']
+          : 'alternate',
       exits: [],
     };
   }
@@ -296,8 +437,10 @@ function createNode(behavior: string, base: NodeBase, params: ParamValues, issue
       liftTime: num(params, 'liftTime', 0),
       lowerTime: num(params, 'lowerTime', 0),
       liftStroke: num(params, 'liftStroke', 0),
-      transferDirection: direction === 'left' || direction === 'bidirectional' ? direction : 'right',
-      operationMode: mode === 'chainsToRollers' || mode === 'bidirectional' ? mode : 'rollersToChains',
+      transferDirection:
+        direction === 'left' || direction === 'bidirectional' ? direction : 'right',
+      operationMode:
+        mode === 'chainsToRollers' || mode === 'bidirectional' ? mode : 'rollersToChains',
       palletSideAlongTravel: params['palletSideAlongTravel'] === 'short' ? 'short' : 'long',
       exits: {},
     };
@@ -314,6 +457,25 @@ function createNode(behavior: string, base: NodeBase, params: ParamValues, issue
       processingMode: mode === 'normal' || mode === 'exponential' ? mode : 'fixed',
       processingTime: num(params, 'processingTime', 0),
       processingStdDev: Math.max(0, num(params, 'processingStdDev', 0)),
+    };
+  }
+  if (behavior === 'des.lift_station') return liftNode(definition, base, params);
+  if (behavior === 'des.gravity') {
+    const length = num(params, 'length', 0);
+    const slope = num(params, 'slope', 0);
+    const exitHeight = num(params, 'exitHeight', 0);
+    return {
+      ...base,
+      kind: 'gravity',
+      length,
+      palletSideAlongTravel: params['palletSideAlongTravel'] === 'short' ? 'short' : 'long',
+      slope,
+      entryHeight: exitHeight + slope * length,
+      brakeSpeed: num(params, 'brakeSpeed', 0),
+      rollingResistance: num(params, 'rollingResistance', 0),
+      startDelay: Math.max(0, num(params, 'startDelay', 0)),
+      pickupLength: num(params, 'pickupLength', 0),
+      separatorTime: Math.max(0, num(params, 'separatorTime', 0)),
     };
   }
   if (behavior === 'des.photoeye') {
@@ -341,8 +503,58 @@ function createNode(behavior: string, base: NodeBase, params: ParamValues, issue
       outputSignal: typeof params['outputSignal'] === 'string' ? params['outputSignal'].trim() : '',
     };
   }
-  issues.push(issue(base, 'behaviorNotAvailable', 'has no 2D behaviour yet; pallets stop in front of it'));
+  issues.push(
+    issue(base, 'behaviorNotAvailable', 'has no 2D behaviour yet; pallets stop in front of it'),
+  );
   return { ...base, kind: 'inert', behavior };
+}
+
+/**
+ * Entry and exit ports of a lift station, with their deck heights taken from the definition's ports.
+ * The manual lift table's ports work both ways: `flowDirection` makes OP (operator) or LINE the entry.
+ */
+function liftNode(definition: ComponentDefinition, base: NodeBase, params: ParamValues): LiftNode {
+  const length = num(params, 'length', 0);
+  const ports = resolvePorts(definition, params).map((port) => ({
+    portId: port.id,
+    atEnd: port.local.x > length / 2,
+    height: port.local.y,
+    direction: port.direction,
+  }));
+  const byId = (id: string) => ports.find((port) => port.portId === id);
+  const manual = params['flowDirection'] !== undefined;
+  const operator = byId('OP');
+  const line = byId('LINE');
+  let entry = ports.find((port) => port.direction === 'in');
+  let exitPorts = ports.filter((port) => port.direction === 'out');
+  if (manual && operator !== undefined && line !== undefined) {
+    const out = params['flowDirection'] === 'out';
+    entry = out ? line : operator;
+    exitPorts = [out ? operator : line];
+  }
+  if (entry === undefined || exitPorts.length === 0)
+    throw new Error(`${definition.id} has no entry or no exit port`);
+  // A speed per direction (tables) or one speed both ways (elevator).
+  const vertical = num(params, 'verticalSpeed', 0);
+  return {
+    ...base,
+    kind: 'lift',
+    length,
+    nominalSpeed: num(params, 'nominalSpeed', 0),
+    accel: num(params, 'accel', 0),
+    palletSideAlongTravel: params['palletSideAlongTravel'] === 'short' ? 'short' : 'long',
+    entry: liftPort(entry),
+    exitPorts: exitPorts.map(liftPort),
+    upSpeed: num(params, 'liftSpeed', vertical),
+    downSpeed: num(params, 'lowerSpeed', vertical),
+    verticalAccel: num(params, 'verticalAccel', 0),
+    ...(manual ? { operatorPort: 'OP' } : {}),
+    exits: {},
+  };
+}
+
+function liftPort({ portId, atEnd, height }: LiftPort): LiftPort {
+  return { portId, atEnd, height };
 }
 
 /** Station list such as "0, 90, 180, 270" (degrees) as angles in rad; invalid entries are skipped. */
@@ -355,30 +567,120 @@ function parseStations(value: unknown): number[] {
     .map((deg) => (((deg % 360) + 360) % 360) * (Math.PI / 180));
 }
 
-function connectionIssues(node: FlowNode, byId: Map<string, FlowNode>): FlowIssue[] {
+function connectionIssues(
+  node: FlowNode,
+  byId: Map<string, FlowNode>,
+  nodes: FlowNode[],
+): FlowIssue[] {
   const next = node.downstream === undefined ? undefined : byId.get(node.downstream);
   if (node.kind === 'line' && next === undefined) {
     return [issue(node, 'openEnd', 'output is not connected; pallets stop at its end')];
   }
   if (node.kind === 'turntable' && node.exits.length === 0) {
-    return [issue(node, 'noExit', 'no station is connected to the entry of another object; pallets stay on it')];
+    return [
+      issue(
+        node,
+        'noExit',
+        'no station is connected to the entry of another object; pallets stay on it',
+      ),
+    ];
   }
   if (node.kind === 'transfer') return transferIssues(node);
   if (node.kind === 'process') return processIssues(node, next);
+  if (node.kind === 'lift') return liftIssues(node, byId, nodes);
+  if (node.kind === 'gravity') {
+    if (next === undefined)
+      return [issue(node, 'noExit', 'OUT is not connected: place a sink for the operator there')];
+    if (next.kind !== 'sink')
+      return [
+        issue(node, 'exitNotSink', 'OUT can only hand pallets to a sink (the operator) for now'),
+      ];
+  }
   if (node.kind === 'sensor') return sensorIssues(node, byId.get(node.host));
-  if (node.kind === 'source' && next?.kind !== 'line') {
-    return [issue(node, 'sourceNotConnected', 'must be connected to the entry of a conveyor; it creates no pallets')];
+  if (node.kind === 'source' && next?.kind !== 'line' && next?.kind !== 'lift') {
+    return [
+      issue(
+        node,
+        'sourceNotConnected',
+        'must be connected to the entry of a conveyor; it creates no pallets',
+      ),
+    ];
   }
   return [];
 }
 
 function processIssues(node: ProcessNode, next: FlowNode | undefined): FlowIssue[] {
   const issues: FlowIssue[] = [];
-  if (next === undefined) issues.push(issue(node, 'noExit', 'OUT is not connected; the pallet stays on it after processing'));
+  if (next === undefined)
+    issues.push(
+      issue(node, 'noExit', 'OUT is not connected; the pallet stays on it after processing'),
+    );
   const eur = PALLET_TYPES.find((p) => p.id === 'eur');
-  const palletAlong = eur === undefined ? 0 : node.palletSideAlongTravel === 'long' ? eur.length : eur.width;
+  const palletAlong =
+    eur === undefined ? 0 : node.palletSideAlongTravel === 'long' ? eur.length : eur.width;
   if (node.length < palletAlong + MIN_DECK_MARGIN) {
-    issues.push(issue(node, 'deckTooShort', `the deck (${round(node.length * MM)} mm) is shorter than the pallet plus ${MIN_DECK_MARGIN * MM} mm`));
+    issues.push(
+      issue(
+        node,
+        'deckTooShort',
+        `the deck (${round(node.length * MM)} mm) is shorter than the pallet plus ${MIN_DECK_MARGIN * MM} mm`,
+      ),
+    );
+  }
+  return issues;
+}
+
+/** Exits of a lift station (S12–S14 §4) and the operator side of a manual table. */
+function liftIssues(node: LiftNode, byId: Map<string, FlowNode>, nodes: FlowNode[]): FlowIssue[] {
+  const issues: FlowIssue[] = [];
+  const connectedExits = node.exitPorts.filter((port) => node.exits[port.portId] !== undefined);
+  const operator = node.operatorPort;
+  if (operator !== undefined) {
+    const feeder = nodes.find((n) => n.downstream === node.id && n.downstreamPort === operator);
+    const taker = node.exits[operator];
+    if (feeder === undefined && taker === undefined) {
+      issues.push(
+        issue(
+          node,
+          'noOperator',
+          `${operator} is not connected: place a source (input) or a sink (output) for the operator there`,
+        ),
+      );
+    }
+    const operatorIsEntry = node.entry.portId === operator;
+    const takerKind = taker === undefined ? undefined : byId.get(taker.target)?.kind;
+    if (
+      (operatorIsEntry && takerKind === 'sink') ||
+      (!operatorIsEntry && feeder?.kind === 'source')
+    ) {
+      issues.push(
+        issue(
+          node,
+          'operatorMismatch',
+          operatorIsEntry
+            ? 'an input table needs a source on OP, not a sink'
+            : 'an output table needs a sink on OP, not a source',
+        ),
+      );
+    }
+    if (!operatorIsEntry) return issues;
+  }
+  if (connectedExits.length === 0) {
+    issues.push(
+      issue(
+        node,
+        'noExit',
+        `${node.exitPorts.map((p) => p.portId).join(' / ')} is not connected; the pallet stays on it`,
+      ),
+    );
+  } else if (connectedExits.length > 1) {
+    issues.push(
+      issue(
+        node,
+        'twoExits',
+        `${connectedExits.map((p) => p.portId).join(' and ')} are both connected; ${connectedExits[0]?.portId} is used`,
+      ),
+    );
   }
   return issues;
 }
@@ -386,8 +688,17 @@ function processIssues(node: ProcessNode, next: FlowNode | undefined): FlowIssue
 function transferIssues(node: TransferNode): FlowIssue[] {
   const issues: FlowIssue[] = [];
   const side = { right: ['C2'], left: ['C1'], bidirectional: ['C1', 'C2'] }[node.transferDirection];
-  if (node.operationMode !== 'chainsToRollers' && !side.some((port) => node.exits[port] !== undefined)) {
-    issues.push(issue(node, 'noExit', `the chain side ${side.join('/')} is not connected; pallets from A stay on it`));
+  if (
+    node.operationMode !== 'chainsToRollers' &&
+    !side.some((port) => node.exits[port] !== undefined)
+  ) {
+    issues.push(
+      issue(
+        node,
+        'noExit',
+        `the chain side ${side.join('/')} is not connected; pallets from A stay on it`,
+      ),
+    );
   }
   if (node.operationMode !== 'rollersToChains' && node.exits['B'] === undefined) {
     issues.push(issue(node, 'noExit', 'B is not connected; pallets from the chains stay on it'));
@@ -401,15 +712,37 @@ const MIN_DECK_MARGIN = 0.1;
 
 function sensorIssues(node: SensorNode, host: FlowNode | undefined): FlowIssue[] {
   if (host?.kind !== 'line') {
-    return [issue(node, 'sensorWithoutHost', 'is not mounted on a roller or chain conveyor; it detects nothing')];
+    return [
+      issue(
+        node,
+        'sensorWithoutHost',
+        'is not mounted on a roller or chain conveyor; it detects nothing',
+      ),
+    ];
   }
   const issues: FlowIssue[] = [];
   if (Math.abs(node.sensorHeight - node.reflectorHeight) > 1e-9) {
-    issues.push(issue(node, 'inclinedBeam', `inclined beam: detection uses the mean height ${round(node.beamHeight * MM)} mm`));
+    issues.push(
+      issue(
+        node,
+        'inclinedBeam',
+        `inclined beam: detection uses the mean height ${round(node.beamHeight * MM)} mm`,
+      ),
+    );
   }
-  const length = Math.hypot(node.reflectorS - node.sensorS, node.reflectorLateral - node.sensorLateral, node.reflectorHeight - node.sensorHeight);
+  const length = Math.hypot(
+    node.reflectorS - node.sensorS,
+    node.reflectorLateral - node.sensorLateral,
+    node.reflectorHeight - node.sensorHeight,
+  );
   if (length > node.range) {
-    issues.push(issue(node, 'beamOutOfRange', `beam length ${round(length * MM)} mm exceeds the range ${round(node.range * MM)} mm`));
+    issues.push(
+      issue(
+        node,
+        'beamOutOfRange',
+        `beam length ${round(length * MM)} mm exceeds the range ${round(node.range * MM)} mm`,
+      ),
+    );
   }
   const voidGap = largestVoid(host.palletSideAlongTravel, node.beamHeight);
   if (voidGap > 0) {
@@ -428,10 +761,13 @@ function sensorIssues(node: SensorNode, host: FlowNode | undefined): FlowIssue[]
 /** Longest void a horizontal beam meets in the EUR profile for the host's orientation (m). */
 function largestVoid(side: 'long' | 'short', height: number): number {
   const eur = PALLET_TYPES.find((p) => p.id === 'eur');
-  const band = eur?.occupancy[side === 'long' ? 'alongLength' : 'alongWidth'].find((b) => height >= b.fromHeight && height < b.toHeight);
+  const band = eur?.occupancy[side === 'long' ? 'alongLength' : 'alongWidth'].find(
+    (b) => height >= b.fromHeight && height < b.toHeight,
+  );
   if (band === undefined) return 0;
   let largest = 0;
-  for (let i = 1; i < band.solid.length; i++) largest = Math.max(largest, (band.solid[i]?.[0] ?? 0) - (band.solid[i - 1]?.[1] ?? 0));
+  for (let i = 1; i < band.solid.length; i++)
+    largest = Math.max(largest, (band.solid[i]?.[0] ?? 0) - (band.solid[i - 1]?.[1] ?? 0));
   return largest;
 }
 

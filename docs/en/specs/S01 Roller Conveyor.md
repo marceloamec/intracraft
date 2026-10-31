@@ -44,19 +44,32 @@ Defaults are **indicative**; values shown in display units, stored in SI. **Ever
 
 Diameter and pitch are **chosen from a short list of standard options**, not typed freely.
 
-| Key                 | Plan key              | Unit  | Default         | Options / range                 | Description                                               |
-| ------------------- | --------------------- | ----- | --------------- | ------------------------------- | --------------------------------------------------------- |
-| `rollerDiameter`    | `diametroRodillo`     | mm    | **89**          | 76, 89 (provisional list)       | Outer roller diameter                                     |
-| `rollerPitch`       | `pasoRodillos`        | mm    | **206.3**       | 133, 206.3 (provisional list)   | Axis-to-axis distance                                     |
-| `rollerMaterial`    | `materialRodillo`     | enum  | steel           | steel, coated steel, PVC        | Selects the friction pair                                 |
-| `rollerMu`          | `muRodillo`           | —     | 0.35            | 0.1 … 0.8                       | Pallet–roller friction                                    |
-| `rollingResistance` | `resistenciaRodadura` | —     | 0.02            | 0 … 0.1                         | Rolling loss (idle rollers)                               |
-| `drive`             | `accionamiento`       | enum  | continuousChain | gravity, continuousChain, zoned | One chain-driven train, independent zones or idle rollers |
-| `zoneLength`        | `longitudZona`        | mm    | 1400            | 1000 … 2000                     | Zoned drive only                                          |
-| `zoneEndSensor`     | `sensorFinDeZona`     | bool  | yes             | —                               | Virtual end-of-zone sensor for ZPA                        |
-| `rollerInertia`     | `inerciaRodillo`      | kg·m² | auto            | —                               | Physics only                                              |
+| Key                 | Plan key               | Unit  | Default         | Options / range                         | Description                                                                                         |
+| ------------------- | ---------------------- | ----- | --------------- | --------------------------------------- | --------------------------------------------------------------------------------------------------- |
+| `rollerDiameter`    | `diametroRodillo`      | mm    | **89**          | 76, 89 (provisional list)               | Outer roller diameter                                                                               |
+| `rollerPitch`       | `pasoRodillos`         | mm    | **206.3**       | 133, 206.3 (provisional list)           | Axis-to-axis distance                                                                               |
+| `rollerMaterial`    | `materialRodillo`      | enum  | steel           | steel, coated steel, PVC                | Selects the friction pair                                                                           |
+| `rollerMu`          | `muRodillo`            | —     | 0.35            | 0.1 … 0.8                               | Pallet–roller friction                                                                              |
+| `rollingResistance` | `resistenciaRodadura`  | —     | 0.02            | 0 … 0.1                                 | Rolling loss (idle rollers)                                                                         |
+| `drive`             | `accionamiento`        | enum  | continuousChain | gravity, continuousChain, zoned         | One chain-driven train, independent zones or idle rollers                                           |
+| `zoneLength`        | `longitudZona`         | mm    | 1400            | 1000 … 2000                             | Zoned drive only                                                                                    |
+| `zoneEndSensor`     | `sensorFinDeZona`      | bool  | yes             | —                                       | Virtual end-of-zone sensor for ZPA                                                                  |
+| `rollerInertia`     | `inerciaRodillo`       | kg·m² | auto            | —                                       | Physics only                                                                                        |
+| `driveSide`         | `ladoAccionamiento`    | enum  | right           | right, left                             | Side of the drive and of the chain guard, seen in the direction of travel (drawing only)            |
+| `driveMounting`     | `montajeAccionamiento` | enum  | inside          | inside, outside                         | Geared motor under the deck inside the frame, or on a drive roller outside the frame (drawing only) |
+| `runnerGuide`       | `guiadoPatines`        | enum  | none            | none, outerOutside, outerInside, centre | Guide disks on every third roller that guide the EUR runners (drawing only)                         |
+| `endStop`           | `topeFinal`            | bool  | no              | —                                       | Fixed plate at a free line end (drawing only; in 2D a pallet always stops at an open end)           |
 
 The list values 76/133 come from the plan; 89/206.3 are the owner's equipment. The final list is an open question ([[Open Questions]]). 206.3 mm is very close to 13 × 15.875 mm (13 links of a 5/8" chain), which suggests the pitch is tied to the drive chain — to confirm.
+
+**Drawing (since 2026-10-30).** The 3D model shows how heavy pallet roller conveyors are usually built (indicative):
+
+- a chain guard on top of the frame on the drive side;
+- one geared motor per conveyor;
+- feet at most 2 m apart, each on an adjustable foot with a floor plate;
+- a cross beam between the feet from 650 mm conveying height, and diagonal bracing from 850 mm.
+
+These choices do not change any 2D result.
 
 **Derived with the defaults:** rollers on a 3 m conveyor $\lfloor 3000/206.3 \rfloor$ = **14**; rollers under a 1200 mm pallet side $\lfloor 1200/206.3 \rfloor$ = **5** (≥ 3 ✓); free gap between rollers 206.3 − 89 = **117.3 mm**; roller speed for 0.25 m/s $\omega = 0.25/0.0445$ = **5.62 rad/s**; capacity of a 3 m conveyor $\lfloor 3000/(1200+150) \rfloor$ = **2** EUR pallets.
 

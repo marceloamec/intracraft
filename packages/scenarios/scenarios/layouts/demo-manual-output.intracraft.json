@@ -1,0 +1,74 @@
+{
+  "schemaVersion": 1,
+  "name": "Manual output table: the line hands pallets to an operator with a pallet jack",
+  "seed": 1,
+  "layout": {
+    "instances": [
+      {
+        "id": "source1",
+        "definitionId": "flow.source",
+        "definitionVersion": "0.1.0",
+        "name": "Source",
+        "position": {
+          "x": 0,
+          "y": 0,
+          "z": 0
+        },
+        "yaw": 0,
+        "params": {
+          "interval": 30
+        },
+        "attributes": {}
+      },
+      {
+        "id": "roller1",
+        "definitionId": "conveyor.roller",
+        "definitionVersion": "0.1.0",
+        "name": "Roller 3 m",
+        "position": {
+          "x": 0.42,
+          "y": 0,
+          "z": 0
+        },
+        "yaw": 0,
+        "params": {},
+        "attributes": {}
+      },
+      {
+        "id": "lift_table_manual1",
+        "definitionId": "conveyor.lift_table_manual",
+        "definitionVersion": "0.1.0",
+        "name": "Manual output table",
+        "position": {
+          "x": 5.04,
+          "y": 0,
+          "z": 0
+        },
+        "yaw": 3.141592653589793,
+        "params": {
+          "flowDirection": "out"
+        },
+        "attributes": {}
+      },
+      {
+        "id": "sink1",
+        "definitionId": "flow.sink",
+        "definitionVersion": "0.1.0",
+        "name": "Operator (60 s per pallet)",
+        "position": {
+          "x": 5.06,
+          "y": 0,
+          "z": 0
+        },
+        "yaw": 0,
+        "params": {
+          "surfaceHeight": 0.1,
+          "removalMode": "afterTime",
+          "removalTime": 60
+        },
+        "attributes": {}
+      }
+    ],
+    "connections": []
+  }
+}

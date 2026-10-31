@@ -2,7 +2,7 @@
 // is placed by its position and yaw (right-handed rotation about +Y, as three.js `rotation.y`).
 import type { Instance, Vec3 } from '@intracraft/core-model';
 import type { ComponentDefinition, Facing, PortCoordinate, PortDefinition } from './definition-schema';
-import { type ParamValues, instanceParams } from './params';
+import { type ParamValues, derivedValues, instanceParams } from './params';
 
 export interface ResolvedPort {
   id: string;
@@ -30,14 +30,16 @@ const FACING_VECTORS: Record<Facing, { x: number; z: number }> = {
 
 /** Ports of a definition with their coordinates evaluated for the given parameter values. */
 export function resolvePorts(definition: ComponentDefinition, params: ParamValues): ResolvedPort[] {
+  // Derived parameters may place a port too, e.g. the gravity line's entry height.
+  const values = { ...params, ...derivedValues(definition, params) };
   return definition.ports.map((port) => ({
     id: port.id,
     direction: port.direction,
     facing: port.facing,
     local: {
-      x: evaluate(port.local.x, params, port.id),
-      y: evaluate(port.local.y, params, port.id),
-      z: evaluate(port.local.z, params, port.id),
+      x: evaluate(port.local.x, values, port.id),
+      y: evaluate(port.local.y, values, port.id),
+      z: evaluate(port.local.z, values, port.id),
     },
   }));
 }

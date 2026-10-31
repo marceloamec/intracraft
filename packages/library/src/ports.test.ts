@@ -13,6 +13,13 @@ describe('resolvePorts', () => {
     expect(b).toMatchObject({ id: 'B', facing: '+x', local: { x: 3, y: 0.6, z: 0 } });
   });
 
+  it('places the gravity line entry at its derived height: 0.1 m + 4 % × 6 m (S15)', () => {
+    const gravity = registry.get('conveyor.gravity');
+    const [entry, exit] = resolvePorts(gravity, defaultParams(gravity));
+    expect(entry?.local.y).toBeCloseTo(0.34, 12);
+    expect(exit).toMatchObject({ id: 'OUT', local: { x: 6, y: 0.1, z: 0 } });
+  });
+
   it('puts the transfer chain ports at roller height + lift stroke, on both sides', () => {
     const transfer = registry.get('conveyor.transfer_rc');
     const ports = resolvePorts(transfer, defaultParams(transfer));

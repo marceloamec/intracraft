@@ -1,0 +1,73 @@
+{
+  "schemaVersion": 1,
+  "name": "T10 one pallet rolls down a 6 m gravity line",
+  "seed": 1,
+  "layout": {
+    "instances": [
+      {
+        "id": "source1",
+        "definitionId": "flow.source",
+        "definitionVersion": "0.1.0",
+        "name": "Source",
+        "position": {
+          "x": 0,
+          "y": 0,
+          "z": 0
+        },
+        "yaw": 0,
+        "params": {
+          "maxPallets": 1,
+          "surfaceHeight": 0.34
+        },
+        "attributes": {}
+      },
+      {
+        "id": "roller1",
+        "definitionId": "conveyor.roller",
+        "definitionVersion": "0.1.0",
+        "name": "Infeed 3 m",
+        "position": {
+          "x": 0.42,
+          "y": 0,
+          "z": 0
+        },
+        "yaw": 0,
+        "params": {
+          "surfaceHeight": 0.34
+        },
+        "attributes": {}
+      },
+      {
+        "id": "gravity1",
+        "definitionId": "conveyor.gravity",
+        "definitionVersion": "0.1.0",
+        "name": "Gravity line 6 m, 4 %",
+        "position": {
+          "x": 3.44,
+          "y": 0,
+          "z": 0
+        },
+        "yaw": 0,
+        "params": {},
+        "attributes": {}
+      },
+      {
+        "id": "sink1",
+        "definitionId": "flow.sink",
+        "definitionVersion": "0.1.0",
+        "name": "Operator",
+        "position": {
+          "x": 9.46,
+          "y": 0,
+          "z": 0
+        },
+        "yaw": 0,
+        "params": {
+          "surfaceHeight": 0.1
+        },
+        "attributes": {}
+      }
+    ],
+    "connections": []
+  }
+}

@@ -1,14 +1,20 @@
 // Built-in definitions, validated at load time. User and project libraries will register here too.
 import chainConveyorJson from './definitions/chain-conveyor.json';
 import chainTurntableJson from './definitions/chain-turntable.json';
+import elevatorJson from './definitions/elevator.json';
+import gravityLineJson from './definitions/gravity-line.json';
+import liftTableManualJson from './definitions/lift-table-manual.json';
 import photoeyeJson from './definitions/photoeye.json';
 import processStationJson from './definitions/process-station.json';
 import rollerConveyorJson from './definitions/roller-conveyor.json';
 import rollerTurntableJson from './definitions/roller-turntable.json';
+import sceneryAssetJson from './definitions/scenery-asset.json';
+import scissorLiftJson from './definitions/scissor-lift.json';
 import sinkJson from './definitions/sink.json';
 import sourceJson from './definitions/source.json';
 import transferRcJson from './definitions/transfer-rc.json';
 import { type ComponentDefinition, componentDefinitionSchema } from './definition-schema';
+import { withOptionSources } from './option-sources';
 
 const BUILT_IN_SOURCES: unknown[] = [
   rollerConveyorJson,
@@ -16,10 +22,15 @@ const BUILT_IN_SOURCES: unknown[] = [
   chainTurntableJson,
   rollerTurntableJson,
   transferRcJson,
+  liftTableManualJson,
+  scissorLiftJson,
+  elevatorJson,
+  gravityLineJson,
   sourceJson,
   sinkJson,
   processStationJson,
   photoeyeJson,
+  sceneryAssetJson,
 ];
 
 export class DefinitionRegistry {
@@ -51,12 +62,14 @@ export class DefinitionRegistry {
 
 export function createBuiltInRegistry(): DefinitionRegistry {
   const registry = new DefinitionRegistry();
-  for (const source of BUILT_IN_SOURCES) registry.register(source);
+  for (const source of BUILT_IN_SOURCES) registry.register(withOptionSources(source));
   return registry;
 }
 
 /** Default parameter values of a definition, keyed by parameter key (derived values excluded). */
-export function defaultParams(definition: ComponentDefinition): Record<string, number | boolean | string> {
+export function defaultParams(
+  definition: ComponentDefinition,
+): Record<string, number | boolean | string> {
   const params: Record<string, number | boolean | string> = {};
   for (const p of definition.parameters) {
     if (!p.derived && p.default !== undefined) params[p.key] = p.default;

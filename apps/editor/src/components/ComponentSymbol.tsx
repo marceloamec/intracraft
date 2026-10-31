@@ -74,6 +74,40 @@ const SYMBOLS: Record<string, React.JSX.Element> = {
       <rect x="36" y="11" width="4" height="10" {...STROKE} />
     </>
   ),
+  'conveyor.lift_table_manual': (
+    <>
+      <rect x="14" y="6" width="32" height="20" {...STROKE} />
+      {rollers(18, 42, 4)}
+      {/* Pallet jack forks on the operator side. */}
+      <path d="M2 11 H12 M2 21 H12 M2 9 V23" {...STROKE} strokeWidth={2} />
+    </>
+  ),
+  'conveyor.scissor_lift': (
+    <>
+      <rect x="2" y="6" width="44" height="20" {...STROKE} />
+      {rollers(6, 42, 6)}
+      <path d="M10 8 L38 24 M10 24 L38 8" {...STROKE} strokeWidth={2} />
+    </>
+  ),
+  'conveyor.elevator': (
+    <>
+      <rect x="8" y="7" width="32" height="18" {...STROKE} />
+      {rollers(12, 36, 6)}
+      <rect x="20" y="1" width="8" height="5" {...STROKE} strokeWidth={2} />
+      <rect x="20" y="26" width="8" height="5" {...STROKE} strokeWidth={2} />
+      <path d="M44 22 V10 M41 13 L44 10 L47 13" {...STROKE} />
+    </>
+  ),
+  'conveyor.gravity': (
+    <>
+      <rect x="2" y="6" width="44" height="20" {...STROKE} />
+      {rollers(5, 37, 4)}
+      {/* Separator and end stop at the low end; the arrow points downhill. */}
+      <line x1="33" y1="9" x2="33" y2="23" {...STROKE} strokeWidth={2.5} />
+      <line x1="45" y1="6" x2="45" y2="26" {...STROKE} strokeWidth={3} />
+      <path d="M8 3 H30 M26 1 L30 3 L26 5" {...STROKE} strokeWidth={1} />
+    </>
+  ),
   'conveyor.transfer_rc': (
     <>
       <rect x="8" y="4" width="32" height="24" {...STROKE} />

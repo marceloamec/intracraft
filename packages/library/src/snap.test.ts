@@ -50,6 +50,19 @@ describe('snapPose', () => {
     expect(result.link?.target.instanceId).not.toBe('roller1');
   });
 
+  it('picks the port at its own height when two ports share a position seen from above (C elevator)', () => {
+    // The elevator's IN (0.6 m) and OUT_NEAR (4.6 m) are both at x = 0, facing −x. A conveyor on a
+    // 4.0 m mezzanine, turned 180°, brings its A port (4.6 m) next to them.
+    const layout = layoutOf(instance('elevator1', 'conveyor.elevator'));
+    const result = snapPose(
+      { definition: roller, params: {}, position: { x: -0.05, y: 4, z: 0 }, yaw: Math.PI },
+      layout,
+      registry,
+    );
+    expect(result.link).toEqual({ movingPort: 'A', target: { instanceId: 'elevator1', portId: 'OUT_NEAR' } });
+    expect(result.issues).toEqual([]);
+  });
+
   it('warns when the support heights differ by more than 10 mm', () => {
     const layout = layoutOf(instance('roller1', 'conveyor.roller'));
     const result = snapPose(
@@ -91,6 +104,15 @@ describe('deriveConnections', () => {
     const side = layoutOf(instance('roller1', 'conveyor.roller'), instance('roller2', 'conveyor.roller', at(0, 1.5)));
     expect(deriveConnections(apart, registry)).toEqual([]);
     expect(deriveConnections(side, registry)).toEqual([]);
+  });
+
+  it('pairs the port with the closest height when two candidates share a position', () => {
+    // Two conveyors end at the elevator's IN: one at floor level (0.6 m), one on a mezzanine (4.6 m).
+    const mezzanine = { ...instance('roller1', 'conveyor.roller', { x: -3.02, y: 4, z: 0 }) };
+    const floor = instance('roller2', 'conveyor.roller', at(-3.02, 0));
+    const layout = layoutOf(instance('elevator1', 'conveyor.elevator'), mezzanine, floor);
+    const connections = deriveConnections(layout, registry);
+    expect(connections.map((c) => `${c.from.instanceId}.${c.from.portId}→${c.to.portId}`)).toEqual(['roller2.B→IN']);
   });
 
   it('connects a conveyor to a turntable station port', () => {

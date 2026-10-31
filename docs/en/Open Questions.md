@@ -2,7 +2,7 @@
 title: Open Questions
 lang: en
 tags: [questions, reference]
-updated: 2026-10-29
+updated: 2026-10-31
 ---
 
 🌐 **EN** · [[Preguntas abiertas|ES]] · [[Offene Fragen|DE]] · [[Home (EN)|Index]]
@@ -59,6 +59,7 @@ Each question states **what must be decided**, **why it matters** (which result 
 - **Why:** highest-risk component (phase 8); its cycle limits throughput.
 - **Specific questions:** (a) Is it correct: longitudinal rollers + liftable chains between rollers that rise, move 90° and lower? (b) Number of chains, lift stroke (40 mm), lift/lower times (1 s). (c) Is the adjacent chain conveyor 40 mm higher than the rollers, or do the chains lower to hand over at the same height? (d) Is there a positioning stop?
 - **Assumed:** the plan's interpretation; with Ø89/206.3 the roller gap is 117.3 mm (chains up to ~107 mm fit).
+- **2026-10-30:** the owner chose the real mechanism (the roller section lifts 100 mm over fixed chains, chains 30 mm lower). The rewritten [[S05 Roller-to-Chain Transfer]] waits for confirmation before the 2D cycle and the 3D model change.
 
 ### Q7. Photocells: type and usual heights
 - **Decide:** default type and height when placing a new photocell.
@@ -96,3 +97,74 @@ Each question states **what must be decided**, **why it matters** (which result 
 - **Decide:** whether your pallets match the EPAL construction used in [[S10 Pallet Types]] (bottom boards 100/145/100 mm, 78 mm blocks, 22 mm stringer boards, 5 top boards).
 - **Why:** it determines the voids the photocells see and the support on chains.
 - **Request:** if possible, measure a real pallet (block and board positions).
+
+### Q14. Pallet-jack side of the manual lift table and the gravity line
+- **Decide:** the deck height at pallet-jack level and how the jack reaches the pallet.
+- **Why:** it sets the stroke and the cycle time of [[S12 Manual Lift Table]], and the entry height of [[S15 Gravity Roller Line]].
+- **Specific questions:** (a) What is the lowest deck height at the operator side (`lowHeight`)? (b) Does the jack enter along the line (end) or from the side? (c) Is the deck rollers only, or is there a chain or fork-pocket section for the jack? (d) How long does an operator need per pallet (drive in, lift, leave, come back)?
+- **Assumed:** 0.10 m, entry from the end, rollers only; operator time is a sink `removalTime`.
+
+### Q15. Lift speeds and the elevator's rest level
+- **Decide:** real vertical speeds and what a lift does after discharging.
+- **Why:** they set the cycle time and the throughput of the scissor table, the manual table and the elevator.
+- **Specific questions:** (a) Scissor and manual tables: lifting and lowering speed, or time for the full stroke? (b) Elevator: carriage speed and acceleration? (c) Does a lift always go back to the entry level, or wait where it is until the next call?
+- **Assumed:** tables 0.05 m/s up, 0.07 m/s down, 0.2 m/s²; elevator 0.5 m/s and 0.5 m/s²; always back to the entry level ([[ADR-0013 Lift Station 2D Cycle]]).
+
+### Q16. Gravity line values and queue behaviour
+- **Decide:** slope, brake spacing, brake speed, separator delay and how a queue starts.
+- **Why:** they set the time a pallet needs to reach the operator, the line's capacity and whether the operator or the line limits throughput.
+- **Specific questions:** (a) Typical slope (%)? (b) One brake roller every how many rollers? (c) Speed held by the brakes? (d) Is the separator time-delayed, and with what delay? (e) When the separator lets go, does the whole queue move as one block, or do the pallets spread out? If they spread, roughly how far apart (that gives `startDelay` = gap / brake speed)? (f) Length of the pick-up position?
+- **Assumed:** 4 %, every 4 rollers (825 mm), 0.2 m/s, 3 s, `startDelay` 1 s (gaps of ≈ 0.2 m), pick-up 1.3 m ([[S15 Gravity Roller Line]]).
+
+### Q17. Elevator variants
+- **Decide:** which variants beyond the two-level C and Z elevator are needed, and in what order.
+- **Why:** several levels and entries from both ends need a destination rule and change the cycle ([[S14 Pallet Elevator]]).
+- **Specific questions:** (a) How many levels at most? (b) Entry from both ends? (c) How is the destination level chosen (fixed, by pallet type, by rule)?
+- **Assumed:** two levels, entry on one end, exit on the same side (C) or the opposite side (Z).
+
+### Q18. Side guides: material and height
+- **Decide:** the default guide surface and height of [[S08 Side Guide]].
+- **Why:** in the 3D mode a pallet that enters turned 5° **wedges** between painted steel guides (μ = 0.3) with 10 mm clearance. With low-friction polyethylene strips (μ = 0.2) it is straightened ([[ADR-0002 Physics Engine Candidate]], P9). The default height of 150 mm is above the top of a EUR pallet (144 mm), so a load that overhangs the pallet hits the guides.
+- **Options:** (1) polyethylene strips as the default guide surface; (2) keep painted steel and add a warning when the entry may be turned more than about 3°; (3) guide height limited to the pallet height (about 100–140 mm), or a validation against the load overhang.
+- **Assumed:** S08 unchanged; the bench uses 100 mm polyethylene guides for S1-d.
+
+### Q19. Default values from the pallet-conveyor knowledge base
+- **Decide:** which of these defaults to change. They come from application guides of heavy pallet conveyors (indicative values, not manufacturer data in IntraCraft).
+- **Why:** they change heights, widths and speeds, so 2D results and saved layouts that rely on the defaults change. Only drawing details were applied on 2026-10-30 (`driveSide`, `driveMounting`, `runnerGuide`, `endStop`, `drivePosition`, `sideGuard`).
+
+| #   | Object                     | Parameter                         | Today                           | Proposed                                                        | Changes results |
+| --- | -------------------------- | --------------------------------- | ------------------------------- | --------------------------------------------------------------- | --------------- |
+| a   | Roller conveyor (S01)      | `surfaceHeight`                   | 600 mm                          | 520 mm (540 mm next to turntables and transfer tables)          | No (2D)         |
+| b   | Roller conveyor            | `usableWidth`                     | free, 1000 mm                   | List 969 / 1169 / 1388 mm for loads up to 800 / 1000 / 1219 mm  | No (2D)         |
+| c   | Roller conveyor            | `rollerPitch`, `rollerDiameter`   | {133, 206.3} mm, {76, 89} mm    | {126.9, 206.3} mm, Ø 89 mm only                                 | 3D only         |
+| d   | Roller conveyor            | `nominalSpeed`                    | 0.25 m/s                        | 0.3 m/s (list 0.2 / 0.3 / 0.4 / 0.5)                            | Yes             |
+| e   | Roller conveyor            | `approachSpeed`                   | 0.10 m/s                        | 0.04 m/s creep speed                                            | When used       |
+| f   | Roller conveyor            | `maxPalletLoad`                   | 1000 kg                         | 1500 kg per load                                                | Warnings only   |
+| g   | Chain conveyor (S02)       | `usableWidth`, `chainCount`       | 1300 mm, 3 (2–6)                | Track gauge 700 / 870 / 1050 mm (default 1050) with 2–4 strands | 3D only         |
+| h   | Chain conveyor             | `chainPitch`, `surfaceHeight`     | 38.1 mm, 600 mm                 | 15.875 mm, 510 mm                                               | 3D only         |
+| i   | Chain conveyor             | length check                      | —                               | Warn above 9 m (centre drive) or 6 m (head drive)               | Warnings only   |
+| j   | Turntables (S03, S04)      | `maxAngularSpeed`, `angularAccel` | 15 °/s, 30 °/s² (6.5 s per 90°) | 45 °/s, 45 °/s² (3 s per 90°)                                   | Yes             |
+| k   | Turntables                 | angular range                     | unlimited                       | 0–270°, shortest path inside the range                          | Yes             |
+| l   | Turntables                 | size                              | 1400 × 1200 mm platform         | Turning circle Ø 1710 mm                                        | Yes             |
+| m   | Roller and chain conveyors | receive rule                      | receive while not blocked       | Option "receive only when empty"                                | Yes             |
+
+- **Assumed:** today's values stay until the owner ticks the rows to apply. The roller↔chain transfer (S05) is handled separately: its rewritten specification is waiting for confirmation.
+
+### Q20. IntraScript: points to confirm
+- **Decide:** confirm or change the defaults of the language ([[A17 IntraScript Language]]) and of the information objects ([[S18 Variable]] to [[S22 Area]]), before any code is written ([[ADR-0018 IntraScript Scripting Language]]).
+- **Why:** every code block written later depends on them; changing them once models contain code means migrating that code.
+
+| #   | Point                     | Written in the specification                                                     | Main alternative                                                                             |
+| --- | ------------------------- | -------------------------------------------------------------------------------- | -------------------------------------------------------------------------------------------- |
+| a   | Upper and lower case      | Names are not case-sensitive (`Roller3` = `roller3`)                             | Case-sensitive, like most programming languages                                              |
+| b   | Counting                  | Lists and table rows start at 1                                                  | Start at 0                                                                                   |
+| c   | Assignment and comparison | `:=` assigns, `=` compares, `<>` means "not equal"                               | `=` assigns, `==` compares, `!=` for "not equal"                                             |
+| d   | Parameters during a run   | Read-only; code changes signals, attributes and information objects              | Some parameters writable (e.g. `nominalSpeed`); every component must then react in 2D and 3D |
+| e   | Rules and code            | At one instant the If/Then rules run first, then the code                        | Code first                                                                                   |
+| f   | Direct moves in 3D        | Teleport, logged, `false` when the target place is occupied                      | Refused in 3D with a run error                                                               |
+| g   | Exit decisions            | `on choose exit of` overrides `exitRule`; returning `none` falls back to it      | Code may only choose among the exits the rule would allow                                    |
+| h   | Limits                    | 1 000 000 steps, 200 nested calls, 1 000 activations per instant, 100 000 rows   | Other values                                                                                 |
+| i   | Reset                     | Variables, tables and lists start every run with their initial content           | Keep the content between runs by default                                                     |
+| j   | Area membership           | Explicit (`layout.setParent`); the editor offers it when dropping inside an area | Purely by position inside the rectangle                                                      |
+
+- **Assumed:** as written in A17 and S18–S22 until the owner answers.

@@ -316,6 +316,30 @@
       "description": {
         "en": "Warns when a pallet (with its load) exceeds this mass"
       }
+    },
+    {
+      "key": "driveSide", "type": "enum", "options": ["right", "left"],
+      "default": "right", "group": "drive", "affects": "geometry",
+      "label": { "en": "Drive side", "es": "Lado del accionamiento", "de": "Antriebsseite" },
+      "description": { "en": "Side of the drive and of the chain guard, seen in the direction of travel (drawing only)", "es": "Lado del accionamiento y del protector de cadena, mirando en el sentido del avance (solo dibujo)", "de": "Seite des Antriebs und des Kettenschutzes in Förderrichtung gesehen (nur Darstellung)" }
+    },
+    {
+      "key": "drivePosition", "type": "enum", "options": ["centre", "end"],
+      "default": "centre", "group": "drive", "affects": "geometry",
+      "label": { "en": "Drive position", "es": "Posición del accionamiento", "de": "Antriebsposition" },
+      "description": { "en": "Centre drive (the chains loop down around the drive sprockets mid-length) or head drive at the end (drawing only)", "es": "Accionamiento central (las cadenas bajan a los piñones motrices a mitad de longitud) o de cabeza en el extremo (solo dibujo)", "de": "Mittenantrieb (die Ketten laufen in der Mitte um die Antriebsräder nach unten) oder Kopfantrieb am Ende (nur Darstellung)" }
+    },
+    {
+      "key": "sideGuard", "type": "enum", "options": ["none", "right", "left", "both"],
+      "default": "none", "group": "guides", "affects": "geometry",
+      "label": { "en": "Side guard", "es": "Guía lateral de protección", "de": "Seitenschutz" },
+      "description": { "en": "Rail on posts outside the outer strand at the height of the pallet side; guides mesh boxes and plastic pallets (drawing only)", "es": "Barandilla sobre postes por fuera del ramal exterior a la altura del costado del pallet; guía jaulas y pallets de plástico (solo dibujo)", "de": "Geländer auf Pfosten außerhalb des äußeren Strangs in Höhe der Palettenseite; führt Gitterboxen und Kunststoffpaletten (nur Darstellung)" }
+    },
+    {
+      "key": "endStop", "type": "boolean",
+      "default": false, "group": "geometry", "affects": "geometry",
+      "label": { "en": "End stop", "es": "Tope final", "de": "Endanschlag" },
+      "description": { "en": "Fixed plate at the free end of a line so that pallets cannot run off (drawing only; in 2D a pallet always stops at an open end)", "es": "Placa fija en el extremo libre de una línea para que los pallets no se salgan (solo dibujo; en 2D un pallet siempre se para en un extremo abierto)", "de": "Feste Platte am freien Ende einer Linie, damit Paletten nicht herunterfahren (nur Darstellung; in 2D hält eine Palette an einem offenen Ende immer an)" }
     }
   ],
   "ports": [

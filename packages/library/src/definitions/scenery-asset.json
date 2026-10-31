@@ -1,0 +1,68 @@
+{
+  "id": "scenery.asset",
+  "version": "0.1.0",
+  "category": "scenery",
+  "name": { "en": "Scenery object", "es": "Objeto de escenario", "de": "Szenenobjekt" },
+  "description": {
+    "en": "Catalogue model placed in the scene (S17): dropped from the air, resting in place or fixed to the floor. 3D physics only; the 2D model ignores it.",
+    "es": "Modelo del catálogo colocado en la escena (S17): soltado desde el aire, reposando en su sitio o fijado al suelo. Solo física 3D; el modelo 2D lo ignora.",
+    "de": "Katalogmodell in der Szene (S17): aus der Luft fallen gelassen, ruhend oder am Boden fixiert. Nur 3D-Physik; das 2D-Modell ignoriert es."
+  },
+  "parameters": [
+    {
+      "key": "asset", "type": "enum", "optionsFrom": "catalogue",
+      "default": "asset.boxes.box_cardboard_a01", "group": "object", "affects": "both",
+      "label": { "en": "Model", "es": "Modelo", "de": "Modell" },
+      "description": {
+        "en": "Catalogue model; its mass, centre of mass and inertia come from the model",
+        "es": "Modelo del catálogo; su masa, centro de masas e inercia vienen del modelo",
+        "de": "Katalogmodell; Masse, Schwerpunkt und Trägheit stammen aus dem Modell"
+      }
+    },
+    {
+      "key": "placement", "type": "enum", "options": ["drop", "rest", "fixed"],
+      "default": "rest", "group": "object", "affects": "3d",
+      "optionLabels": {
+        "drop": { "en": "Drop from the air", "es": "Soltar desde el aire", "de": "Aus der Luft fallen lassen" },
+        "rest": { "en": "Resting in place", "es": "Reposando en su sitio", "de": "Ruhend an Ort und Stelle" },
+        "fixed": { "en": "Fixed to the floor", "es": "Fijado al suelo", "de": "Am Boden fixiert" }
+      },
+      "label": { "en": "Placement", "es": "Colocación", "de": "Platzierung" },
+      "description": {
+        "en": "drop: falls from the drop height; rest: lies on its support and can be pushed; fixed: never moves",
+        "es": "drop: cae desde la altura de caída; rest: descansa sobre su apoyo y se puede empujar; fixed: nunca se mueve",
+        "de": "drop: fällt aus der Fallhöhe; rest: liegt auf seiner Auflage und kann verschoben werden; fixed: bewegt sich nie"
+      }
+    },
+    {
+      "key": "dropHeight", "type": "number", "unit": "m", "displayUnit": "mm",
+      "default": 1.0, "min": 0.05, "max": 10, "group": "object", "affects": "3d", "dependsOn": "placement=drop",
+      "label": { "en": "Drop height", "es": "Altura de caída", "de": "Fallhöhe" },
+      "description": {
+        "en": "Gap between the object's base and its support at the start",
+        "es": "Separación entre la base del objeto y su apoyo al empezar",
+        "de": "Abstand zwischen Objektunterseite und Auflage zu Beginn"
+      }
+    },
+    {
+      "key": "material", "type": "enum", "options": ["auto"], "optionsFrom": "materials",
+      "default": "auto", "group": "object", "affects": "3d", "advanced": true,
+      "optionLabels": {
+        "auto": { "en": "Material of the model", "es": "Material del modelo", "de": "Material des Modells" }
+      },
+      "label": { "en": "Contact material", "es": "Material de contacto", "de": "Kontaktmaterial" },
+      "description": {
+        "en": "Friction and restitution come from the S16 pair table; auto takes the catalogue material",
+        "es": "El rozamiento y la restitución salen de la tabla de pares S16; auto toma el material del catálogo",
+        "de": "Reibung und Stoßzahl stammen aus der S16-Paartabelle; auto übernimmt das Katalogmaterial"
+      }
+    }
+  ],
+  "ports": [],
+  "signals": { "inputs": [], "outputs": [] },
+  "statistics": [],
+  "geometry": "geom.scenery_asset",
+  "behaviors": { "des": "des.none", "physics": "phys.scenery" },
+  "validationRules": [],
+  "presets": []
+}

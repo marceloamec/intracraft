@@ -29,7 +29,10 @@ export function ParamField({
       <div className="prop-row" title={title}>
         <span>{label}</span>
         <output>
-          {typeof value === 'number' ? formatNumber(toDisplay(value, p.unit, p.displayUnit), p.displayUnit) : '—'} {unit}
+          {typeof value === 'number'
+            ? formatNumber(toDisplay(value, p.unit, p.displayUnit), p.displayUnit)
+            : '—'}{' '}
+          {unit}
         </output>
       </div>
     );
@@ -39,14 +42,26 @@ export function ParamField({
     return (
       <label className="prop-row" title={title}>
         <span>{label}</span>
-        <input type="checkbox" checked={value === true} disabled={disabled} onChange={(e) => onCommit(e.target.checked)} />
+        <input
+          type="checkbox"
+          checked={value === true}
+          disabled={disabled}
+          onChange={(e) => onCommit(e.target.checked)}
+        />
       </label>
     );
   }
 
   if (p.type === 'enum' || p.choices !== undefined) {
-    const options = p.choices?.map((c) => ({ value: String(c), text: formatNumber(toDisplay(c, p.unit, p.displayUnit), p.displayUnit) })) ??
-      (p.options ?? []).map((o) => ({ value: o, text: o }));
+    const options =
+      p.choices?.map((c) => ({
+        value: String(c),
+        text: formatNumber(toDisplay(c, p.unit, p.displayUnit), p.displayUnit),
+      })) ??
+      (p.options ?? []).map((o) => {
+        const named = p.optionLabels?.[o];
+        return { value: o, text: named === undefined ? o : localize(named, language) };
+      });
     return (
       <label className="prop-row" title={title}>
         <span>{label}</span>
@@ -54,7 +69,9 @@ export function ParamField({
           <select
             value={String(value)}
             disabled={disabled}
-            onChange={(e) => onCommit(p.choices === undefined ? e.target.value : Number(e.target.value))}
+            onChange={(e) =>
+              onCommit(p.choices === undefined ? e.target.value : Number(e.target.value))
+            }
           >
             {options.map((o) => (
               <option key={o.value} value={o.value}>
@@ -77,7 +94,8 @@ export function ParamField({
           defaultValue={String(value ?? '')}
           disabled={disabled}
           onBlur={(e) => {
-            if (e.currentTarget.value !== value && !onCommit(e.currentTarget.value)) e.currentTarget.value = String(value);
+            if (e.currentTarget.value !== value && !onCommit(e.currentTarget.value))
+              e.currentTarget.value = String(value);
           }}
           onKeyDown={blurOnEnter}
         />
@@ -134,7 +152,8 @@ export function NumberInput({
             if (entered === text) return;
             const parsed = Number(entered);
             // Restore the stored value when the input is not a number or the command rejects it.
-            if (entered === '' || !Number.isFinite(parsed) || !onCommit(parsed)) e.currentTarget.value = text;
+            if (entered === '' || !Number.isFinite(parsed) || !onCommit(parsed))
+              e.currentTarget.value = text;
           }}
           onKeyDown={blurOnEnter}
         />

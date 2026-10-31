@@ -16,6 +16,7 @@
     "@intracraft/geometry": "workspace:*",
     "@intracraft/library": "workspace:*",
     "@intracraft/sim-des": "workspace:*",
+    "@intracraft/sim-physics": "workspace:*",
     "@react-three/fiber": "9.8.2",
     "react": "19.3.1",
     "react-dom": "19.3.1",

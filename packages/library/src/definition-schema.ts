@@ -17,6 +17,13 @@ export const parameterSchema = z.object({
   max: z.number().optional(),
   step: z.number().optional(),
   options: z.array(z.string()).optional(),
+  /**
+   * Options appended when the registry is built: `catalogue` (every catalogue model),
+   * `catalogue:<category>,…` (models of those categories) or `materials` (S16 contact materials).
+   */
+  optionsFrom: z.string().optional(),
+  /** Text shown for an option instead of its id (catalogue names, placement modes…). */
+  optionLabels: z.record(z.string(), localizedTextSchema).optional(),
   /** Allowed values of a number parameter (shown as a dropdown), e.g. standard roller diameters. */
   choices: z.array(z.number()).optional(),
   group: z.string().min(1),
@@ -35,7 +42,11 @@ export const portTermSchema = z.union([
 ]);
 
 /** Port coordinate: a number (m), a parameter key, or a list of terms that are added up. */
-export const portCoordinateSchema = z.union([z.number(), z.string().min(1), z.array(portTermSchema).min(1)]);
+export const portCoordinateSchema = z.union([
+  z.number(),
+  z.string().min(1),
+  z.array(portTermSchema).min(1),
+]);
 
 /** Outward direction of a port in the component's local frame. */
 export const facingSchema = z.enum(['+x', '-x', '+z', '-z']);
@@ -50,7 +61,7 @@ export const portSchema = z.object({
 export const componentDefinitionSchema = z.object({
   id: z.string().regex(/^[a-z]+\.[a-z0-9_]+$/),
   version: z.string().regex(/^\d+\.\d+\.\d+$/),
-  category: z.enum(['conveyors', 'sensors', 'mechanics', 'flow', 'pallets', 'control']),
+  category: z.enum(['conveyors', 'sensors', 'mechanics', 'flow', 'pallets', 'control', 'scenery']),
   name: localizedTextSchema,
   description: localizedTextSchema,
   parameters: z.array(parameterSchema),

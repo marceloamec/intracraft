@@ -1,5 +1,6 @@
 {
   "dataset": "codepawl/simready-glb",
+  "revision": "e52172290393dde80e8d383861db94b8d0e92ec3",
   "assets": [
     {
       "source": "pallet_a01",
@@ -49,6 +50,27 @@
       "en": "Pallet assembly A02",
       "es": "Conjunto de pallet A02",
       "tags": ["pallet", "assembly"]
+    },
+    {
+      "source": "pallet_block_a07",
+      "category": "pallets",
+      "en": "EUR pallet (wood)",
+      "es": "Europallet (madera)",
+      "tags": ["wood", "block", "pallet", "eur", "epal"]
+    },
+    {
+      "source": "pallet_rough_black_a02",
+      "category": "pallets",
+      "en": "Plastic pallet 1200 × 800",
+      "es": "Pallet de plástico 1200 × 800",
+      "tags": ["plastic", "pallet", "eur"]
+    },
+    {
+      "source": "pallet_composition_a59",
+      "category": "pallets",
+      "en": "EUR pallet with mixed cartons",
+      "es": "Europallet con cajas mixtas",
+      "tags": ["wood", "pallet", "eur", "load", "cardboard", "loaded"]
     },
 
     {
