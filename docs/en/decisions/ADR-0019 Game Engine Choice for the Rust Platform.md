@@ -77,14 +77,14 @@ Code: `spikes/r5b-viewer/` (a throw-away Cargo workspace, outside pnpm). Windows
 
 **Measured in the cloud container (2026-10-31, 4 cores, no graphics card):**
 
-| Item                                         | BIMCraft-style (egui + wgpu) | Bevy                   |
-| -------------------------------------------- | ---------------------------- | ---------------------- |
-| Code lines of the viewer (no tests/comments) | 672 (GLB reading: 68)        | 286 (GLB reading: ~10) |
-| What the code does not have                  | Shadows, textures, MSAA, PBR | —                      |
-| Crates in the Windows build                  | 152                          | 359                    |
-| Release build from clean (4 cores)           | pending                      | pending                |
-| Release binary size (Linux)                  | pending                      | pending                |
-| Smoke run on llvmpipe (software; not valid)  | 33 frames/s                  | 7 frames/s             |
+| Item                                                     | BIMCraft-style (egui + wgpu) | Bevy                   |
+| -------------------------------------------------------- | ---------------------------- | ---------------------- |
+| Code lines of the viewer (no tests/comments)             | 672 (GLB reading: 68)        | 286 (GLB reading: ~10) |
+| What the code does not have                              | Shadows, textures, MSAA, PBR | —                      |
+| Crates in the Windows build                              | 152                          | 359                    |
+| Release build from clean (4 cores)                       | 2 min 44 s                   | 7 min 35 s             |
+| Release binary size, Linux, stripped (unstripped)        | 15 MB (20 MB)                | 72 MB (118 MB)         |
+| Smoke run on llvmpipe, debug build (software; not valid) | 33 frames/s                  | 7 frames/s             |
 
 The software numbers only show that both viewers run and finish the measurement; with shadows and MSAA Bevy does far more work per frame, which a processor pays for and a graphics card mostly does not.
 
