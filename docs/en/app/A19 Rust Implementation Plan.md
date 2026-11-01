@@ -85,7 +85,7 @@ R5 and R5b can run in parallel with R1–R4; R8 in parallel with R3–R7. By mod
 - `sim-stats`: collectors per object (A18 §6), time-weighted, warm-up excluded; **Statistics sheet** panel per selected object; export CSV/XLSX.
 - **Exit:** the owner runs the reference line for one hour of model time in seconds and reads throughput and utilisation per conveyor.
 
-### R5 – Physics spike S1 in Rust (in parallel)
+### R5 – Physics spike S1 in Rust (in parallel; first criteria passed 2026-11-01, [[ADR-0023 Rapier Passes the First Spike S1 Criteria]])
 
 - `sim-physics` behind a `PhysicsBackend` trait (as in TypeScript); first backend Rapier 3D, `enhanced-determinism`, fixed step 1/120 s.
 - Rollers: kinematic cylinders with ω = v / r. Chains: static strands with surface velocity through `modify_solver_contacts` / `tangent_velocity`.

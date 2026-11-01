@@ -1,0 +1,332 @@
+//! A physics bench (spike S1, ADR-0002, T10–T12): a Rapier world at a fixed step with a floor, kinematic rollers turning
+//! at ω = v / r, chain strips whose contact surface moves, fixed stops, and pallets as dynamic boxes with their mass. SI
+//! units, y up, travel along +x. Each part's friction and restitution are its own; a contact takes the lower friction and
+//! the higher restitution of its two parts, as a contact pair table would give them.
+
+use rapier3d::prelude::*;
+
+/// The fixed physics step, s (A07 §4).
+pub const DT: f64 = 1.0 / 120.0;
+
+/// What carries pallets with a moving contact surface: a chain strip and its surface velocity (m/s, world frame).
+struct Surface {
+    collider: ColliderHandle,
+    velocity: Vector,
+}
+
+/// The hook that gives a chain strip's contacts its surface velocity (Rapier's "conveyor belt").
+struct Surfaces(Vec<Surface>);
+
+impl PhysicsHooks for Surfaces {
+    fn modify_solver_contacts(&self, context: &mut ContactModificationContext) {
+        let (c1, c2) = (context.collider1, context.collider2);
+        // `tangent_velocity` is the first surface's velocity relative to the second (measured on this bench: the other
+        // way round carries the pallet backwards): a strip that is the first collider moves its own way; one that is the
+        // second makes the other surface move the opposite way.
+        let v = self.0.iter().find_map(|s| {
+            if s.collider == c1 {
+                Some(s.velocity)
+            } else if s.collider == c2 {
+                Some(-s.velocity)
+            } else {
+                None
+            }
+        });
+        let Some(v) = v else { return };
+        if let Some(manifold) = context.rigid_mut() {
+            for contact in manifold.solver_contacts.iter_mut() {
+                contact.tangent_velocity = v;
+            }
+        }
+    }
+}
+
+/// A part of the bench: its friction and restitution.
+#[derive(Clone, Copy, Debug, PartialEq)]
+pub struct Material {
+    pub friction: f64,
+    pub restitution: f64,
+}
+
+pub struct Bench {
+    pub world: PhysicsWorld,
+    surfaces: Surfaces,
+    steps: u64,
+}
+
+impl Default for Bench {
+    fn default() -> Self {
+        Bench::new()
+    }
+}
+
+impl Bench {
+    pub fn new() -> Bench {
+        let mut world = PhysicsWorld::new();
+        world.gravity = Vector::new(0.0, -crate::mechanics::GRAVITY as Real, 0.0);
+        world.integration_parameters.dt = DT as Real;
+        Bench { world, surfaces: Surfaces(Vec::new()), steps: 0 }
+    }
+
+    fn collider(builder: ColliderBuilder, m: Material) -> ColliderBuilder {
+        builder
+            .friction(m.friction as Real)
+            .friction_combine_rule(CoefficientCombineRule::Min)
+            .restitution(m.restitution as Real)
+            .restitution_combine_rule(CoefficientCombineRule::Max)
+    }
+
+    /// A level floor whose top is at y = 0.
+    pub fn floor(&mut self, m: Material) -> ColliderHandle {
+        let c = Self::collider(ColliderBuilder::cuboid(100.0, 0.05, 100.0).translation(Vector::new(0.0, -0.05, 0.0)), m);
+        self.world.colliders.insert(c)
+    }
+
+    /// A roller across the travel (its axis along z), its top at `top` m, centred at `x`, turning so its surface moves at
+    /// `speed` m/s along +x: ω = v / r.
+    pub fn roller(&mut self, x: f64, top: f64, radius: f64, length: f64, speed: f64, m: Material) -> RigidBodyHandle {
+        let omega = crate::mechanics::roller_angular_speed(speed, radius);
+        // A point on top of a roller turning about +z moves along −x: turn it the other way.
+        let body = RigidBodyBuilder::kinematic_velocity_based()
+            .translation(Vector::new(x as Real, (top - radius) as Real, 0.0))
+            .angvel(Vector::new(0.0, 0.0, -omega as Real))
+            .can_sleep(false);
+        // Rapier's cylinders stand along +y: lay it along +z.
+        let shape =
+            ColliderBuilder::cylinder((length / 2.0) as Real, radius as Real).rotation(Vector::new(std::f32::consts::FRAC_PI_2, 0.0, 0.0));
+        self.world.insert(body, Self::collider(shape, m)).0
+    }
+
+    /// A fixed chain strip: a thin box from `along.0` to `along.1` along x, its top at `top`, `width` across, centred on
+    /// z = `z`, whose contact surface moves at `speed` m/s along +x (chain plan B).
+    pub fn strip(&mut self, along: (f64, f64), top: f64, z: f64, width: f64, speed: f64, m: Material) -> ColliderHandle {
+        let (x0, x1) = along;
+        let h = 0.01;
+        let c = Self::collider(
+            ColliderBuilder::cuboid(((x1 - x0) / 2.0) as Real, h, (width / 2.0) as Real)
+                .translation(Vector::new(((x0 + x1) / 2.0) as Real, (top as Real) - h, z as Real))
+                .active_hooks(ActiveHooks::MODIFY_SOLVER_CONTACTS),
+            m,
+        );
+        let handle = self.world.colliders.insert(c);
+        self.surfaces.0.push(Surface { collider: handle, velocity: Vector::new(speed as Real, 0.0, 0.0) });
+        handle
+    }
+
+    /// A fixed stop whose face, toward −x, is at `face` m, standing from the floor to `height`.
+    pub fn stop(&mut self, face: f64, height: f64, m: Material) -> ColliderHandle {
+        let half = 0.05;
+        let c = Self::collider(
+            ColliderBuilder::cuboid(half, (height / 2.0) as Real, 1.0).translation(Vector::new(
+                (face as Real) + half,
+                (height / 2.0) as Real,
+                0.0,
+            )),
+            m,
+        );
+        self.world.colliders.insert(c)
+    }
+
+    /// A pallet as a dynamic box of `size` (x along travel, y, z) and `mass`, its bottom at `bottom` and its front (+x)
+    /// at `front`, moving at `speed` along +x.
+    pub fn pallet(&mut self, front: f64, bottom: f64, size: [f64; 3], mass: f64, speed: f64, m: Material) -> RigidBodyHandle {
+        let [sx, sy, sz] = size.map(|v| v / 2.0);
+        let body = RigidBodyBuilder::dynamic()
+            .translation(Vector::new((front - sx) as Real, (bottom + sy) as Real, 0.0))
+            .linvel(Vector::new(speed as Real, 0.0, 0.0))
+            .ccd_enabled(true)
+            .can_sleep(false);
+        let volume = 8.0 * sx * sy * sz;
+        let shape = Self::collider(ColliderBuilder::cuboid(sx as Real, sy as Real, sz as Real), m).density((mass / volume) as Real);
+        self.world.insert(body, shape).0
+    }
+
+    pub fn step(&mut self) {
+        self.world.step_with_events(&self.surfaces, &());
+        self.steps += 1;
+    }
+
+    /// Runs `seconds` of physics.
+    pub fn run(&mut self, seconds: f64) {
+        let n = (seconds / DT).round() as u64;
+        for _ in 0..n {
+            self.step();
+        }
+    }
+
+    pub fn time(&self) -> f64 {
+        self.steps as f64 * DT
+    }
+
+    /// A body's centre, m.
+    pub fn position(&self, body: RigidBodyHandle) -> [f64; 3] {
+        self.world.bodies.get(body).map_or([f64::NAN; 3], |b| {
+            let t = b.translation();
+            [f64::from(t.x), f64::from(t.y), f64::from(t.z)]
+        })
+    }
+
+    /// A body's velocity, m/s.
+    pub fn velocity(&self, body: RigidBodyHandle) -> [f64; 3] {
+        self.world.bodies.get(body).map_or([f64::NAN; 3], |b| {
+            let v = b.linvel();
+            [f64::from(v.x), f64::from(v.y), f64::from(v.z)]
+        })
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use crate::mechanics::stopping_distance;
+
+    const WOOD_ON_STEEL: Material = Material { friction: 0.35, restitution: 0.1 };
+    const EUR: [f64; 3] = [1.2, 0.144, 0.8];
+    /// A EUR pallet with a 600 kg load.
+    const MASS: f64 = 631.4;
+
+    #[test]
+    fn a_pallet_rests_on_the_floor() {
+        let mut b = Bench::new();
+        b.floor(WOOD_ON_STEEL);
+        let p = b.pallet(1.2, 0.0, EUR, MASS, 0.0, WOOD_ON_STEEL);
+        b.run(2.0);
+        let y = b.position(p)[1] - EUR[1] / 2.0;
+        assert!(y.abs() < 0.002, "its bottom is {y} m off the floor");
+    }
+
+    #[test]
+    fn friction_stops_a_sliding_pallet_where_mu_g_says() {
+        // μ = 0.5 stops a pallet sliding at 1 m/s in 0.102 m (the reference's backend test).
+        let mu = Material { friction: 0.5, restitution: 0.0 };
+        let mut b = Bench::new();
+        b.floor(mu);
+        let p = b.pallet(1.2, 0.0, EUR, MASS, 1.0, mu);
+        let x0 = b.position(p)[0];
+        b.run(1.0);
+        let slid = b.position(p)[0] - x0;
+        let expected = stopping_distance(1.0, 0.5);
+        assert!((slid - expected).abs() / expected < 0.05, "slid {slid} m, expected {expected} m");
+    }
+
+    /// Rollers Ø 89 mm at 206.3 mm pitch, top at 0.6 m, along 6 m.
+    fn rollers(b: &mut Bench, speed: f64) {
+        for k in 0..30 {
+            b.roller(0.1 + 0.2063 * f64::from(k), 0.6, 0.0445, 1.0, speed, Material { friction: 0.35, restitution: 0.0 });
+        }
+    }
+
+    #[test]
+    fn p1_rollers_carry_a_pallet_at_their_surface_speed() {
+        let mut b = Bench::new();
+        b.floor(WOOD_ON_STEEL);
+        rollers(&mut b, 0.25);
+        let p = b.pallet(1.4, 0.6, EUR, MASS, 0.0, WOOD_ON_STEEL);
+        b.run(4.0);
+        let v = b.velocity(p)[0];
+        assert!((v - 0.25).abs() / 0.25 < 0.03, "{v} m/s");
+    }
+
+    #[test]
+    fn p8_a_chain_strip_carries_a_pallet_by_its_moving_surface() {
+        let chain = Material { friction: 0.25, restitution: 0.0 };
+        let mut b = Bench::new();
+        b.floor(WOOD_ON_STEEL);
+        for z in [-0.3, 0.3] {
+            b.strip((0.0, 6.0), 0.6, z, 0.04, 0.25, chain);
+        }
+        let p = b.pallet(1.4, 0.6, EUR, MASS, 0.0, WOOD_ON_STEEL);
+        b.run(4.0);
+        let v = b.velocity(p)[0];
+        assert!((v - 0.25).abs() / 0.25 < 0.03, "{v} m/s");
+        let y = b.position(p)[1] - 0.6 - EUR[1] / 2.0;
+        assert!(y.abs() < 0.001, "the pallet floats {y} m above the chains");
+    }
+
+    #[test]
+    fn p3_a_pallet_stops_against_a_stop_within_5_mm_and_rebounds_under_10_mm() {
+        let mut b = Bench::new();
+        b.floor(WOOD_ON_STEEL);
+        rollers(&mut b, 0.25);
+        b.stop(4.0, 0.75, Material { friction: 0.3, restitution: 0.1 });
+        let p = b.pallet(2.0, 0.6, EUR, MASS, 0.25, WOOD_ON_STEEL);
+        let mut nearest = f64::NEG_INFINITY;
+        let mut after_contact = Vec::new();
+        for _ in 0..(12.0 / DT) as usize {
+            b.step();
+            let front = b.position(p)[0] + EUR[0] / 2.0;
+            nearest = nearest.max(front);
+            if nearest > 3.99 {
+                after_contact.push(front);
+            }
+        }
+        let front = b.position(p)[0] + EUR[0] / 2.0;
+        assert!((front - 4.0).abs() <= 0.005, "front at {front} m");
+        let rebound = after_contact.iter().fold(0.0f64, |m, f| m.max(nearest - f));
+        assert!(rebound < 0.010, "rebound {rebound} m");
+    }
+
+    #[test]
+    fn p7_the_same_bench_gives_the_same_run() {
+        let run = || {
+            let mut b = Bench::new();
+            b.floor(WOOD_ON_STEEL);
+            rollers(&mut b, 0.25);
+            let p = b.pallet(1.4, 0.6, EUR, MASS, 0.0, WOOD_ON_STEEL);
+            b.run(3.0);
+            (b.position(p), b.velocity(p))
+        };
+        assert_eq!(run(), run());
+    }
+
+    /// The figures of spike S1 on Rapier, for the decision record: `cargo test -p intracraft-physics --release -- --ignored
+    /// --nocapture s1_figures`.
+    #[test]
+    #[ignore]
+    fn s1_figures() {
+        let mut b = Bench::new();
+        b.floor(WOOD_ON_STEEL);
+        rollers(&mut b, 0.25);
+        let p = b.pallet(1.4, 0.6, EUR, MASS, 0.0, WOOD_ON_STEEL);
+        b.run(4.0);
+        println!("P1 roller speed: {:.4} m/s", b.velocity(p)[0]);
+        let mut c = Bench::new();
+        c.floor(WOOD_ON_STEEL);
+        for z in [-0.3, 0.3] {
+            c.strip((0.0, 6.0), 0.6, z, 0.04, 0.25, Material { friction: 0.25, restitution: 0.0 });
+        }
+        let q = c.pallet(1.4, 0.6, EUR, MASS, 0.0, WOOD_ON_STEEL);
+        c.run(4.0);
+        println!("P8 chain speed: {:.4} m/s, height error {:.5} m", c.velocity(q)[0], c.position(q)[1] - 0.6 - EUR[1] / 2.0);
+        let mut d = Bench::new();
+        d.floor(WOOD_ON_STEEL);
+        rollers(&mut d, 0.25);
+        d.stop(4.0, 0.75, Material { friction: 0.3, restitution: 0.1 });
+        let r = d.pallet(2.0, 0.6, EUR, MASS, 0.25, WOOD_ON_STEEL);
+        let mut nearest = f64::NEG_INFINITY;
+        let mut rebound = 0.0f64;
+        let t = std::time::Instant::now();
+        for _ in 0..(12.0 / DT) as usize {
+            d.step();
+            let front = d.position(r)[0] + EUR[0] / 2.0;
+            nearest = nearest.max(front);
+            if nearest > 3.99 {
+                rebound = rebound.max(nearest - front);
+            }
+        }
+        let per_step = t.elapsed().as_secs_f64() * 1000.0 / (12.0 / DT);
+        println!(
+            "P3 front error: {:.5} m, rebound {:.5} m; {:.4} ms a step with 30 rollers",
+            d.position(r)[0] + EUR[0] / 2.0 - 4.0,
+            rebound,
+            per_step
+        );
+        let mu = Material { friction: 0.5, restitution: 0.0 };
+        let mut e = Bench::new();
+        e.floor(mu);
+        let s = e.pallet(1.2, 0.0, EUR, MASS, 1.0, mu);
+        let x0 = e.position(s)[0];
+        e.run(1.0);
+        println!("friction 0.5 at 1 m/s: slid {:.4} m (μ·g says {:.4})", e.position(s)[0] - x0, stopping_distance(1.0, 0.5));
+    }
+}

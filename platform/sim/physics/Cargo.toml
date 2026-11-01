@@ -1,0 +1,14 @@
+[package]
+name = "intracraft-physics"
+description = "IntraCraft's physics engine for the Physics simulation module: Rapier rigid bodies, rollers turning at v / r, chains with a moving contact surface, stops and pallets as MTBH bodies"
+version = "0.1.0"
+edition.workspace = true
+license.workspace = true
+rust-version.workspace = true
+publish = false
+
+[lints]
+workspace = true
+
+[dependencies]
+rapier3d = { version = "=0.36.1", features = ["enhanced-determinism"] }
