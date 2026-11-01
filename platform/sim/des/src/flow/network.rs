@@ -239,9 +239,27 @@ pub struct LiftData {
     pub exits: std::collections::BTreeMap<String, StationExit>,
 }
 
+/// A gravity roller line (S15, ADR-0014): pallets roll down one by one to a separator and an end stop.
+#[derive(Clone, Debug, PartialEq)]
+pub struct GravityData {
+    /// The plan length, m.
+    pub length: f64,
+    pub pallet_side_along_travel: Side,
+    /// The fall per metre.
+    pub slope: f64,
+    /// The rollers' height at the entry, m, from the exit height and the slope.
+    pub entry_height: f64,
+    pub brake_speed: f64,
+    pub rolling_resistance: f64,
+    pub start_delay: f64,
+    pub pickup_length: f64,
+    pub separator_time: f64,
+}
+
 #[derive(Clone, Debug, PartialEq)]
 pub enum Kind {
     Line(LineData),
+    Gravity(Box<GravityData>),
     Turntable(Box<TurntableData>),
     Transfer(Box<TransferData>),
     Process(Box<ProcessData>),
@@ -270,7 +288,7 @@ impl FlowNode {
     fn output_port(&self) -> Option<&'static str> {
         match self.kind {
             Kind::Line(_) => Some("B"),
-            Kind::Source(_) | Kind::Process(_) => Some("OUT"),
+            Kind::Source(_) | Kind::Process(_) | Kind::Gravity(_) => Some("OUT"),
             _ => None,
         }
     }
@@ -426,6 +444,20 @@ fn create_kind(d: &Definition, base: &Base, p: &Values, reference: &Reference, i
                 Kind::Inert { behavior: "des.lift_station".into() }
             }
         },
+        "des.gravity" => {
+            let (length, slope, exit_height) = (num(p, "length", 0.0), num(p, "slope", 0.0), num(p, "exitHeight", 0.0));
+            Kind::Gravity(Box::new(GravityData {
+                length,
+                pallet_side_along_travel: side(p, "palletSideAlongTravel"),
+                slope,
+                entry_height: exit_height + slope * length,
+                brake_speed: num(p, "brakeSpeed", 0.0),
+                rolling_resistance: num(p, "rollingResistance", 0.0),
+                start_delay: num(p, "startDelay", 0.0).max(0.0),
+                pickup_length: num(p, "pickupLength", 0.0),
+                separator_time: num(p, "separatorTime", 0.0).max(0.0),
+            }))
+        }
         "des.source" => source(base, p, reference, issues),
         "des.sink" => {
             let after_time = text("removalMode").as_deref() == Some("afterTime");
@@ -585,6 +617,11 @@ fn connection_issues(node: &FlowNode, nodes: &[FlowNode], reference: &Reference)
     match &node.kind {
         Kind::Line(_) if next.is_none() => vec![issue(&node.base, "openEnd", "output is not connected; pallets stop at its end".into())],
         Kind::Transfer(t) => transfer_issues(&node.base, t),
+        Kind::Gravity(_) => match next.map(|n| &n.kind) {
+            None => vec![issue(&node.base, "noExit", "OUT is not connected: place a sink for the operator there".into())],
+            Some(Kind::Sink(_)) => vec![],
+            Some(_) => vec![issue(&node.base, "exitNotSink", "OUT can only hand pallets to a sink (the operator) for now".into())],
+        },
         Kind::Process(d) => process_issues(&node.base, d, next.is_some(), reference),
         Kind::Lift(l) => lift_issues(node, l, nodes),
         Kind::Turntable(t) if t.exits.is_empty() => {

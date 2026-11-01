@@ -22,4 +22,4 @@ intracraft-des = { path = "../../sim/des" }
 serde_json = { workspace = true }
 
 [dev-dependencies]
-egui_kittest = { workspace = true, features = ["wgpu"] }
+egui_kittest = { workspace = true }

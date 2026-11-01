@@ -13,6 +13,7 @@ use intracraft_control::{Signals, evaluate_rules};
 use intracraft_library::layout::Rule;
 use intracraft_library::reference::Reference;
 
+use crate::flow::gravity::GravityLine;
 use crate::flow::network::{FlowIssue, FlowNetwork, FlowNode, Generation, Kind, LineData, SensorData, Side, SinkData, SourceData};
 use crate::flow::station::{LiftStation, ProcessStation, Station, Transfer, Turntable};
 use crate::kinematics::{Segment, time_to_reach};
@@ -340,6 +341,7 @@ enum Event {
     SignalWrite(String, bool),
     FlowMotion,
     StationDone(usize),
+    GravityMotion(usize),
 }
 
 /// A pallet as a viewer draws it at the snapshot's time.
@@ -356,6 +358,8 @@ pub struct PalletView {
     pub path_x: f64,
     pub path_z: f64,
     pub heading: f64,
+    /// The fall per metre along the path (a gravity line): the pallet sinks and tilts with it.
+    pub slope: f64,
     pub speed: f64,
     pub accel: f64,
     pub length: f64,
@@ -389,6 +393,7 @@ pub struct FlowSimulation {
     sinks: Vec<Sink>,
     sensors: Vec<Photoeye>,
     stations: Vec<Station>,
+    gravity: Vec<GravityLine>,
     /// The station each line is a deck of.
     deck_owner: Vec<Option<usize>>,
     rules: Vec<Rule>,
@@ -415,6 +420,7 @@ impl FlowSimulation {
             sinks: Vec::new(),
             sensors: Vec::new(),
             stations: Vec::new(),
+            gravity: Vec::new(),
             deck_owner: Vec::new(),
             rules: network.rules,
             signals: Signals::new(),
@@ -465,6 +471,7 @@ impl FlowSimulation {
                     f.lines.push(Line::deck(&format!("{}#chains", b.id), &b.name, &b.id, c));
                     f.stations.push(Station::Transfer(Box::new(Transfer::new(&b.id, (**data).clone(), rollers, chains))));
                 }
+                Kind::Gravity(data) => f.gravity.push(GravityLine::new(&b.id, (**data).clone(), b.downstream.clone())),
                 Kind::Process(data) => {
                     let deck = f.lines.len();
                     let d = deck_data(data.length, data.nominal_speed, data.accel, data.pallet_side_along_travel);
@@ -560,6 +567,11 @@ impl FlowSimulation {
                     self.signals.insert(signal, value);
                 }
                 Event::FlowMotion => self.motion_ticket = None,
+                Event::GravityMotion(k) => {
+                    if let Some(g) = self.gravity.get_mut(k) {
+                        g.ticket = None;
+                    }
+                }
                 Event::StationDone(k) => {
                     // The step's time belongs to the phase that ends now.
                     self.accumulate(now);
@@ -595,6 +607,7 @@ impl FlowSimulation {
                     path_x: path.x,
                     path_z: path.z,
                     heading: path.heading,
+                    slope: 0.0,
                     speed: l.speed_at(t),
                     accel: l.accel,
                     length: p.length,
@@ -604,7 +617,30 @@ impl FlowSimulation {
                 });
             }
         }
+        for g in &self.gravity {
+            for p in &g.pallets {
+                pallets.push(PalletView {
+                    id: p.pallet.id,
+                    type_id: p.pallet.type_id.clone(),
+                    carrier: g.id.clone(),
+                    front: g.front_at(p, t),
+                    path_x: 0.0,
+                    path_z: 0.0,
+                    heading: 0.0,
+                    slope: g.data.slope,
+                    speed: g.speed_at(p, t),
+                    accel: if p.stopped { 0.0 } else { p.accel },
+                    length: p.pallet.length,
+                    width: p.pallet.width,
+                    height: p.pallet.height,
+                    load_height: p.pallet.load_height,
+                });
+            }
+        }
         let mut status = BTreeMap::new();
+        for g in &self.gravity {
+            status.insert(g.id.clone(), g.status());
+        }
         for l in self.lines.iter().filter(|l| !l.deck) {
             status.insert(
                 l.id.clone(),
@@ -683,6 +719,9 @@ impl FlowSimulation {
         for st in &self.stations {
             out.insert(st.id().to_string(), st.statistics().into_iter().collect());
         }
+        for g in &self.gravity {
+            out.insert(g.id.clone(), g.statistics().into_iter().collect());
+        }
         for s in &self.sensors {
             out.insert(
                 s.id.clone(),
@@ -727,6 +766,9 @@ impl FlowSimulation {
         for l in &mut self.lines {
             l.advance_to(t);
         }
+        for g in &mut self.gravity {
+            g.advance_to(t);
+        }
         for pass in 0.. {
             if pass > MAX_SETTLE_PASSES {
                 return Err(format!("Flow did not settle at {now} µs"));
@@ -736,6 +778,7 @@ impl FlowSimulation {
             changed = self.feed_sources(now) || changed;
             changed = self.decide(now) || changed;
             changed = self.advance_stations(now) || changed;
+            changed = self.serve_gravity_lines(now) || changed;
             if !changed {
                 break;
             }
@@ -745,7 +788,42 @@ impl FlowSimulation {
             self.plan_group(g);
         }
         self.schedule_motion();
+        self.schedule_gravity(now);
         Ok(())
+    }
+
+    /// The operator (a sink) takes the pallet resting at a gravity line's end stop when free (S15 §2.5).
+    fn serve_gravity_lines(&mut self, now: SimTime) -> bool {
+        let mut changed = false;
+        for k in 0..self.gravity.len() {
+            let g = &self.gravity[k];
+            let Some(s) = g.downstream.as_deref().and_then(|d| self.sinks.iter().position(|s| s.id == d)) else { continue };
+            if !g.at_end_stop() || !self.sinks[s].accepts(now) {
+                continue;
+            }
+            let Some(pallet) = self.gravity[k].take(now) else { continue };
+            let sink = &mut self.sinks[s];
+            sink.incoming += 1;
+            sink.receive(&pallet, now);
+            if sink.busy_until > now {
+                let delay = sink.busy_until - now;
+                self.sim.schedule(delay, Event::SinkFree, 0);
+            }
+            changed = true;
+        }
+        changed
+    }
+
+    /// One wake-up per gravity line at its next predicted change.
+    fn schedule_gravity(&mut self, now: SimTime) {
+        for k in 0..self.gravity.len() {
+            if let Some(t) = self.gravity[k].ticket.take() {
+                self.sim.cancel(t);
+            }
+            let Some(next) = self.gravity[k].next_change() else { continue };
+            let delay = (((next * US_PER_S as f64 + 0.5).floor() as SimTime) - now).max(1);
+            self.gravity[k].ticket = Some(self.sim.schedule(delay, Event::GravityMotion(k), 0));
+        }
     }
 
     /// Pallets whose tail cleared the conveyor's end now belong to the next object.
@@ -767,7 +845,10 @@ impl FlowSimulation {
             l.stats.processed += 1;
             l.stats.transit_sum += now - pallet.entered_at;
             let (length, gap, downstream, port) = (l.data.length, l.gap, l.downstream.clone(), l.downstream_port.clone());
-            if let Some(k) = downstream.as_deref().and_then(|d| self.sinks.iter().position(|s| s.id == d)) {
+            let speed = self.lines[i].speed;
+            if let Some(k) = downstream.as_deref().and_then(|d| self.gravity.iter().position(|g| g.id == d)) {
+                self.gravity[k].receive(pallet, speed, now);
+            } else if let Some(k) = downstream.as_deref().and_then(|d| self.sinks.iter().position(|s| s.id == d)) {
                 let sink = &mut self.sinks[k];
                 sink.receive(&pallet, now);
                 if sink.busy_until > now {
@@ -876,6 +957,21 @@ impl FlowSimulation {
         };
         let downstream = self.lines[i].downstream.clone();
         let port = self.lines[i].downstream_port.clone();
+        if let Some(k) = downstream.as_deref().and_then(|d| self.gravity.iter().position(|g| g.id == d)) {
+            // As a sink: the conveyor pushes the pallet in once a whole pallet fits behind the last one.
+            let g = &mut self.gravity[k];
+            if !g.can_accept(front_len) {
+                g.waiting_length = Some(front_len);
+                return false;
+            }
+            g.waiting_length = None;
+            g.incoming += 1;
+            self.lines[i].outgoing = Some(front_id);
+            if let Some(p) = self.lines[i].pallets.first().cloned() {
+                self.check_orientation(i, &p);
+            }
+            return true;
+        }
         if let Some(k) = downstream.as_deref().and_then(|d| self.sinks.iter().position(|s| s.id == d)) {
             if !self.sinks[k].accepts(now) {
                 return false;
@@ -1219,6 +1315,9 @@ impl FlowSimulation {
         }
         for st in &mut self.stations {
             st.accumulate(seconds, &self.lines);
+        }
+        for g in &mut self.gravity {
+            g.accumulate(seconds);
         }
         for s in &mut self.sensors {
             s.total += seconds;

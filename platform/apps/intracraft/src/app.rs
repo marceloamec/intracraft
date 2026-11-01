@@ -491,38 +491,6 @@ mod tests {
         assert!(h.query_by_label_contains("Rapier").is_some());
     }
 
-    /// Pictures of the three modules on the reference layout, for a person to look at: `INTRACRAFT_SHOTS=<folder> cargo test
-    /// -p intracraft --release -- --ignored pictures`.
-    #[test]
-    #[ignore]
-    fn pictures_of_the_three_modules() {
-        let Some(folder) = std::env::var_os("INTRACRAFT_SHOTS") else { return };
-        let folder = std::path::PathBuf::from(folder);
-        let library = Library::built_in().unwrap();
-        let mut session = Session::new();
-        let project = intracraft_library::layout::Project::read(include_str!(
-            "../../../../packages/scenarios/scenarios/layouts/reference-all-five.intracraft.json"
-        ))
-        .unwrap();
-        intracraft_model::import_project(&mut session, &library, &project).unwrap();
-        let mut h = Harness::builder()
-            .with_size([1600.0, 950.0])
-            .with_max_steps(16)
-            .wgpu()
-            .build_ui_state(|ui, app: &mut IntraApp| app.show(ui), IntraApp::new(BimApp::new(session), library));
-        h.run();
-        let id = h.state().bim.session.model.elements.iter().find_map(|(id, e)| e.family().map(|_| *id)).unwrap();
-        h.state_mut().bim.selection = vec![id];
-        h.run();
-        h.render().unwrap().save(folder.join("design.png")).unwrap();
-        press(&mut h, "Discrete simulation");
-        h.state_mut().run.as_mut().unwrap().advance(40.0);
-        h.run();
-        h.render().unwrap().save(folder.join("discrete.png")).unwrap();
-        press(&mut h, "Physics simulation");
-        h.render().unwrap().save(folder.join("physics.png")).unwrap();
-    }
-
     #[test]
     fn parses_typed_values_in_the_libraries_units() {
         let a = |kind, display: Option<&str>| Attribute {

@@ -1,5 +1,6 @@
 //! The 2D flow model: the network of a layout, and its run.
 
+pub mod gravity;
 pub mod network;
 pub mod sim;
 pub(crate) mod station;
@@ -423,6 +424,18 @@ mod tests {
         #[test]
         fn lift_c_the_c_elevator_delivers_60_pallets_an_hour() {
             let json = include_str!("../../../../../packages/scenarios/scenarios/layouts/demo-elevator-c.intracraft.json");
+            within(statistic(json, 28_800.0, "sink1", "throughputPerHour"), 60.0);
+        }
+
+        #[test]
+        fn t10_a_pallet_rolls_down_the_gravity_line_to_its_end_stop_in_24_s() {
+            let json = include_str!("../../../../../packages/scenarios/scenarios/layouts/flow-t10.intracraft.json");
+            within(statistic(json, 120.0, "gravity1", "meanTransitTime"), 24.0);
+        }
+
+        #[test]
+        fn t11_the_gravity_line_delivers_60_pallets_an_hour() {
+            let json = include_str!("../../../../../packages/scenarios/scenarios/layouts/demo-gravity-line.intracraft.json");
             within(statistic(json, 28_800.0, "sink1", "throughputPerHour"), 60.0);
         }
 
