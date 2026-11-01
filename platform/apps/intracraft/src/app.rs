@@ -45,6 +45,29 @@ impl Module {
 
 /// Speeds the discrete run plays at: simulated seconds per real second.
 const SPEEDS: [f64; 5] = [1.0, 10.0, 100.0, 1000.0, 10_000.0];
+/// Speeds the physics run plays at: it is real time at ×1, and a frame never runs more than a second of physics.
+const PHYSICS_SPEEDS: [f64; 3] = [1.0, 2.0, 5.0];
+
+/// A physics run of the layout the model held when it started.
+pub struct PhysicsRun {
+    pub world: intracraft_physics::world::World,
+    pub layout: Layout,
+    pub playing: bool,
+    pub speed: f64,
+}
+
+impl PhysicsRun {
+    pub fn start(layout: Layout, library: &Library) -> Result<PhysicsRun, String> {
+        let world = intracraft_physics::world::World::new(&layout, library)?;
+        Ok(PhysicsRun { world, layout, playing: false, speed: 1.0 })
+    }
+
+    /// Moves the run on by `real` seconds of the window's time at its speed (at most one second of physics a frame).
+    pub fn advance(&mut self, real: f64) {
+        let target = self.world.time() + (real * self.speed).min(1.0);
+        self.world.run_until(target);
+    }
+}
 
 /// A discrete run of the layout the model held when it started.
 pub struct Run {
@@ -92,6 +115,7 @@ pub struct IntraApp {
     pub library: Library,
     pub module: Module,
     pub run: Option<Run>,
+    pub physics_run: Option<PhysicsRun>,
     /// What is typed in the attribute table, by attribute key, until it is applied.
     typed: BTreeMap<String, String>,
     /// Where the next object of the library palette goes, mm east.
@@ -101,7 +125,7 @@ pub struct IntraApp {
 
 impl IntraApp {
     pub fn new(bim: BimApp, library: Library) -> IntraApp {
-        IntraApp { bim, library, module: Module::Design, run: None, typed: BTreeMap::new(), next_x: 0.0, problem: None }
+        IntraApp { bim, library, module: Module::Design, run: None, physics_run: None, typed: BTreeMap::new(), next_x: 0.0, problem: None }
     }
 
     pub fn show(&mut self, ui: &mut Ui) {
@@ -381,11 +405,84 @@ impl IntraApp {
     }
 
     fn physics(&mut self, ui: &mut Ui) {
-        CentralPanel::default().show(ui, |ui| {
-            ui.heading("Physics simulation");
-            ui.label("The 3D run of the same layout, in real time: rollers turning at ω = v / r, chains with a moving surface, stops, guides and photocells with real geometry.");
-            ui.label("Its engine (Rapier) and its 3D viewer (Bevy, ADR-0022) are phases R5 and R6 of the Rust plan (A19). The Design and Discrete simulation modules work today.");
+        Panel::left("intracraft-physics-run").default_size(260.0).show(ui, |ui| self.physics_controls(ui));
+        CentralPanel::default().show(ui, |ui| self.physics_plan(ui));
+        if let Some(run) = &mut self.physics_run
+            && run.playing
+        {
+            let dt = f64::from(ui.input(|i| i.stable_dt)).min(0.1);
+            run.advance(dt);
+            ui.ctx().request_repaint();
+        }
+    }
+
+    fn physics_controls(&mut self, ui: &mut Ui) {
+        ui.heading("Physics run");
+        ui.label("Rapier: rollers turning at ω = v / r, chains with a moving surface, pallets as rigid bodies. The 3D viewer (Bevy) comes later; this is the plan of the same run.");
+        if ui.button("Reset from the design").clicked() || self.physics_run.is_none() {
+            let (layout, problems) = intracraft_model::layout::layout(&self.bim.session.model, &self.library);
+            match PhysicsRun::start(layout, &self.library) {
+                Ok(run) => {
+                    self.physics_run = Some(run);
+                    self.problem = problems.first().cloned();
+                }
+                Err(e) => self.problem = Some(e),
+            }
+        }
+        let Some(run) = &mut self.physics_run else { return };
+        ui.horizontal(|ui| {
+            if ui.button(if run.playing { "Pause" } else { "Run" }).clicked() {
+                run.playing = !run.playing;
+            }
         });
+        ui.horizontal(|ui| {
+            ui.label("Speed");
+            for s in PHYSICS_SPEEDS {
+                if ui.selectable_label(run.speed == s, format!("×{s}")).clicked() {
+                    run.speed = s;
+                }
+            }
+        });
+        ui.label(format!("Time: {:.1} s", run.world.time()));
+        ui.label(format!("Pallets: {}", run.world.pallets.len()));
+        for id in run.layout.instances.iter().filter(|i| i.definition_id == "flow.sink").map(|i| i.id.clone()) {
+            if let Some((received, per_hour, cycle)) = run.world.sink_statistics(&id) {
+                ui.label(format!("Sink {id}: {received} pallets, {per_hour:.0}/h, cycle {cycle:.1} s"));
+            }
+        }
+        ui.separator();
+        ui.heading("Warnings");
+        if run.world.issues.is_empty() {
+            ui.label("None.");
+        }
+        for i in &run.world.issues {
+            ui.label(i);
+        }
+    }
+
+    fn physics_plan(&mut self, ui: &mut Ui) {
+        let Some(run) = &self.physics_run else { return };
+        let (rect, _) = ui.allocate_exact_size(ui.available_size(), Sense::hover());
+        let painter = ui.painter_at(rect);
+        painter.rect_filled(rect, 0.0, Color32::from_gray(245));
+        let footprints = plan::footprints(&run.layout);
+        let ((x0, y0), (x1, y1)) = plan::bounds(&footprints);
+        let scale = (f64::from(rect.width()) / (x1 - x0)).min(f64::from(rect.height()) / (y1 - y0));
+        let to_screen = |p: Point| pos2(rect.left() + ((p.0 - x0) * scale) as f32, rect.bottom() - ((p.1 - y0) * scale) as f32);
+        for f in &footprints {
+            let moving = run.world.conveyor_ids().contains(&f.id.as_str());
+            let colour = if moving { Color32::from_rgb(170, 200, 230) } else { Color32::from_gray(205) };
+            painter.add(egui::Shape::convex_polygon(
+                f.corners.iter().map(|c| to_screen(*c)).collect(),
+                colour,
+                Stroke::new(1.0, Color32::from_gray(90)),
+            ));
+        }
+        for p in run.world.poses() {
+            let pts: Vec<_> = plan::body_outline(p.centre, p.yaw, p.size).iter().map(|c| to_screen(*c)).collect();
+            painter.add(egui::Shape::convex_polygon(pts, Color32::from_rgb(181, 136, 84), Stroke::new(1.0, Color32::from_rgb(90, 60, 30))));
+        }
+        painter.rect_stroke(rect, 0.0, Stroke::new(1.0, Color32::from_gray(160)), StrokeKind::Inside);
     }
 }
 
@@ -489,6 +586,9 @@ mod tests {
         assert!(run.snapshot.time > 0);
         press(&mut h, "Physics simulation");
         assert!(h.query_by_label_contains("Rapier").is_some());
+        let physics = h.state_mut().physics_run.as_mut().unwrap();
+        physics.advance(0.5);
+        assert!(physics.world.time() > 0.4);
     }
 
     #[test]

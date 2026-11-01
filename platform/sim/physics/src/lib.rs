@@ -8,5 +8,6 @@
 
 pub mod bench;
 pub mod mechanics;
+pub mod world;
 
 pub use rapier3d;

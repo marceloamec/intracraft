@@ -1853,6 +1853,7 @@ dependencies = [
  "intracraft-des",
  "intracraft-library",
  "intracraft-model",
+ "intracraft-physics",
  "serde_json",
 ]
 

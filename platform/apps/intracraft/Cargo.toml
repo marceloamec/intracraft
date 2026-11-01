@@ -18,6 +18,7 @@ egui = { workspace = true }
 intracraft-library = { path = "../../sim/library" }
 intracraft-model = { path = "../../sim/model" }
 intracraft-des = { path = "../../sim/des" }
+intracraft-physics = { path = "../../sim/physics" }
 
 serde_json = { workspace = true }
 

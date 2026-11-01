@@ -141,6 +141,74 @@ impl Bench {
         self.world.insert(body, shape).0
     }
 
+    /// A roller whose axis centre is at `centre`, laid across a conveyor turned `yaw` about +y (its axis along the
+    /// conveyor's own z), at rest; `set_roller_speed` turns it.
+    pub fn roller_at(&mut self, centre: [f64; 3], yaw: f64, radius: f64, length: f64, m: Material) -> RigidBodyHandle {
+        let [x, y, z] = centre.map(|v| v as Real);
+        let body = RigidBodyBuilder::kinematic_velocity_based().translation(Vector::new(x, y, z)).can_sleep(false);
+        let rotation = Rotation::from_rotation_y(yaw as Real) * Rotation::from_rotation_x(std::f32::consts::FRAC_PI_2);
+        let shape = ColliderBuilder::cylinder((length / 2.0) as Real, radius as Real).position(Pose::from_parts(Vector::ZERO, rotation));
+        self.world.insert(body, Self::collider(shape, m)).0
+    }
+
+    /// Turns a roller of a conveyor turned `yaw` so its top moves at `speed` m/s along the conveyor's travel: ω = v / r.
+    pub fn set_roller_speed(&mut self, roller: RigidBodyHandle, yaw: f64, radius: f64, speed: f64) {
+        let omega = crate::mechanics::roller_angular_speed(speed, radius);
+        // The roller's axis, the conveyor's own +z turned by yaw; a top moving along +travel turns about −axis.
+        let axis = Vector::new(yaw.sin() as Real, 0.0, yaw.cos() as Real);
+        if let Some(b) = self.world.bodies.get_mut(roller) {
+            b.set_angvel(axis * (-omega as Real), true);
+        }
+    }
+
+    /// A fixed chain strip of a conveyor turned `yaw`: centred at `centre` (its top's middle), `length` along travel and
+    /// `width` across; its index for `set_strip_speed`.
+    pub fn strip_at(&mut self, centre: [f64; 3], yaw: f64, length: f64, width: f64, m: Material) -> usize {
+        let h = 0.01;
+        let [x, y, z] = centre.map(|v| v as Real);
+        let c = Self::collider(
+            ColliderBuilder::cuboid((length / 2.0) as Real, h, (width / 2.0) as Real)
+                .position(Pose::from_parts(Vector::new(x, y - h, z), Rotation::from_rotation_y(yaw as Real)))
+                .active_hooks(ActiveHooks::MODIFY_SOLVER_CONTACTS),
+            m,
+        );
+        let handle = self.world.colliders.insert(c);
+        self.surfaces.0.push(Surface { collider: handle, velocity: Vector::ZERO });
+        self.surfaces.0.len() - 1
+    }
+
+    /// Sets the surface speed of a strip of a conveyor turned `yaw`, m/s along its travel.
+    pub fn set_strip_speed(&mut self, strip: usize, yaw: f64, speed: f64) {
+        if let Some(s) = self.surfaces.0.get_mut(strip) {
+            s.velocity = Vector::new((speed * yaw.cos()) as Real, 0.0, (-speed * yaw.sin()) as Real);
+        }
+    }
+
+    /// A pallet as a dynamic box: its centre, its turn about +y, its sizes (along its own x, y, z) and mass.
+    pub fn pallet_at(&mut self, centre: [f64; 3], yaw: f64, size: [f64; 3], mass: f64, m: Material) -> RigidBodyHandle {
+        let [x, y, z] = centre.map(|v| v as Real);
+        let [sx, sy, sz] = size.map(|v| v / 2.0);
+        let body = RigidBodyBuilder::dynamic()
+            .pose(Pose::from_parts(Vector::new(x, y, z), Rotation::from_rotation_y(yaw as Real)))
+            .ccd_enabled(true)
+            .can_sleep(false);
+        let shape =
+            Self::collider(ColliderBuilder::cuboid(sx as Real, sy as Real, sz as Real), m).density((mass / (8.0 * sx * sy * sz)) as Real);
+        self.world.insert(body, shape).0
+    }
+
+    /// A body's turn about +y, rad.
+    pub fn yaw(&self, body: RigidBodyHandle) -> f64 {
+        self.world.bodies.get(body).map_or(0.0, |b| {
+            let forward = b.rotation() * Vector::X;
+            f64::from((-forward.z).atan2(forward.x))
+        })
+    }
+
+    pub fn remove(&mut self, body: RigidBodyHandle) {
+        self.world.remove_body(body);
+    }
+
     pub fn step(&mut self) {
         self.world.step_with_events(&self.surfaces, &());
         self.steps += 1;

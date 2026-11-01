@@ -68,6 +68,16 @@ pub fn pallet_outline(layout: &Layout, p: &PalletView) -> Option<[Point; 4]> {
     Some([at(rear, -half), at(p.front, -half), at(p.front, half), at(rear, half)])
 }
 
+/// A pallet of the 3D run on the plan: its centre, its turn about +y and its sizes (along its own x, z).
+pub fn body_outline(centre: [f64; 3], yaw: f64, size: [f64; 3]) -> [Point; 4] {
+    let (hx, hz) = (size[0] / 2.0, size[2] / 2.0);
+    let at = |x: f64, z: f64| {
+        let (dx, dz) = rotate_y((x, z), yaw);
+        (centre[0] + dx, -(centre[2] + dz))
+    };
+    [at(-hx, -hz), at(hx, -hz), at(hx, hz), at(-hx, hz)]
+}
+
 /// The plan's bounds, (min, max), with a margin; a unit square for an empty layout.
 pub fn bounds(footprints: &[Footprint]) -> (Point, Point) {
     let mut lo = (f64::INFINITY, f64::INFINITY);
@@ -174,6 +184,15 @@ mod tests {
         assert!(close(centre, (0.0, 0.0)), "{centre:?}");
         // It runs north: its front edge is 0.6 m north of the centre.
         assert!((o[1].1 - 0.6).abs() < 1e-9 && (o[2].1 - 0.6).abs() < 1e-9);
+    }
+
+    #[test]
+    fn a_body_turned_a_quarter_lies_north_south() {
+        let o = body_outline([1.0, 0.7, -2.0], std::f64::consts::FRAC_PI_2, [1.2, 0.2, 0.8]);
+        // Its centre is at (1, 2) on the plan and its long side runs north.
+        let centre = ((o[0].0 + o[2].0) / 2.0, (o[0].1 + o[2].1) / 2.0);
+        assert!(close(centre, (1.0, 2.0)));
+        assert!(((o[1].1 - o[0].1).abs() - 1.2).abs() < 1e-9);
     }
 
     #[test]

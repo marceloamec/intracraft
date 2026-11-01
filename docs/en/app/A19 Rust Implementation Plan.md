@@ -102,6 +102,8 @@ R5 and R5b can run in parallel with R1–R4; R8 in parallel with R3–R7. By mod
 
 ### R6 – Physics simulation module
 
+- **First step done 2026-11-01:** `intracraft_physics::world` builds a Rapier world from the layout's straight conveyors (each roller of a roller conveyor, chain strands as moving-surface strips), sources (pallets with their mass placed on the conveyor's entry when it is free) and sinks (a bed that carries the pallet clear of the conveyor, then takes it); conveyors ramp to their nominal speed and keep running. T2 in 3D: about 667 pallets/h, as in 2D; T1 in 3D: 12.41 s (1.3 % over 12.25 s: the pallet loses about 40 mm on the gap to the sink's bed; the reference's 1 % needs the 2D plant logic driving the decks, still to port). Stations are listed as having no 3D behaviour yet. The app's Physics simulation module runs it and draws the bodies' poses on the plan, until the Bevy viewer.
+
 - Port `sim-physics/src/world` ([[ADR-0016 Physics World Built from the Layout]]): world from the model, decks, stations, gravity line, raycast sensors, MTBH bodies ([[ADR-0015 MTBH Rigid Body from Pallet and Load Models]]), scenery ([[ADR-0017 Scenery Assets in the Layout and Live Spawn]]).
 - Same plant logic as 2D, only the motion differs (ADR-0016 §1).
 - The viewer chosen in R5b (BIMCraft's GPU view or the Bevy viewer) draws pallet bodies from snapshots each frame; the static scene is cached.

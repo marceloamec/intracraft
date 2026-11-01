@@ -14,7 +14,7 @@ listed here, with why, so that each change is marked as Apache-2.0 §4(b) asks a
 | File                  | Change                                                                                                                    |
 | --------------------- | ------------------------------------------------------------------------------------------------------------------------- |
 | `.cargo/config.toml`  | Builds from the vendored sources in `vendor/` (source replacement); BIMCraft's `i18n` alias is kept                         |
-| `Cargo.toml`          | `sim/*` added to the workspace members (IntraCraft's crates)                                                              |
+| `Cargo.toml`          | `sim/*` added to the workspace members (IntraCraft's crates); Rapier, parry3d and `intracraft-physics` optimised in dev builds                                                              |
 | `crates/core/src/family.rs` | `Kind::Text` (a text or a choice: IntraCraft's enums); an instance parameter takes its type's value before its own default, and a type may give one (a component inherits until it sets its own, A18 §4); only material parameters are checked as materials |
 | `crates/core/src/model.rs` | `FORMAT` 11 → 12 for the above (no migration step); a component's text values are not checked as materials |
 | `crates/core/src/schedule.rs` | Text parameters schedule as text fields |

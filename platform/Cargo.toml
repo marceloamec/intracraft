@@ -72,3 +72,13 @@ opt-level = 2
 opt-level = 2
 [profile.dev.package.cfb]
 opt-level = 2
+
+# IntraCraft: the physics runs thousands of steps in its tests; build Rapier and the physics crate optimised in debug too.
+[profile.dev.package.rapier3d]
+opt-level = 3
+
+[profile.dev.package.parry3d]
+opt-level = 3
+
+[profile.dev.package.intracraft-physics]
+opt-level = 3
