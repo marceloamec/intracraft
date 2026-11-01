@@ -1,12 +1,13 @@
 //! `intracraft`: pallet conveyor design and simulation on BIMCraft, in three modules (ADR-0020).
 //!
-//! `intracraft [FILE] [--module design|discrete|physics] [--play]`: FILE is a `.bimcraft` project, or a layout of the
-//! TypeScript reference (`.intracraft.json`), which is placed in a new project; `--module` opens that module, and
-//! `--play` starts its run at once.
+//! `intracraft [FILE] [--module design|discrete|physics] [--view plan|3d] [--play]`: FILE is a `.bimcraft` project, or a
+//! layout of the TypeScript reference (`.intracraft.json`), which is placed in a new project; `--module` opens that
+//! module's ribbon tab, `--view 3d` the 3D view, and `--play` starts the module's run at once.
 
 #![cfg_attr(all(windows, not(debug_assertions)), windows_subsystem = "windows")]
 
 mod app;
+mod glyphs;
 mod plan;
 
 use std::process::ExitCode;
@@ -25,15 +26,18 @@ fn main() -> ExitCode {
         }
     };
     let args: Vec<String> = std::env::args().skip(1).collect();
-    let module = args.iter().position(|a| a == "--module").and_then(|k| args.get(k + 1)).map(String::as_str);
-    let module = match module {
-        Some("discrete") => app::Module::Discrete,
-        Some("physics") => app::Module::Physics,
-        _ => app::Module::Design,
+    let option = |name: &str| args.iter().position(|a| a == name).and_then(|k| args.get(k + 1)).map(String::as_str);
+    let module = match option("--module") {
+        Some("discrete") => Some(app::Module::Discrete),
+        Some("physics") => Some(app::Module::Physics),
+        Some("design") => Some(app::Module::Design),
+        _ => None,
     };
+    let three_d = option("--view") == Some("3d");
     let play = args.iter().any(|a| a == "--play");
-    let file =
-        args.iter().enumerate().find(|(k, a)| !a.starts_with("--") && (*k == 0 || args[k - 1] != "--module")).map(|(_, a)| a.clone());
+    let valued = ["--module", "--view"];
+    let file = args.iter().enumerate().find(|(k, a)| !a.starts_with("--") && (*k == 0 || !valued.contains(&args[k - 1].as_str())));
+    let file = file.map(|(_, a)| a.clone());
     let mut session = Session::new();
     let mut problem = None;
     if let Some(file) = file {
@@ -54,8 +58,13 @@ fn main() -> ExitCode {
             bim.use_graphics_card(state);
         }
         let mut app = app::IntraApp::new(bim, library);
-        app.module = module;
-        app.autoplay = play;
+        if let Some(m) = module {
+            app.open(m);
+        }
+        if three_d {
+            app.bim.open_view(bimcraft_ui_egui::Sheet::View3D);
+        }
+        app.sim.autoplay = play;
         Ok(Box::new(app))
     };
     match eframe::run_native("IntraCraft", options, Box::new(start)) {

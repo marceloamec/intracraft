@@ -1,7 +1,11 @@
-//! What the Discrete simulation module draws on its plan, in plan metres (x east, y north): each object's footprint and
-//! each pallet's outline at a snapshot. Pure geometry, so it is tested without a window.
+//! What the simulation modules draw over BIMCraft's views, in plan metres (x east, y north): each object's footprint and
+//! each pallet's outline and height at a snapshot, and a pallet as a box of model points for the 3D view. Pure geometry,
+//! so it is tested without a window.
+
+use std::collections::BTreeMap;
 
 use intracraft_des::flow::PalletView;
+use intracraft_library::definition::Value;
 use intracraft_library::layout::{Instance, Layout};
 use intracraft_library::params::num;
 use intracraft_library::ports::rotate_y;
@@ -78,27 +82,30 @@ pub fn body_outline(centre: [f64; 3], yaw: f64, size: [f64; 3]) -> [Point; 4] {
     [at(-hx, -hz), at(hx, -hz), at(hx, hz), at(-hx, hz)]
 }
 
-/// The plan's bounds, (min, max), with a margin; a unit square for an empty layout.
-pub fn bounds(footprints: &[Footprint]) -> (Point, Point) {
-    let mut lo = (f64::INFINITY, f64::INFINITY);
-    let mut hi = (f64::NEG_INFINITY, f64::NEG_INFINITY);
-    for c in footprints.iter().flat_map(|f| f.corners) {
-        lo = (lo.0.min(c.0), lo.1.min(c.1));
-        hi = (hi.0.max(c.0), hi.1.max(c.1));
-    }
-    if !lo.0.is_finite() {
-        return ((-1.0, -1.0), (1.0, 1.0));
-    }
-    ((lo.0 - 1.0, lo.1 - 1.0), (hi.0 + 1.0, hi.1 + 1.0))
+/// The height a pallet of the discrete run rides at, m above the floor: its carrier's conveying surface; a lift station's
+/// deck at the height the run reports (`heights`), a gravity line's falling with its slope.
+pub fn ride_height(layout: &Layout, p: &PalletView, heights: &BTreeMap<String, f64>) -> f64 {
+    let Some(i) = layout.instance(&p.carrier) else { return 0.0 };
+    let v = &i.params;
+    let surface = match heights.get(&p.carrier) {
+        Some(h) => *h,
+        None if p.slope != 0.0 => num(v, "exitHeight", 0.1) + p.slope * (num(v, "length", 0.0) - (p.front - p.length / 2.0)),
+        None => ["surfaceHeight", "conveyorHeight", "entryHeight"].iter().find_map(|k| v.get(*k).and_then(Value::number)).unwrap_or(0.6),
+    };
+    i.position.y + surface
 }
 
-/// Whether a plan point lies in a footprint (a convex quadrilateral).
-pub fn contains(f: &Footprint, p: Point) -> bool {
-    let c = &f.corners;
-    let side = |a: Point, b: Point| (b.0 - a.0) * (p.1 - a.1) - (b.1 - a.1) * (p.0 - a.0);
-    let s: Vec<f64> = (0..4).map(|k| side(c[k], c[(k + 1) % 4])).collect();
-    s.iter().all(|v| *v >= 0.0) || s.iter().all(|v| *v <= 0.0)
+/// A box standing on a plan outline (m) from `z0` to `z1` (m), as model points (mm): its bottom's corners counter-clockwise
+/// seen from above, then its top's.
+pub fn solid(outline: [Point; 4], z0: f64, z1: f64) -> [[f64; 3]; 8] {
+    let area: f64 = (0..4).map(|k| outline[k].0 * outline[(k + 1) % 4].1 - outline[(k + 1) % 4].0 * outline[k].1).sum();
+    let ring = if area < 0.0 { [outline[3], outline[2], outline[1], outline[0]] } else { outline };
+    let at = |k: usize, z: f64| [ring[k].0 * 1000.0, ring[k].1 * 1000.0, z * 1000.0];
+    [at(0, z0), at(1, z0), at(2, z0), at(3, z0), at(0, z1), at(1, z1), at(2, z1), at(3, z1)]
 }
+
+/// The faces of a [`solid`], each counter-clockwise seen from outside: the top, the bottom, the four sides.
+pub const FACES: [[usize; 4]; 6] = [[4, 5, 6, 7], [3, 2, 1, 0], [0, 1, 5, 4], [1, 2, 6, 5], [2, 3, 7, 6], [3, 0, 4, 7]];
 
 #[cfg(test)]
 mod tests {
@@ -131,7 +138,7 @@ mod tests {
         // Its entry is at (2, 1) on the plan, and it runs 3 m north.
         assert!(close(to_plan(&layout.instances[0], 0.0, 0.0), (2.0, 1.0)));
         assert!(close(to_plan(&layout.instances[0], 3.0, 0.0), (2.0, 4.0)));
-        assert!(contains(f, (2.0, 2.5)) && !contains(f, (4.0, 2.5)));
+        assert!(f.corners.iter().all(|c| (c.0 - 2.0).abs() <= 0.5 + 1e-9 && c.1 >= 1.0 - 1e-9 && c.1 <= 4.0 + 1e-9));
     }
 
     #[test]
@@ -196,10 +203,36 @@ mod tests {
     }
 
     #[test]
-    fn bounds_frame_every_footprint_with_a_margin() {
-        let layout = Layout { instances: vec![instance("1", "conveyor.roller", Vec3::default(), 0.0)], ..Layout::default() };
-        let ((x0, y0), (x1, y1)) = bounds(&footprints(&layout));
-        assert!(x0 < 0.0 && y0 < -0.5 && x1 > 1.0 && y1 > 0.5);
-        assert_eq!(bounds(&[]), ((-1.0, -1.0), (1.0, 1.0)));
+    fn a_box_on_a_clockwise_outline_turns_its_bottom_counter_clockwise() {
+        let cw = [(0.0, 0.0), (0.0, 1.0), (2.0, 1.0), (2.0, 0.0)];
+        let b = solid(cw, 0.6, 0.744);
+        let area: f64 = (0..4).map(|k| b[k][0] * b[(k + 1) % 4][1] - b[(k + 1) % 4][0] * b[k][1]).sum();
+        assert!(area > 0.0);
+        assert_eq!((b[0][2], b[4][2]), (600.0, 744.0));
+    }
+
+    #[test]
+    fn a_pallet_rides_on_its_carriers_surface_or_its_lift_deck() {
+        let mut i = instance("7", "conveyor.roller", Vec3::new(0.0, 4.0, 0.0), 0.0);
+        i.params.insert("surfaceHeight".into(), Value::Number(0.8));
+        let layout = Layout { instances: vec![i], ..Layout::default() };
+        let p = PalletView {
+            id: 1,
+            type_id: "eur".into(),
+            carrier: "7".into(),
+            front: 2.0,
+            path_x: 0.0,
+            path_z: 0.0,
+            heading: 0.0,
+            slope: 0.0,
+            speed: 0.0,
+            accel: 0.0,
+            length: 1.2,
+            width: 0.8,
+            height: 0.144,
+            load_height: 1.0,
+        };
+        assert!((ride_height(&layout, &p, &BTreeMap::new()) - 4.8).abs() < 1e-12);
+        assert!((ride_height(&layout, &p, &BTreeMap::from([("7".to_string(), 2.0)])) - 6.0).abs() < 1e-12);
     }
 }

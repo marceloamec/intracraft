@@ -1,6 +1,6 @@
 //! A library definition as a BIMCraft family (A18 §3.1): its parameters, instance parameters with the library's
-//! defaults, its presets as the family's types, simple parametric forms, and a type parameter that names the definition
-//! it came from. BIMCraft keeps lengths in millimetres and angles in degrees; the library keeps SI. The conversion lives
+//! defaults, its presets as the family's types, its detailed parametric forms (`forms`), and a type parameter that names
+//! the definition it came from. BIMCraft keeps lengths in millimetres and angles in degrees; the library keeps SI. The conversion lives
 //! here, both ways, and nowhere else.
 
 use intracraft_library::definition::{Definition, ParamType, Parameter, Value};
@@ -117,53 +117,8 @@ pub fn family_params(definition: &Definition) -> Json {
         "category": "generic",
         "parameters": parameters,
         "types": types,
-        "forms": forms(definition),
+        "forms": crate::forms::forms(definition),
     })
-}
-
-/// Simple parametric forms in the family's axes (x along travel from the entry, y to the left, z up), mm: a deck under
-/// the conveying surface and a narrower frame below it, so plans show the footprint and the 3D view the body. The
-/// detailed geometry (rollers, chains, legs) is the Physics simulation module's.
-fn forms(d: &Definition) -> Json {
-    let has = |k: &str| d.parameter(k).is_some();
-    let width = if has("usableWidth") {
-        "usableWidth"
-    } else if has("platformWidth") {
-        "platformWidth"
-    } else {
-        "1000"
-    };
-    let height =
-        ["surfaceHeight", "conveyorHeight", "exitHeight", "entryHeight", "sensorHeight"].into_iter().find(|k| has(k)).unwrap_or("500");
-    // Where the body starts and ends along x.
-    let (from, to) = match d.id.as_str() {
-        "conveyor.chain_turntable" | "conveyor.roller_turntable" => ("-platformLength / 2", "platformLength / 2"),
-        "flow.source" => ("-800", "400"),
-        "flow.sink" => ("0", "1200"),
-        "sensor.photoeye" => ("-30", "30"),
-        "scenery.asset" => ("-250", "250"),
-        _ if has("length") => ("0", "length"),
-        _ => ("0", "1000"),
-    };
-    let (w, top) = match d.id.as_str() {
-        "sensor.photoeye" => ("60".to_string(), format!("max({height}, 100)")),
-        // The gravity line is drawn up to its higher end.
-        "conveyor.gravity" => (width.to_string(), "max(entryHeight, exitHeight)".to_string()),
-        _ => (width.to_string(), format!("max({height}, 100)")),
-    };
-    let deck = json!({
-        "plane": "xy",
-        "profile": [[from, format!("-({w}) / 2")], [to, format!("-({w}) / 2")], [to, format!("({w}) / 2")], [from, format!("({w}) / 2")]],
-        "from": format!("{top} - 90"),
-        "to": top,
-    });
-    let frame = json!({
-        "plane": "xy",
-        "profile": [[from, format!("-({w}) / 2 + 60")], [to, format!("-({w}) / 2 + 60")], [to, format!("({w}) / 2 - 60")], [from, format!("({w}) / 2 - 60")]],
-        "from": 0,
-        "to": format!("{top} - 90"),
-    });
-    if d.id == "sensor.photoeye" { json!([deck]) } else { json!([deck, frame]) }
 }
 
 #[cfg(test)]

@@ -85,8 +85,9 @@ pub struct PalletPose {
     /// The centre of its underside and its turn about +y.
     pub centre: [f64; 3],
     pub yaw: f64,
-    /// Along its own x, its height with the load, across, m.
+    /// The pallet along its own x, its height, across, and the height of the load on it, m.
     pub size: [f64; 3],
+    pub load_height: f64,
 }
 
 pub struct PhysicsFlow {
@@ -265,7 +266,8 @@ impl PhysicsFlow {
                     speed: e.map_or(0.0, |e| e.speed),
                     centre: p.centre,
                     yaw: p.yaw(),
-                    size: [p.pallet.length, p.pallet.height + p.pallet.load_height, p.pallet.width],
+                    size: [p.pallet.length, p.pallet.height, p.pallet.width],
+                    load_height: p.pallet.load_height,
                 }
             })
             .collect()

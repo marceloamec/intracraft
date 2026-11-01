@@ -69,7 +69,9 @@ pub const CEILING_CUT: f64 = 2300.0;
 pub const CEILING_HEIGHT: f64 = 2600.0;
 /// The steepest slope a floor or a roof may have, degrees.
 pub const MAX_SLOPE: f64 = 75.0;
-/// The version of the project file this build writes, and the newest it reads. 11: a project's language may be Swedish,
+/// The version of the project file this build writes, and the newest it reads. 13: a family's form may repeat (`repeat`,
+/// an array); a build that reads up to 12 would refuse it. 12: a family's parameter may be text, and a type may set an
+/// instance parameter's value (IntraCraft). 11: a project's language may be Swedish,
 /// Czech or French (`sv`, `cs`, `fr`); nothing in a file of 10 changes, but a build that reads up to 10 would answer one of
 /// 11 with a serde error ("unknown variant"), not "saved by a newer BIMCraft". 8: text types (`text_types`, library
 /// entries of kind `text-type`); a note names its type, which holds its size, and may override parts of its formatting
@@ -87,7 +89,7 @@ pub const MAX_SLOPE: f64 = 75.0;
 /// 2: the library has ids and GUIDs too
 /// (`library`), and what names a library entry holds its GUID. 1: elements have GUIDs, ids six digits, and what points at
 /// an element holds its GUID. None (0): a file from before.
-pub const FORMAT: u32 = 12;
+pub const FORMAT: u32 = 13;
 /// How far past the model a level reaches without an extent of its own, mm.
 pub const LEVEL_PAST: f64 = 1000.0;
 
@@ -2814,7 +2816,8 @@ impl Model {
         self.typed_dimensions();
         // 10 to 11 (Swedish, Czech and French as a project's language) has no step: a file of 10 holds none of them.
         // 11 to 12 (IntraCraft: text parameters in families, and a type's value for an instance parameter) has no step: a file of
-        // 11 holds neither; one of 12 read by 11 would refuse a text parameter, or misread an inherited value.
+        // 11 holds neither; one of 12 read by 11 would refuse a text parameter, or misread an inherited value. 12 to 13 (a
+        // form's `repeat`) has none either: a file of 12 holds none.
         self.format = FORMAT;
     }
 

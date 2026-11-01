@@ -8,6 +8,7 @@
 
 pub mod attributes;
 pub mod family;
+pub mod forms;
 pub mod layout;
 pub mod tree;
 
@@ -23,12 +24,23 @@ use crate::family::{DEFAULT_TYPE, family_name, family_params, to_bim};
 
 /// Loads every library definition into the project as a family, or brings the families up to date; their names.
 pub fn load_library(session: &mut Session, library: &Library) -> Result<Vec<String>, String> {
+    materials(session)?;
     let mut names = Vec::new();
     for d in library.list() {
         session.execute("family", &family_params(d)).map_err(|e| format!("{}: {e}", d.id))?;
         names.push(family_name(d));
     }
     Ok(names)
+}
+
+/// Makes the materials the families' forms are made of, those the project lacks (a project may have recoloured them).
+fn materials(session: &mut Session) -> Result<(), String> {
+    for (name, colour) in forms::MATERIALS {
+        if !session.model.materials.contains_key(name) {
+            session.execute("material", &json!({"name": name, "color": colour}))?;
+        }
+    }
+    Ok(())
 }
 
 /// Places a library object of `definition` (its type `type_name`, else its default) at `at` (mm, plan), turned `angle`
@@ -46,6 +58,7 @@ pub fn place(
     let d = library.get(definition).ok_or_else(|| format!("the library has no {definition}"))?;
     let family = family_name(d);
     if !session.model.families.contains_key(&family) {
+        materials(session)?;
         session.execute("family", &family_params(d)).map_err(|e| format!("{definition}: {e}"))?;
     }
     let r = session.execute(

@@ -110,6 +110,53 @@ pub enum Sheet {
     Table(Id),
 }
 
+/// What an application built on BIMCraft adds to its window: tabs on the ribbon after BIMCraft's own, whose tools it
+/// draws, and what it draws over the active view (IntraCraft adds its simulation modules so). BIMCraft alone has none.
+pub trait Extension {
+    /// The names of its ribbon tabs, in order.
+    fn tabs(&self) -> Vec<String>;
+    /// Draws the tools of its tab `k`, with BIMCraft as it stands: its model and selection to read, its commands to run.
+    /// [`ribbon_panel`] and [`ribbon_button`] draw them as BIMCraft's own.
+    fn ribbon(&mut self, ui: &mut Ui, k: usize, app: &mut BimApp);
+    /// Draws over the active view once BIMCraft has: a floor plan places points with [`BimApp::screen`], the 3D view with
+    /// [`BimApp::screen3`]. `painter` is clipped to the view.
+    fn over_view(&mut self, painter: &egui::Painter, app: &BimApp);
+    /// The title of the panel it shows beside the views now, if it shows one.
+    fn panel_title(&self, app: &BimApp) -> Option<String>;
+    /// Draws that panel, under its title.
+    fn panel(&mut self, ui: &mut Ui, app: &mut BimApp);
+}
+
+/// BIMCraft alone: no tabs of anyone else's, nothing over its views.
+struct Alone;
+
+impl Extension for Alone {
+    fn tabs(&self) -> Vec<String> {
+        Vec::new()
+    }
+
+    fn ribbon(&mut self, _: &mut Ui, _: usize, _: &mut BimApp) {}
+
+    fn over_view(&mut self, _: &egui::Painter, _: &BimApp) {}
+
+    fn panel_title(&self, _: &BimApp) -> Option<String> {
+        None
+    }
+
+    fn panel(&mut self, _: &mut Ui, _: &mut BimApp) {}
+}
+
+/// A panel of an [`Extension`]'s ribbon tab: its tools over its name, folded into a list when the window is narrow.
+pub fn ribbon_panel(ui: &mut Ui, title: &str, add: impl FnMut(&mut Ui)) {
+    ribbon::panel(ui, title, add);
+}
+
+/// A button of an [`Extension`]'s ribbon tab, as BIMCraft's big ones: `glyph` paints its icon in the square it's given,
+/// in the colour it's given; tinted while `active`.
+pub fn ribbon_button(ui: &mut Ui, glyph: &dyn Fn(&egui::Painter, Rect, Color32), label: &str, active: bool, tip: &str) -> Response {
+    big_button_with(ui, glyph, label, active, tip)
+}
+
 /// What clicks on the plan do.
 #[derive(Clone, Debug, PartialEq)]
 pub enum Tool {
@@ -462,6 +509,9 @@ pub struct BimApp {
     tab: Tab,
     /// Where the ribbon goes back to when the contextual tab goes.
     back: Tab,
+    /// The [`Extension`]'s tab picked, over `tab`: its tools show on the ribbon, and a selection doesn't raise the
+    /// contextual tab.
+    extension_tab: Option<usize>,
     /// The type each placing tool uses, by category; the core's default when missing.
     types: BTreeMap<&'static str, String>,
     /// The family a door or window type picked belongs to (none: one of the project's own); by category.
@@ -734,9 +784,14 @@ fn top_params(m: &Model, level: Id, top: Option<Option<Id>>, height: &str) -> Re
 /// A ribbon button: an icon over its label, tinted while its tool is on; as wide as its label, which breaks over two lines
 /// when one would make it wider than `WIDE`.
 fn big_button(ui: &mut Ui, icon: Icon, label: &str, active: bool, tip: &str) -> Response {
+    big_button_with(ui, &|p, rect, ink| icons::paint(p, icon, rect, ink), label, active, tip)
+}
+
+/// [`big_button`] with an icon `glyph` paints.
+fn big_button_with(ui: &mut Ui, glyph: &dyn Fn(&egui::Painter, Rect, Color32), label: &str, active: bool, tip: &str) -> Response {
     const WIDE: f32 = 78.0;
     if ribbon::listing() {
-        return list_row(ui, icon, label, active, tip);
+        return list_row_with(ui, glyph, label, active, tip);
     }
     if let Some(r) = ribbon::handed_over(ui) {
         return r;
@@ -763,7 +818,7 @@ fn big_button(ui: &mut Ui, icon: Icon, label: &str, active: bool, tip: &str) -> 
     let stroke = if r.has_focus() { style::focus_ring() } else { stroke };
     let p = ui.painter();
     p.rect(rect, 6.0, fill, stroke, StrokeKind::Inside);
-    icons::paint(p, icon, Rect::from_center_size(rect.center_top() + vec2(0.0, 18.0), vec2(26.0, 26.0)), ink);
+    glyph(p, Rect::from_center_size(rect.center_top() + vec2(0.0, 18.0), vec2(26.0, 26.0)), ink);
     let text = match (active, enabled) {
         (true, _) => pal().accent_ink,
         (false, true) => pal().text,
@@ -800,6 +855,11 @@ fn small_button(ui: &mut Ui, icon: Icon, label: &str, active: bool, tip: &str) -
 
 /// A ribbon button in its panel's list: a row of its icon and its name.
 fn list_row(ui: &mut Ui, icon: Icon, label: &str, active: bool, tip: &str) -> Response {
+    list_row_with(ui, &|p, rect, ink| icons::paint(p, icon, rect, ink), label, active, tip)
+}
+
+/// [`list_row`] with an icon `glyph` paints.
+fn list_row_with(ui: &mut Ui, glyph: &dyn Fn(&egui::Painter, Rect, Color32), label: &str, active: bool, tip: &str) -> Response {
     let (label, tip) = (t(label), t(tip));
     let (rect, r) = ui.allocate_exact_size(vec2(ui.available_width().max(200.0), 30.0), Sense::click());
     let enabled = ui.is_enabled();
@@ -816,7 +876,7 @@ fn list_row(ui: &mut Ui, icon: Icon, label: &str, active: bool, tip: &str) -> Re
     }
     let dim = |c: Color32| if enabled { c } else { c.gamma_multiply(0.4) };
     let ink = if active { pal().accent_ink } else { pal().icon };
-    icons::paint(p, icon, Rect::from_center_size(rect.left_center() + vec2(18.0, 0.0), vec2(20.0, 20.0)), dim(ink));
+    glyph(p, Rect::from_center_size(rect.left_center() + vec2(18.0, 0.0), vec2(20.0, 20.0)), dim(ink));
     let text = if active { pal().accent_ink } else { pal().text };
     p.text(rect.left_center() + vec2(38.0, 0.0), Align2::LEFT_CENTER, label, FontId::proportional(13.0), dim(text));
     r.on_hover_text(tip)
@@ -955,6 +1015,7 @@ impl BimApp {
             pointer: Pos2::ZERO,
             grab: egui::Vec2::ZERO,
             ribbon_min: false,
+            extension_tab: None,
             compact: false,
             ribbon_peek: false,
             scan_contrast: footer::HIGH_CONTRAST,
@@ -1121,6 +1182,21 @@ impl BimApp {
         self.canvas.screen(p)
     }
 
+    /// The [`Extension`]'s ribbon tab picked, if one is.
+    pub fn extension_tab(&self) -> Option<usize> {
+        self.extension_tab
+    }
+
+    /// Picks the [`Extension`]'s ribbon tab `k`, or BIMCraft's own tabs again.
+    pub fn pick_extension_tab(&mut self, k: Option<usize>) {
+        self.extension_tab = k;
+    }
+
+    /// Opens `sheet` as the active view, as its tab or the Project Browser would.
+    pub fn open_view(&mut self, sheet: Sheet) {
+        self.open_sheet(sheet);
+    }
+
     /// Run a command; when it fails, say why.
     fn run(&mut self, id: &str, params: Value) -> Option<Value> {
         self.made_in();
@@ -1211,7 +1287,7 @@ impl BimApp {
 
     /// Bring the contextual tab up, as Revit does for a tool or a selection.
     fn raise_context(&mut self) {
-        if self.tab != Tab::Context {
+        if self.tab != Tab::Context && self.extension_tab.is_none() {
             self.back = self.tab;
             self.tab = Tab::Context;
         }
@@ -1250,6 +1326,11 @@ impl BimApp {
 
     /// The whole window.
     pub fn show(&mut self, ui: &mut Ui) {
+        self.show_with(ui, &mut Alone);
+    }
+
+    /// [`BimApp::show`], with what `extension` adds: its ribbon tabs, and what it draws over the views.
+    pub fn show_with(&mut self, ui: &mut Ui, extension: &mut dyn Extension) {
         let ctx = ui.ctx().clone();
         // What `pace` held is for the next frame, which a window with nothing new to say won't run.
         if !self.held.is_empty() {
@@ -1332,13 +1413,23 @@ impl BimApp {
             }
         });
         let card = style::card([true, true, true, false]);
-        Panel::top("ribbon").frame(card).show_separator_line(false).show(ui, |ui| self.ribbon(ui));
+        Panel::top("ribbon").frame(card).show_separator_line(false).show(ui, |ui| self.ribbon(ui, extension));
         if self.has_update_banner() {
             Panel::top("update").frame(Frame::NONE).show_separator_line(false).show(ui, |ui| self.update_banner(ui));
         }
         let status = style::card([true, true, false, true]).inner_margin(Margin::symmetric(10, 2));
         Panel::bottom("status").frame(status).show_separator_line(false).show(ui, |ui| self.status_bar(ui));
         self.docks(ui);
+        if let Some(title) = extension.panel_title(self) {
+            let card = style::card([true, true, true, true]);
+            let panel = Panel::right("extension-panel").frame(card).show_separator_line(false).resizable(true);
+            panel.default_size(320.0).min_size(200.0).show(ui, |ui| {
+                ui.set_min_size(ui.available_size());
+                ui.label(egui::RichText::new(title).font(style::semibold(13.0)));
+                ui.separator();
+                extension.panel(ui, self);
+            });
+        }
         CentralPanel::default().frame(Frame::NONE).show(ui, |ui| {
             let g = style::gap().max(4);
             let front = self.front;
@@ -1352,12 +1443,14 @@ impl BimApp {
                         self.view_tabs(ui);
                     });
                 self.view_pane(ui, front);
+                extension.over_view(&ui.painter_at(self.view_rect), self);
                 self.tabs_foot = f32::NEG_INFINITY;
             } else {
                 // A drawn view fills the pane, and its tabs float over its top left corner on a card of their own: drawn after
                 // it, so they are over it for the hand too.
                 let pane = ui.available_rect_before_wrap();
                 ui.scope_builder(UiBuilder::new().max_rect(pane), |ui| self.view_pane(ui, front));
+                extension.over_view(&ui.painter_at(self.view_rect), self);
                 let card = style::card([true, false, true, false]).inner_margin(Margin::same(2));
                 // A child that takes no room of the pane's: over the view, not after it.
                 let mut over = ui.new_child(UiBuilder::new().id_salt("view-tabs").max_rect(pane));
@@ -1367,7 +1460,7 @@ impl BimApp {
         });
         self.options_bar(&ctx);
         if self.ribbon_min && self.ribbon_peek {
-            self.ribbon_peek(&ctx);
+            self.ribbon_peek(&ctx, extension);
         }
         self.palette_windows(&ctx);
         self.view_windows(&ctx);
@@ -2754,7 +2847,7 @@ impl BimApp {
         }
     }
 
-    fn ribbon(&mut self, ui: &mut Ui) {
+    fn ribbon(&mut self, ui: &mut Ui, extension: &mut dyn Extension) {
         Frame::new().inner_margin(Margin { left: 6, right: 6, top: 5, bottom: 5 }).show(ui, |ui| {
             ui.set_width(ui.available_width());
             ui.horizontal(|ui| {
@@ -2787,14 +2880,23 @@ impl BimApp {
                                 (Tab::Manage, msg!("Manage")),
                                 (Tab::Modify, "Modify"),
                             ] {
-                                let r = tab_button(ui, label, self.tab == tab, false);
+                                let r = tab_button(ui, label, self.tab == tab && self.extension_tab.is_none(), false);
                                 if changed && self.tab == tab {
                                     r.scroll_to_me(None);
                                 }
                                 self.ribbon_tab(&r, tab);
                             }
+                            for (k, name) in extension.tabs().iter().enumerate() {
+                                let r = tab_button(ui, name, self.extension_tab == Some(k), false);
+                                if r.double_clicked() {
+                                    self.fold_ribbon(!self.ribbon_min);
+                                } else if r.clicked() {
+                                    self.ribbon_peek = self.ribbon_min && !(self.ribbon_peek && self.extension_tab == Some(k));
+                                    self.extension_tab = Some(k);
+                                }
+                            }
                             if let Some(name) = self.context() {
-                                let r = tab_button(ui, &name, self.tab == Tab::Context, true);
+                                let r = tab_button(ui, &name, self.tab == Tab::Context && self.extension_tab.is_none(), true);
                                 if changed && self.tab == Tab::Context {
                                     r.scroll_to_me(None);
                                 }
@@ -2820,7 +2922,7 @@ impl BimApp {
         }
         self.ribbon_bottom = ui.min_rect().left_bottom();
         if !self.ribbon_min {
-            self.ribbon_panels(ui);
+            self.ribbon_panels(ui, extension);
         }
     }
 
@@ -2830,8 +2932,9 @@ impl BimApp {
         if r.double_clicked() {
             self.fold_ribbon(!self.ribbon_min);
         } else if r.clicked() {
-            self.ribbon_peek = self.ribbon_min && !(self.ribbon_peek && self.tab == tab);
+            self.ribbon_peek = self.ribbon_min && !(self.ribbon_peek && self.tab == tab && self.extension_tab.is_none());
             self.tab = tab;
+            self.extension_tab = None;
         }
     }
 
@@ -2841,13 +2944,13 @@ impl BimApp {
     }
 
     /// The folded ribbon's tools, under its tabs over everything else, until one is picked or a click lands elsewhere.
-    fn ribbon_peek(&mut self, ctx: &Context) {
+    fn ribbon_peek(&mut self, ctx: &Context, extension: &mut dyn Extension) {
         let tool = self.tool.clone();
         let frame = Frame::popup(&ctx.global_style()).fill(pal().surface).inner_margin(0.0);
         let shown = Area::new(UiId::new("ribbon-peek"))
             .order(Order::Foreground)
             .fixed_pos(self.ribbon_bottom)
-            .show(ctx, |ui| frame.show(ui, |ui| self.ribbon_panels(ui)).response.rect);
+            .show(ctx, |ui| frame.show(ui, |ui| self.ribbon_panels(ui, extension)).response.rect);
         let rect = shown.inner;
         let (released, at) = ctx.input(|i| (i.pointer.primary_released(), i.pointer.interact_pos()));
         let inside = at.is_some_and(|p| rect.contains(p));
@@ -2859,8 +2962,18 @@ impl BimApp {
     }
 
     /// The ribbon tab's panels of tools.
-    fn ribbon_panels(&mut self, ui: &mut Ui) {
+    fn ribbon_panels(&mut self, ui: &mut Ui, extension: &mut dyn Extension) {
         Frame::new().inner_margin(Margin { left: 6, right: 6, top: 4, bottom: 4 }).show(ui, |ui| {
+            if let Some(k) = self.extension_tab {
+                let key = UiId::new(("ribbon-widths-extension", k));
+                let room = ui.available_width();
+                egui::ScrollArea::horizontal().id_salt(("extension", k)).auto_shrink([false, true]).show(ui, |ui| {
+                    ribbon::tab(ui, key, room, |ui| {
+                        ui.horizontal(|ui| extension.ribbon(ui, k, self));
+                    });
+                });
+                return;
+            }
             // A tab wider than the window folds its last panels; one still too wide scrolls sideways, each tab where it was
             // left.
             let key = UiId::new(("ribbon-widths", self.tab as u8));

@@ -1,20 +1,20 @@
-//! IntraCraft's window: BIMCraft's desktop with a module selector on top (ADR-0020 §7, A09 §0).
+//! IntraCraft's window: BIMCraft's own, with IntraCraft's three modules on its ribbon (ADR-0020 §7, A09 §0), through
+//! BIMCraft's `Extension` hooks:
 //!
-//! - Design: BIMCraft whole, and beside it the IntraCraft library, the simulation tree and the selected object's
-//!   attribute table (inherited ✔ / overridden ✖).
-//! - Discrete simulation: the plan of the layout with its pallets moving, the run controls, and the selected object's
-//!   statistics.
-//! - Physics simulation: the same layout in Rapier, with the 2D plant logic driving its decks (ADR-0016), drawn on the plan
-//!   with the statistics beside it; the Bevy viewer comes later (ADR-0022).
+//! - Design: BIMCraft whole, and the **Intralogistics** tab with the library's objects to place; beside the views, the
+//!   simulation tree and the selected object's attribute table (inherited ✔ / own ✖).
+//! - **Discrete simulation**: the run's controls on the ribbon; the pallets moving over BIMCraft's floor plan and 3D view,
+//!   each object tinted by its state; the selected object's statistics beside them.
+//! - **Physics simulation**: the same over the Rapier run (ADR-0024), its pallets where their bodies are.
 //!
 //! The window is a thin shell: it reads the model and changes it only through `intracraft_model`'s functions, which run
 //! BIMCraft's commands.
 
 use std::collections::BTreeMap;
 
-use bimcraft_core::model::Id;
-use bimcraft_ui_egui::BimApp;
-use egui::{CentralPanel, Color32, Grid, Panel, RichText, ScrollArea, Sense, Stroke, StrokeKind, Ui, pos2};
+use bimcraft_core::geom::P2;
+use bimcraft_ui_egui::{BimApp, Extension, Sheet, Status, ribbon_button, ribbon_panel};
+use egui::{Color32, Grid, Painter, RichText, ScrollArea, Shape, Stroke, Ui};
 use intracraft_des::flow::{FlowSimulation, Snapshot, Statistics, simulate};
 use intracraft_des::time::{from_seconds, to_seconds};
 use intracraft_library::Library;
@@ -24,7 +24,17 @@ use intracraft_model::attributes::{Attribute, Source, attributes, definition_of,
 use intracraft_model::tree::simulation_tree;
 use intracraft_physics::flow::PhysicsFlow;
 
-use crate::plan::{self, Point};
+use crate::glyphs::Glyph;
+use crate::plan::{self, FACES, Point};
+
+/// IntraCraft's ribbon tabs, after BIMCraft's own.
+pub const TABS: [&str; 3] = ["Intralogistics", "Discrete simulation", "Physics simulation"];
+/// Speeds the discrete run plays at: simulated seconds per real second.
+const SPEEDS: [u32; 5] = [1, 10, 100, 1000, 10_000];
+/// Speeds the physics run plays at: it is real time at ×1, and a frame never runs more than a second of physics.
+const PHYSICS_SPEEDS: [u32; 3] = [1, 2, 5];
+const WOOD: Color32 = Color32::from_rgb(181, 136, 84);
+const LOAD: Color32 = Color32::from_rgb(196, 170, 120);
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
 pub enum Module {
@@ -34,40 +44,22 @@ pub enum Module {
 }
 
 impl Module {
-    pub const ALL: [Module; 3] = [Module::Design, Module::Discrete, Module::Physics];
-
-    pub fn label(self) -> &'static str {
-        match self {
-            Module::Design => "Design",
-            Module::Discrete => "Discrete simulation",
-            Module::Physics => "Physics simulation",
+    /// The module a ribbon tab of IntraCraft's (or none, BIMCraft's own) is.
+    pub fn of(tab: Option<usize>) -> Module {
+        match tab {
+            Some(1) => Module::Discrete,
+            Some(2) => Module::Physics,
+            _ => Module::Design,
         }
     }
-}
 
-/// Speeds the discrete run plays at: simulated seconds per real second.
-const SPEEDS: [f64; 5] = [1.0, 10.0, 100.0, 1000.0, 10_000.0];
-/// Speeds the physics run plays at: it is real time at ×1, and a frame never runs more than a second of physics.
-const PHYSICS_SPEEDS: [f64; 3] = [1.0, 2.0, 5.0];
-
-/// A physics run of the layout the model held when it started.
-pub struct PhysicsRun {
-    pub flow: PhysicsFlow,
-    pub layout: Layout,
-    pub playing: bool,
-    pub speed: f64,
-}
-
-impl PhysicsRun {
-    pub fn start(layout: Layout, library: &Library) -> Result<PhysicsRun, String> {
-        let flow = PhysicsFlow::new(&layout, library, 1)?;
-        Ok(PhysicsRun { flow, layout, playing: false, speed: 1.0 })
-    }
-
-    /// Moves the run on by `real` seconds of the window's time at its speed (at most one second of physics a frame).
-    pub fn advance(&mut self, real: f64) {
-        let target = self.flow.now() + from_seconds((real * self.speed).min(1.0)).max(1);
-        self.flow.run_until(target);
+    /// Its ribbon tab.
+    pub fn tab(self) -> Option<usize> {
+        match self {
+            Module::Design => Some(0),
+            Module::Discrete => Some(1),
+            Module::Physics => Some(2),
+        }
     }
 }
 
@@ -112,107 +104,273 @@ impl Run {
     }
 }
 
+/// A physics run of the layout the model held when it started.
+pub struct PhysicsRun {
+    pub flow: PhysicsFlow,
+    pub layout: Layout,
+    pub playing: bool,
+    pub speed: f64,
+}
+
+impl PhysicsRun {
+    pub fn start(layout: Layout, library: &Library) -> Result<PhysicsRun, String> {
+        let flow = PhysicsFlow::new(&layout, library, 1)?;
+        Ok(PhysicsRun { flow, layout, playing: false, speed: 1.0 })
+    }
+
+    /// Moves the run on by `real` seconds of the window's time at its speed (at most one second of physics a frame).
+    pub fn advance(&mut self, real: f64) {
+        let target = self.flow.now() + from_seconds((real * self.speed).min(1.0)).max(1);
+        self.flow.run_until(target);
+    }
+}
+
 pub struct IntraApp {
     pub bim: BimApp,
+    pub sim: Simulation,
+}
+
+/// What IntraCraft adds to BIMCraft's window: its library, its runs and what the attribute table holds while typed.
+pub struct Simulation {
     pub library: Library,
-    pub module: Module,
     pub run: Option<Run>,
     pub physics_run: Option<PhysicsRun>,
-    /// What is typed in the attribute table, by attribute key, until it is applied.
-    typed: BTreeMap<String, String>,
     /// Runs start playing as soon as they are made (`--play`).
     pub autoplay: bool,
-    /// Where the next object of the library palette goes, mm east.
+    /// What is typed in the attribute table, by attribute key, until it is applied.
+    typed: BTreeMap<String, String>,
+    /// Where the next object placed from the ribbon goes, mm east.
     next_x: f64,
-    problem: Option<String>,
 }
 
 impl IntraApp {
     pub fn new(bim: BimApp, library: Library) -> IntraApp {
-        IntraApp {
-            bim,
-            library,
-            module: Module::Design,
-            run: None,
-            physics_run: None,
-            autoplay: false,
-            typed: BTreeMap::new(),
-            next_x: 0.0,
-            problem: None,
-        }
+        IntraApp { bim, sim: Simulation { library, run: None, physics_run: None, autoplay: false, typed: BTreeMap::new(), next_x: 0.0 } }
+    }
+
+    /// Opens a module: its ribbon tab.
+    pub fn open(&mut self, module: Module) {
+        self.bim.pick_extension_tab(module.tab());
+    }
+
+    pub fn module(&self) -> Module {
+        Module::of(self.bim.extension_tab())
     }
 
     pub fn show(&mut self, ui: &mut Ui) {
-        Panel::top("intracraft-modules").show(ui, |ui| {
-            ui.horizontal(|ui| {
-                ui.label(RichText::new("IntraCraft").strong());
-                ui.separator();
-                for m in Module::ALL {
-                    if ui.selectable_label(self.module == m, m.label()).clicked() {
-                        self.module = m;
-                    }
-                }
-                if let Some(p) = &self.problem {
-                    ui.separator();
-                    ui.colored_label(Color32::from_rgb(200, 60, 60), p);
-                }
-            });
-        });
-        match self.module {
-            Module::Design => self.design(ui),
-            Module::Discrete => self.discrete(ui),
-            Module::Physics => self.physics(ui),
+        let dt = f64::from(ui.input(|i| i.stable_dt)).min(0.1);
+        let playing = match self.module() {
+            Module::Discrete => self.sim.run.as_mut().filter(|r| r.playing).map(|r| r.advance(dt)).is_some(),
+            Module::Physics => self.sim.physics_run.as_mut().filter(|r| r.playing).map(|r| r.advance(dt)).is_some(),
+            Module::Design => false,
+        };
+        if playing {
+            ui.ctx().request_repaint();
+        }
+        self.bim.show_with(ui, &mut self.sim);
+    }
+}
+
+impl Extension for Simulation {
+    fn tabs(&self) -> Vec<String> {
+        TABS.iter().map(|t| t.to_string()).collect()
+    }
+
+    fn ribbon(&mut self, ui: &mut Ui, k: usize, app: &mut BimApp) {
+        match Module::of(Some(k)) {
+            Module::Design => self.library_tab(ui, app),
+            Module::Discrete => self.discrete_tab(ui, app),
+            Module::Physics => self.physics_tab(ui, app),
         }
     }
 
-    fn design(&mut self, ui: &mut Ui) {
-        Panel::right("intracraft-design").default_size(340.0).show(ui, |ui| {
-            ScrollArea::vertical().show(ui, |ui| {
-                self.library_palette(ui);
-                ui.separator();
-                self.tree(ui);
-                ui.separator();
-                self.attribute_table(ui);
-            });
-        });
-        CentralPanel::default().show(ui, |ui| self.bim.show(ui));
+    fn over_view(&mut self, painter: &Painter, app: &BimApp) {
+        let three_d = app.sheet == Sheet::View3D;
+        if !three_d && !matches!(app.sheet, Sheet::Plan(_)) {
+            return;
+        }
+        let (layout, status, boxes) = match Module::of(app.extension_tab()) {
+            Module::Discrete => {
+                let Some(run) = &self.run else { return };
+                let boxes = run
+                    .snapshot
+                    .pallets
+                    .iter()
+                    .filter_map(|p| {
+                        let outline = plan::pallet_outline(&run.layout, p)?;
+                        let z = plan::ride_height(&run.layout, p, &run.snapshot.heights);
+                        Some((outline, z, p.height, p.load_height))
+                    })
+                    .collect();
+                (&run.layout, run.snapshot.status.clone(), boxes)
+            }
+            Module::Physics => {
+                let Some(run) = &self.physics_run else { return };
+                let boxes = run
+                    .flow
+                    .pallets()
+                    .into_iter()
+                    .map(|p| (plan::body_outline(p.centre, p.yaw, p.size), p.centre[1], p.size[1], p.load_height))
+                    .collect();
+                (&run.layout, run.flow.status(), boxes)
+            }
+            Module::Design => return,
+        };
+        if three_d {
+            pallets_3d(painter, app, boxes);
+        } else {
+            tint_plan(painter, app, layout, &status);
+            for (outline, ..) in boxes {
+                let pts: Vec<_> = outline.iter().map(|c| app.screen(mm(*c))).collect();
+                painter.add(Shape::convex_polygon(pts, WOOD, Stroke::new(1.0, Color32::from_rgb(90, 60, 30))));
+            }
+        }
     }
 
-    fn library_palette(&mut self, ui: &mut Ui) {
-        ui.heading("Library");
-        ui.label("Click to place at the origin row; move it with BIMCraft's tools, or place it from the Project Browser's Families.");
-        let definitions: Vec<(String, String)> = self.library.list().iter().map(|d| (d.id.clone(), d.name.en.clone())).collect();
-        ui.horizontal_wrapped(|ui| {
-            for (id, name) in definitions {
-                if ui.button(name).clicked() {
-                    let at = [self.next_x, 0.0];
-                    match intracraft_model::place(&mut self.bim.session, &self.library, &id, None, at, 0.0, 0.0) {
-                        Ok(new) => {
-                            self.bim.selection = vec![new];
-                            self.next_x += 4000.0;
-                            self.problem = None;
-                        }
-                        Err(e) => self.problem = Some(e),
-                    }
+    fn panel_title(&self, app: &BimApp) -> Option<String> {
+        Some(
+            match Module::of(app.extension_tab()) {
+                Module::Design => "Simulation objects",
+                Module::Discrete => "Discrete run",
+                Module::Physics => "Physics run",
+            }
+            .into(),
+        )
+    }
+
+    fn panel(&mut self, ui: &mut Ui, app: &mut BimApp) {
+        ScrollArea::vertical().show(ui, |ui| match Module::of(app.extension_tab()) {
+            Module::Design => {
+                self.tree(ui, app);
+                ui.separator();
+                self.attribute_table(ui, app);
+            }
+            Module::Discrete => {
+                if let Some(run) = &mut self.run {
+                    warnings(ui, run.sim.issues.iter().map(|i| i.message.as_str()), run.error.as_deref());
+                    statistics_sheet(ui, &run.sim.statistics(), &run.layout, &app.selection);
+                }
+            }
+            Module::Physics => {
+                if let Some(run) = &self.physics_run {
+                    warnings(ui, run.flow.issues.iter().map(|i| i.message.as_str()), None);
+                    statistics_sheet(ui, &run.flow.statistics(), &run.layout, &app.selection);
                 }
             }
         });
     }
+}
 
-    fn tree(&mut self, ui: &mut Ui) {
-        ui.heading("Simulation tree");
-        let tree = simulation_tree(&self.bim.session.model, &self.library);
+impl Simulation {
+    /// The library's objects, by kind, each placed by a click at the next free spot (move it with BIMCraft's tools); the
+    /// selected object detached from the library.
+    fn library_tab(&mut self, ui: &mut Ui, app: &mut BimApp) {
+        let kinds = [
+            ("Conveyors", "conveyor.roller conveyor.chain conveyor.gravity"),
+            ("Stations", "conveyor.roller_turntable conveyor.chain_turntable conveyor.transfer_rc flow.process_station"),
+            ("Lifts", "conveyor.lift_table_manual conveyor.scissor_lift conveyor.elevator"),
+            ("Flow", "flow.source flow.sink sensor.photoeye"),
+            ("Scenery", "scenery.asset"),
+        ];
+        for (title, ids) in kinds {
+            ribbon_panel(ui, title, |ui| {
+                for id in ids.split(' ') {
+                    let Some(d) = self.library.get(id) else { continue };
+                    let glyph = Glyph::of(id);
+                    let tip = format!("Place a {} from the library", d.name.en.to_lowercase());
+                    if ribbon_button(ui, &|p, r, c| glyph.paint(p, r, c), &d.name.en, false, &tip).clicked() {
+                        match intracraft_model::place(&mut app.session, &self.library, id, None, [self.next_x, 0.0], 0.0, 0.0) {
+                            Ok(new) => {
+                                app.selection = vec![new];
+                                self.next_x += 4000.0;
+                            }
+                            Err(e) => app.status = Status { text: e, error: true },
+                        }
+                    }
+                }
+            });
+        }
+        ribbon_panel(ui, "Object", |ui| {
+            let tip = "Every inherited value of the selected object becomes its own";
+            if ribbon_button(ui, &|p, r, c| Glyph::Detach.paint(p, r, c), "Detach", false, tip).clicked()
+                && let Some(&id) = app.selection.first()
+            {
+                let r = intracraft_model::detach(&mut app.session, &self.library, id).map(|_| ());
+                report(app, r);
+            }
+        });
+    }
+
+    fn discrete_tab(&mut self, ui: &mut Ui, app: &mut BimApp) {
+        let asked = run_panel(ui, self.run.as_ref().map(|r| r.playing));
+        if asked.restart || self.run.is_none() {
+            let (layout, problems) = intracraft_model::layout::layout(&app.session.model, &self.library);
+            match Run::start(layout, &self.library) {
+                Ok(mut run) => {
+                    run.playing = self.autoplay;
+                    self.run = Some(run);
+                    if let Some(p) = problems.first() {
+                        app.status = Status { text: p.clone(), error: true };
+                    }
+                }
+                Err(e) => app.status = Status { text: e, error: true },
+            }
+        }
+        let Some(run) = &mut self.run else { return };
+        if asked.toggle {
+            run.playing = !run.playing;
+        }
+        if asked.step {
+            run.step();
+        }
+        if let Some(s) = speed_panel(ui, &SPEEDS, run.speed) {
+            run.speed = s;
+        }
+        clock_panel(ui, to_seconds(run.snapshot.time), run.snapshot.pallets.len(), None);
+    }
+
+    fn physics_tab(&mut self, ui: &mut Ui, app: &mut BimApp) {
+        let asked = run_panel(ui, self.physics_run.as_ref().map(|r| r.playing));
+        if asked.restart || self.physics_run.is_none() {
+            let (layout, problems) = intracraft_model::layout::layout(&app.session.model, &self.library);
+            match PhysicsRun::start(layout, &self.library) {
+                Ok(mut run) => {
+                    run.playing = self.autoplay;
+                    self.physics_run = Some(run);
+                    if let Some(p) = problems.first() {
+                        app.status = Status { text: p.clone(), error: true };
+                    }
+                }
+                Err(e) => app.status = Status { text: e, error: true },
+            }
+        }
+        let Some(run) = &mut self.physics_run else { return };
+        if asked.toggle {
+            run.playing = !run.playing;
+        }
+        if asked.step {
+            run.flow.step();
+        }
+        if let Some(s) = speed_panel(ui, &PHYSICS_SPEEDS, run.speed) {
+            run.speed = s;
+        }
+        clock_panel(ui, to_seconds(run.flow.now()), run.flow.pallets().len(), Some(run.flow.fallen_pallets()));
+    }
+
+    fn tree(&mut self, ui: &mut Ui, app: &mut BimApp) {
+        ui.label(RichText::new("Simulation tree").strong());
+        let tree = simulation_tree(&app.session.model, &self.library);
         if tree.is_empty() {
-            ui.label("No IntraCraft object yet.");
+            ui.label("No intralogistics object yet: place one from the Intralogistics tab.");
         }
         for group in tree {
             egui::CollapsingHeader::new(format!("{} ({})", group.name, group.leaves.len())).id_salt(group.name).default_open(true).show(
                 ui,
                 |ui| {
                     for leaf in group.leaves {
-                        let selected = self.bim.selection.contains(&leaf.id);
+                        let selected = app.selection.contains(&leaf.id);
                         if ui.selectable_label(selected, leaf.label()).clicked() {
-                            self.bim.selection = vec![leaf.id];
+                            app.selection = vec![leaf.id];
                         }
                     }
                 },
@@ -220,15 +378,15 @@ impl IntraApp {
         }
     }
 
-    fn attribute_table(&mut self, ui: &mut Ui) {
-        ui.heading("Attributes");
-        let Some(&id) = self.bim.selection.first() else {
+    fn attribute_table(&mut self, ui: &mut Ui, app: &mut BimApp) {
+        ui.label(RichText::new("Attributes").strong());
+        let Some(&id) = app.selection.first() else {
             ui.label("Select an object.");
             return;
         };
-        let model = std::sync::Arc::clone(&self.bim.session.model);
+        let model = std::sync::Arc::clone(&app.session.model);
         let Some(definition) = definition_of(&model, &self.library, id) else {
-            ui.label(format!("{id} is not an IntraCraft object."));
+            ui.label(format!("{id} is not an intralogistics object."));
             return;
         };
         ui.label(format!("{id} · {}", definition.name.en));
@@ -254,11 +412,11 @@ impl IntraApp {
                 } else {
                     let key = a.key.clone();
                     let text = self.typed.entry(key.clone()).or_insert_with(|| edit_text(a));
-                    let r = ui.add(egui::TextEdit::singleline(text).desired_width(110.0));
+                    let r = ui.add(egui::TextEdit::singleline(text).desired_width(90.0));
                     if r.lost_focus() && ui.input(|i| i.key_pressed(egui::Key::Enter)) {
                         match parse(a, text) {
                             Ok(v) => apply = Some((key.clone(), v)),
-                            Err(e) => self.problem = Some(format!("{}: {e}", a.label.en)),
+                            Err(e) => app.status = Status { text: format!("{}: {e}", a.label.en), error: true },
                         }
                     }
                 }
@@ -275,241 +433,173 @@ impl IntraApp {
                 ui.end_row();
             }
         });
-        if ui.button("Detach from the library").on_hover_text("Every inherited value becomes the object's own").clicked() {
-            let r = intracraft_model::detach(&mut self.bim.session, &self.library, id).map(|_| ());
-            self.report(r);
-        }
         if let Some((key, v)) = apply {
-            let r = intracraft_model::set_attribute(&mut self.bim.session, &self.library, id, &key, &v);
-            self.report(r);
+            let r = intracraft_model::set_attribute(&mut app.session, &self.library, id, &key, &v);
+            report(app, r);
             self.typed.clear();
         }
         if let Some(key) = reset {
-            let r = intracraft_model::reset_attribute(&mut self.bim.session, &self.library, id, &key);
-            self.report(r);
+            let r = intracraft_model::reset_attribute(&mut app.session, &self.library, id, &key);
+            report(app, r);
             self.typed.clear();
         }
     }
-
-    fn report(&mut self, r: Result<(), String>) {
-        self.problem = r.err();
-    }
-
-    fn discrete(&mut self, ui: &mut Ui) {
-        Panel::left("intracraft-run").default_size(260.0).show(ui, |ui| self.run_controls(ui));
-        Panel::right("intracraft-stats").default_size(280.0).show(ui, |ui| self.statistics(ui));
-        CentralPanel::default().show(ui, |ui| self.plan(ui));
-        if let Some(run) = &mut self.run
-            && run.playing
-        {
-            let dt = f64::from(ui.input(|i| i.stable_dt)).min(0.1);
-            run.advance(dt);
-            ui.ctx().request_repaint();
-        }
-    }
-
-    fn run_controls(&mut self, ui: &mut Ui) {
-        ui.heading("Run");
-        if ui.button("Reset from the design").clicked() || self.run.is_none() {
-            let (layout, problems) = intracraft_model::layout::layout(&self.bim.session.model, &self.library);
-            match Run::start(layout, &self.library) {
-                Ok(mut run) => {
-                    run.playing = self.autoplay;
-                    self.run = Some(run);
-                    self.problem = problems.first().cloned();
-                }
-                Err(e) => self.problem = Some(e),
-            }
-        }
-        let Some(run) = &mut self.run else { return };
-        ui.horizontal(|ui| {
-            if ui.button(if run.playing { "Pause" } else { "Run" }).clicked() {
-                run.playing = !run.playing;
-            }
-            if ui.button("Next event").clicked() {
-                run.step();
-            }
-        });
-        ui.horizontal(|ui| {
-            ui.label("Speed");
-            for s in SPEEDS {
-                if ui.selectable_label(run.speed == s, format!("×{s}")).clicked() {
-                    run.speed = s;
-                }
-            }
-        });
-        ui.label(format!("Time: {:.1} s", to_seconds(run.snapshot.time)));
-        ui.label(format!("Pallets: {}", run.snapshot.pallets.len()));
-        if let Some(e) = &run.error {
-            ui.colored_label(Color32::from_rgb(200, 60, 60), e);
-        }
-        ui.separator();
-        ui.heading("Warnings");
-        if run.sim.issues.is_empty() {
-            ui.label("None.");
-        }
-        for i in &run.sim.issues {
-            ui.label(&i.message);
-        }
-    }
-
-    fn statistics(&mut self, ui: &mut Ui) {
-        let Some(run) = &mut self.run else { return };
-        let stats = run.sim.statistics();
-        statistics_sheet(ui, &stats, &run.layout, &self.bim.selection);
-    }
-
-    fn plan(&mut self, ui: &mut Ui) {
-        let Some(run) = &self.run else { return };
-        let (rect, response) = ui.allocate_exact_size(ui.available_size(), Sense::click());
-        let painter = ui.painter_at(rect);
-        painter.rect_filled(rect, 0.0, Color32::from_gray(245));
-        let footprints = plan::footprints(&run.layout);
-        let ((x0, y0), (x1, y1)) = plan::bounds(&footprints);
-        let scale = (f64::from(rect.width()) / (x1 - x0)).min(f64::from(rect.height()) / (y1 - y0));
-        let to_screen = |p: Point| pos2(rect.left() + ((p.0 - x0) * scale) as f32, rect.bottom() - ((p.1 - y0) * scale) as f32);
-        for f in &footprints {
-            let colour = status_colour(run.snapshot.status.get(&f.id).copied());
-            let selected = self.bim.selection.first().is_some_and(|id| id.to_string() == f.id);
-            let stroke = Stroke::new(if selected { 3.0 } else { 1.0 }, Color32::from_gray(if selected { 20 } else { 90 }));
-            painter.add(egui::Shape::convex_polygon(f.corners.iter().map(|c| to_screen(*c)).collect(), colour, stroke));
-        }
-        for p in &run.snapshot.pallets {
-            if let Some(o) = plan::pallet_outline(&run.layout, p) {
-                let pts: Vec<_> = o.iter().map(|c| to_screen(*c)).collect();
-                painter.add(egui::Shape::convex_polygon(
-                    pts,
-                    Color32::from_rgb(181, 136, 84),
-                    Stroke::new(1.0, Color32::from_rgb(90, 60, 30)),
-                ));
-            }
-        }
-        painter.rect_stroke(rect, 0.0, Stroke::new(1.0, Color32::from_gray(160)), StrokeKind::Inside);
-        if response.clicked()
-            && let Some(pos) = response.interact_pointer_pos()
-        {
-            let p = (x0 + f64::from(pos.x - rect.left()) / scale, y0 + f64::from(rect.bottom() - pos.y) / scale);
-            self.bim.selection =
-                footprints.iter().find(|f| plan::contains(f, p)).and_then(|f| f.id.parse::<Id>().ok()).into_iter().collect();
-        }
-    }
-
-    fn physics(&mut self, ui: &mut Ui) {
-        Panel::left("intracraft-physics-run").default_size(260.0).show(ui, |ui| self.physics_controls(ui));
-        Panel::right("intracraft-physics-stats").default_size(280.0).show(ui, |ui| {
-            if let Some(run) = &self.physics_run {
-                statistics_sheet(ui, &run.flow.statistics(), &run.layout, &self.bim.selection);
-            }
-        });
-        CentralPanel::default().show(ui, |ui| self.physics_plan(ui));
-        if let Some(run) = &mut self.physics_run
-            && run.playing
-        {
-            let dt = f64::from(ui.input(|i| i.stable_dt)).min(0.1);
-            run.advance(dt);
-            ui.ctx().request_repaint();
-        }
-    }
-
-    fn physics_controls(&mut self, ui: &mut Ui) {
-        ui.heading("Physics run");
-        ui.label("Rapier: rollers turning at ω = v / r, chains with a moving surface, pallets as rigid bodies, driven by the same plant logic as the discrete run. The 3D viewer (Bevy) comes later; this is the plan of the same run.");
-        if ui.button("Reset from the design").clicked() || self.physics_run.is_none() {
-            let (layout, problems) = intracraft_model::layout::layout(&self.bim.session.model, &self.library);
-            match PhysicsRun::start(layout, &self.library) {
-                Ok(mut run) => {
-                    run.playing = self.autoplay;
-                    self.physics_run = Some(run);
-                    self.problem = problems.first().cloned();
-                }
-                Err(e) => self.problem = Some(e),
-            }
-        }
-        let Some(run) = &mut self.physics_run else { return };
-        ui.horizontal(|ui| {
-            if ui.button(if run.playing { "Pause" } else { "Run" }).clicked() {
-                run.playing = !run.playing;
-            }
-        });
-        ui.horizontal(|ui| {
-            ui.label("Speed");
-            for s in PHYSICS_SPEEDS {
-                if ui.selectable_label(run.speed == s, format!("×{s}")).clicked() {
-                    run.speed = s;
-                }
-            }
-        });
-        ui.label(format!("Time: {:.1} s", to_seconds(run.flow.now())));
-        ui.label(format!("Pallets: {}", run.flow.pallets().len()));
-        ui.label(format!("Fallen pallets: {}", run.flow.fallen_pallets()));
-        ui.separator();
-        ui.heading("Warnings");
-        if run.flow.issues.is_empty() {
-            ui.label("None.");
-        }
-        for i in &run.flow.issues {
-            ui.label(&i.message);
-        }
-    }
-
-    fn physics_plan(&mut self, ui: &mut Ui) {
-        let Some(run) = &self.physics_run else { return };
-        let (rect, _) = ui.allocate_exact_size(ui.available_size(), Sense::hover());
-        let painter = ui.painter_at(rect);
-        painter.rect_filled(rect, 0.0, Color32::from_gray(245));
-        let footprints = plan::footprints(&run.layout);
-        let ((x0, y0), (x1, y1)) = plan::bounds(&footprints);
-        let scale = (f64::from(rect.width()) / (x1 - x0)).min(f64::from(rect.height()) / (y1 - y0));
-        let to_screen = |p: Point| pos2(rect.left() + ((p.0 - x0) * scale) as f32, rect.bottom() - ((p.1 - y0) * scale) as f32);
-        let status = run.flow.status();
-        for f in &footprints {
-            painter.add(egui::Shape::convex_polygon(
-                f.corners.iter().map(|c| to_screen(*c)).collect(),
-                status_colour(status.get(&f.id).copied()),
-                Stroke::new(1.0, Color32::from_gray(90)),
-            ));
-        }
-        for p in run.flow.pallets() {
-            let pts: Vec<_> = plan::body_outline(p.centre, p.yaw, p.size).iter().map(|c| to_screen(*c)).collect();
-            painter.add(egui::Shape::convex_polygon(pts, Color32::from_rgb(181, 136, 84), Stroke::new(1.0, Color32::from_rgb(90, 60, 30))));
-        }
-        painter.rect_stroke(rect, 0.0, Stroke::new(1.0, Color32::from_gray(160)), StrokeKind::Inside);
-    }
 }
 
-/// An object's colour on the plan by its state.
-fn status_colour(status: Option<&str>) -> Color32 {
-    match status {
-        Some("working" | "lifting" | "lowering" | "processing") => Color32::from_rgb(120, 190, 120),
-        Some("blocked") => Color32::from_rgb(220, 110, 100),
-        Some("stopped") => Color32::from_rgb(235, 170, 80),
-        Some("detecting") => Color32::from_rgb(90, 140, 230),
-        _ => Color32::from_gray(200),
+/// What the Control panel's buttons asked for.
+#[derive(Default)]
+struct RunAsked {
+    restart: bool,
+    toggle: bool,
+    step: bool,
+}
+
+/// The Control panel: start again from the design, run or pause, one step.
+fn run_panel(ui: &mut Ui, playing: Option<bool>) -> RunAsked {
+    let mut asked = RunAsked::default();
+    let on = playing == Some(true);
+    ribbon_panel(ui, "Control", |ui| {
+        let reset = "Start the run again from the design as it is now";
+        asked.restart |= ribbon_button(ui, &|p, r, c| Glyph::Reset.paint(p, r, c), "Reset", false, reset).clicked();
+        let (glyph, label) = if on { (Glyph::Pause, "Pause") } else { (Glyph::Run, "Run") };
+        asked.toggle |= ribbon_button(ui, &|p, r, c| glyph.paint(p, r, c), label, on, "Run or pause the simulation").clicked();
+        let step = "Run to the next event (discrete) or one physics step";
+        asked.step |= ribbon_button(ui, &|p, r, c| Glyph::Step.paint(p, r, c), "Step", false, step).clicked();
+    });
+    asked
+}
+
+/// The Speed panel: the speed picked, if one was.
+fn speed_panel(ui: &mut Ui, speeds: &[u32], now: f64) -> Option<f64> {
+    let mut picked = None;
+    ribbon_panel(ui, "Speed", |ui| {
+        for &s in speeds {
+            let tip = format!("{s} simulated seconds per second");
+            if ribbon_button(ui, &|p, r, c| Glyph::Speed(s).paint(p, r, c), &format!("×{s}"), f64::from(s) == now, &tip).clicked() {
+                picked = Some(f64::from(s));
+            }
+        }
+    });
+    picked
+}
+
+/// The Clock panel: the run's time, its pallets, and those that fell (physics).
+fn clock_panel(ui: &mut Ui, seconds: f64, pallets: usize, fallen: Option<u64>) {
+    ribbon_panel(ui, "Clock", |ui| {
+        ui.vertical(|ui| {
+            ui.label(RichText::new(clock(seconds)).monospace().size(18.0));
+            ui.label(format!("{pallets} pallets in the plant"));
+            if let Some(f) = fallen {
+                ui.label(format!("{f} fallen"));
+            }
+        });
+    });
+}
+
+/// A time as h:mm:ss.s.
+fn clock(seconds: f64) -> String {
+    let s = seconds.max(0.0);
+    format!("{}:{:02}:{:04.1}", (s / 3600.0).floor(), ((s % 3600.0) / 60.0).floor(), s % 60.0)
+}
+
+fn report(app: &mut BimApp, r: Result<(), String>) {
+    app.status = match r {
+        Ok(()) => Status::default(),
+        Err(text) => Status { text, error: true },
+    };
+}
+
+fn warnings<'a>(ui: &mut Ui, issues: impl Iterator<Item = &'a str>, error: Option<&str>) {
+    if let Some(e) = error {
+        ui.colored_label(Color32::from_rgb(200, 60, 60), e);
+    }
+    let issues: Vec<&str> = issues.collect();
+    if !issues.is_empty() {
+        egui::CollapsingHeader::new(format!("Warnings ({})", issues.len())).show(ui, |ui| {
+            for i in issues {
+                ui.label(i);
+            }
+        });
     }
 }
 
 /// The statistics of a run: the selected object's, or every object's.
-fn statistics_sheet(ui: &mut Ui, stats: &Statistics, layout: &Layout, selection: &[Id]) {
-    ui.heading("Statistics");
+fn statistics_sheet(ui: &mut Ui, stats: &Statistics, layout: &Layout, selection: &[bimcraft_core::model::Id]) {
+    ui.label(RichText::new("Statistics").strong());
     let selected = selection.first().map(|id| id.to_string());
     let ids: Vec<&String> = match &selected {
         Some(id) if stats.contains_key(id) => vec![id],
         _ => stats.keys().collect(),
     };
-    ScrollArea::vertical().show(ui, |ui| {
-        for id in ids {
-            let name = layout.instance(id).map_or(id.as_str(), |i| i.name.as_str());
-            ui.label(RichText::new(name).strong());
-            Grid::new(("stats", id)).num_columns(2).show(ui, |ui| {
-                for (k, v) in &stats[id] {
-                    ui.label(*k);
-                    ui.label(format!("{v:.3}"));
-                    ui.end_row();
-                }
-            });
-            ui.separator();
+    for id in ids {
+        let name = layout.instance(id).map_or(id.as_str(), |i| i.name.as_str());
+        ui.label(RichText::new(name).strong());
+        Grid::new(("stats", id)).num_columns(2).show(ui, |ui| {
+            for (k, v) in &stats[id] {
+                ui.label(*k);
+                ui.label(format!("{v:.3}"));
+                ui.end_row();
+            }
+        });
+        ui.separator();
+    }
+}
+
+/// A plan point (m) as a model point (mm).
+fn mm(p: Point) -> P2 {
+    P2(p.0 * 1000.0, p.1 * 1000.0)
+}
+
+/// Each object of the plan tinted by its state in the run.
+fn tint_plan(painter: &Painter, app: &BimApp, layout: &Layout, status: &BTreeMap<String, &'static str>) {
+    for f in plan::footprints(layout) {
+        let tint = match status.get(&f.id).copied() {
+            Some("working" | "lifting" | "lowering" | "processing") => Color32::from_rgba_unmultiplied(80, 190, 90, 70),
+            Some("blocked") => Color32::from_rgba_unmultiplied(220, 70, 60, 80),
+            Some("stopped") => Color32::from_rgba_unmultiplied(235, 160, 50, 80),
+            Some("detecting") => Color32::from_rgba_unmultiplied(70, 120, 230, 90),
+            _ => continue,
+        };
+        painter.add(Shape::convex_polygon(f.corners.iter().map(|c| app.screen(mm(*c))).collect(), tint, Stroke::NONE));
+    }
+}
+
+/// Pallets and their loads as shaded boxes in the 3D view: the faces turned to the camera, the farthest pallet first.
+fn pallets_3d(painter: &Painter, app: &BimApp, boxes: Vec<([Point; 4], f64, f64, f64)>) {
+    let mut solids = Vec::new();
+    for (outline, z, pallet, load) in boxes {
+        solids.push((plan::solid(outline, z, z + pallet), WOOD));
+        if load > 0.0 {
+            solids.push((plan::solid(outline, z + pallet, z + pallet + load), LOAD));
         }
-    });
+    }
+    let projected: Vec<(Vec<egui::Pos2>, Color32)> =
+        solids.into_iter().map(|(corners, colour)| (corners.iter().map(|c| app.screen3(*c)).collect(), colour)).collect();
+    let mut order: Vec<usize> = (0..projected.len()).collect();
+    // Seen from above, what lies higher on the screen lies farther.
+    order.sort_by(|&a, &b| centre_y(&projected[a].0).total_cmp(&centre_y(&projected[b].0)));
+    for k in order {
+        let (pts, colour) = &projected[k];
+        for (f, face) in FACES.iter().enumerate() {
+            let quad: Vec<egui::Pos2> = face.iter().map(|&i| pts[i]).collect();
+            // Counter-clockwise from outside is clockwise on the screen, whose y points down.
+            let area: f32 = (0..4).map(|i| quad[i].x * quad[(i + 1) % 4].y - quad[(i + 1) % 4].x * quad[i].y).sum();
+            if area >= 0.0 {
+                continue;
+            }
+            let shade = [1.0, 0.5, 0.8, 0.65, 0.75, 0.7][f];
+            let fill = Color32::from_rgb(
+                (f32::from(colour.r()) * shade) as u8,
+                (f32::from(colour.g()) * shade) as u8,
+                (f32::from(colour.b()) * shade) as u8,
+            );
+            painter.add(Shape::convex_polygon(quad, fill, Stroke::new(0.6, Color32::from_rgb(70, 50, 30))));
+        }
+    }
+}
+
+fn centre_y(pts: &[egui::Pos2]) -> f32 {
+    pts.iter().map(|p| p.y).sum::<f32>() / pts.len().max(1) as f32
 }
 
 /// The text a value is edited as: mm and degrees where the library shows them so.
@@ -556,9 +646,7 @@ impl eframe::App for IntraApp {
     }
 
     fn raw_input_hook(&mut self, ctx: &egui::Context, raw: &mut egui::RawInput) {
-        if self.module == Module::Design {
-            eframe::App::raw_input_hook(&mut self.bim, ctx, raw);
-        }
+        eframe::App::raw_input_hook(&mut self.bim, ctx, raw);
     }
 }
 
@@ -575,7 +663,7 @@ mod tests {
         let _ = intracraft_model::load_library(&mut session, &library);
         let bim = BimApp::new(session);
         let mut h = Harness::builder()
-            .with_size([1600.0, 900.0])
+            .with_size([1800.0, 1000.0])
             .with_max_steps(16)
             .build_ui_state(|ui, app: &mut IntraApp| app.show(ui), IntraApp::new(bim, library));
         h.run();
@@ -588,8 +676,10 @@ mod tests {
     }
 
     #[test]
-    fn places_a_conveyor_from_the_library_and_lists_it_in_the_tree_with_its_attributes() {
+    fn the_modules_are_tabs_of_bimcrafts_ribbon_and_place_a_conveyor_with_its_inherited_attributes() {
         let mut h = app();
+        press(&mut h, "Intralogistics");
+        assert_eq!(h.state().module(), Module::Design);
         press(&mut h, "Roller conveyor");
         let id = *h.state().bim.selection.first().unwrap();
         assert!(h.query_by_label_contains(&format!("{id}  Roller conveyor · Default")).is_some());
@@ -597,24 +687,28 @@ mod tests {
     }
 
     #[test]
-    fn runs_a_source_conveyor_and_sink_in_the_discrete_module() {
+    fn runs_a_source_conveyor_and_sink_in_both_simulation_modules() {
         let mut h = app();
+        press(&mut h, "Intralogistics");
         for name in ["Pallet source", "Roller conveyor", "Pallet sink"] {
             if h.query_by_label(name).is_some() {
                 press(&mut h, name);
             }
         }
         press(&mut h, "Discrete simulation");
-        assert!(h.state().run.is_some());
-        // Run 100 simulated seconds, as Next event and Run would.
-        let run = h.state_mut().run.as_mut().unwrap();
+        assert_eq!(h.state().module(), Module::Discrete);
+        let run = h.state_mut().sim.run.as_mut().unwrap();
         run.advance(10.0);
         assert!(run.snapshot.time > 0);
         press(&mut h, "Physics simulation");
-        assert!(h.query_by_label_contains("Rapier").is_some());
-        let physics = h.state_mut().physics_run.as_mut().unwrap();
+        let physics = h.state_mut().sim.physics_run.as_mut().unwrap();
         physics.advance(0.5);
         assert!(physics.flow.now() > from_seconds(0.4));
+        // Playing, the run draws again every frame: one step, not until the window rests.
+        h.get_by_label("Run").click();
+        h.step();
+        h.step();
+        assert!(h.state().sim.physics_run.as_ref().unwrap().playing);
     }
 
     #[test]
@@ -641,5 +735,6 @@ mod tests {
         assert_eq!(parse(&a(ParamType::Boolean, None), "yes"), Ok(Value::Bool(true)));
         assert!(parse(&a(ParamType::Number, None), "fast").is_err());
         assert_eq!(parse(&a(ParamType::Number, None), "0,25"), Ok(Value::Number(0.25)));
+        assert_eq!(clock(3725.5), "1:02:05.5");
     }
 }

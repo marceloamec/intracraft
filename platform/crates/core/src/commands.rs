@@ -836,7 +836,7 @@ pub static ALL: &[Command] = &[
         "{name, category?: furniture|casework|plumbing|lighting|generic|door|window, parameters?: [{name, kind?: length|number|\
          angle|yesno|material|text, instance?, value?, formula?}], types?: {type: {parameter: value}}, forms?: [{plane?: xy|xz|yz, \
          profile?: [[a, b], …], circle?: {centre: [a, b], radius}, axis?: [[a, b], [a, b]], from?, to, material?, visible?, \
-         void?}], symbols?: [{line?: [[x, y], …] | arc?: {centre: [x, y], radius, from?, to}, visible?}], operation?: swing|\
+         repeat?: {count, step: [x, y, z]}, void?}], symbols?: [{line?: [[x, y], …] | arc?: {centre: [x, y], radius, from?, to}, visible?}], operation?: swing|\
          double-swing|sliding|double-sliding|folding|fixed (a door's or window's, for IFC and schedules), rename?, delete?: \
          true, path?, save?} a family of \
          the project's, BIMCraft's own parametric component: created, changed, or loaded from the .json file at `path` (a family \
@@ -845,7 +845,8 @@ pub static ALL: &[Command] = &[
          line in that plane, the profile is turned about it instead, `from` to `to` degrees (up to 360, right-handed from the \
          axis' first point toward its second; it can't cross the axis): a pipe, a bowl, a lamp shade. A `void` is no solid: it \
          cuts the solid forms listed before it that it passes through, a hole, a notch, a sink's bowl, and is never seen \
-         itself (forms listed after it are whole). A `door` or `window` family stands in a wall, placed with `door` or `window` \
+         itself (forms listed after it are whole). A form that `repeat`s is there `count` times, each copy `step` further \
+         along x, y and z than the one before (an array: rollers at their pitch, posts at their spacing). A `door` or `window` family stands in a wall, placed with `door` or `window` \
          and a `family`: its forms are drawn in the opening's axes (x along the wall from the middle of the opening, y across \
          it, 0 in the middle of the wall and + toward its exterior, z up from the sill), it must have length parameters \
          `Width` and `Height` (the opening it makes; `Sill Height` is a window's default sill), and its formulas read \

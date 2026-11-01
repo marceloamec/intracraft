@@ -10,15 +10,18 @@ tags: [app, editor, ui]
 
 ## 0. The Rust desktop: three modules
 
-Since 2026-10-31 the editor is BIMCraft's desktop with IntraCraft's modules ([[ADR-0020 Rust Platform on BIMCraft with Three Modules]]), application `platform/apps/intracraft` (`cargo run -p intracraft`). A selector at the top of the window switches between:
+Since 2026-10-31 the editor is BIMCraft's desktop with IntraCraft's modules ([[ADR-0020 Rust Platform on BIMCraft with Three Modules]]), application `platform/apps/intracraft` (`cargo run -p intracraft`). Since 2026-11-02 the modules are tabs of BIMCraft's own ribbon, after Modify, through BIMCraft's `Extension` hooks ([[ADR-0025 Simulation Modules on BIMCraft's Ribbon and Detailed Families]]): the window is BIMCraft's, with nothing wrapped round it.
 
-| Module              | Window                                                                                                                                                                                              |
-| ------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| Design              | BIMCraft's ribbon, plan, sections, 3D view, Project Browser and Properties; the intralogistics families placed from the browser; attribute table with inherited flags; Simulation tab with the tree |
-| Discrete simulation | The plan of the layout with animated pallets; Run, Pause, Step, speed, seed and duration; statistics sheet of the selected object; export to CSV and XLSX                                           |
-| Physics simulation  | The 3D run in real time, drawn by a Bevy viewer ([[ADR-0022 Bevy Viewer for the Physics Simulation Module]]); the same controls; physics figures (stop error, impact energy)                        |
+| Ribbon tab          | Ribbon panels                                                                       | Beside the views (a card like BIMCraft's palettes)                | Over the views                                                                                       |
+| ------------------- | ----------------------------------------------------------------------------------- | ----------------------------------------------------------------- | ---------------------------------------------------------------------------------------------------- |
+| BIMCraft's tabs     | BIMCraft's own: the Design module                                                   | The simulation tree and the attribute table (inherited ✔ / own ✖) | Nothing                                                                                              |
+| Intralogistics      | Conveyors, Stations, Lifts, Flow, Scenery: the library's objects; Object: Detach    | The same                                                          | Nothing                                                                                              |
+| Discrete simulation | Control (Reset, Run/Pause, Step), Speed (×1 to ×10 000), Clock (time, pallets)      | Warnings and the statistics of the selected object (or all)       | Floor plan: each object tinted by its state, the pallets moving; 3D view: pallets and loads as boxes |
+| Physics simulation  | Control (Reset, Run/Pause, Step), Speed (×1, ×2, ×5), Clock (time, pallets, fallen) | The same, from the Rapier run                                     | The same, each pallet where its body is                                                              |
 
-The run happens on a background thread; the window only receives snapshots, as the Web Worker did in the reference. Sections 1–3 below describe the TypeScript reference editor (frozen); they stay as the list of features the modules must offer.
+While a simulation tab is picked, a selection doesn't raise BIMCraft's contextual Modify tab: clicking a conveyor shows its statistics. The library's objects are drawn by their families' detailed parametric forms (rollers on their axles, C-channel side frames, chains on their tracks, legs on adjustable feet with bracing, drives, guards, the stations' own parts), so every BIMCraft view, schedule and export shows them. Still to come: the run on a background thread (today on the window's), CSV/XLSX export of the statistics, and the Bevy viewer ([[ADR-0022 Bevy Viewer for the Physics Simulation Module]]) for the physics run's own 3D window. `intracraft FILE --module discrete|physics|design --view 3d --play` opens a module straight away.
+
+Sections 1–3 below describe the TypeScript reference editor (frozen); they stay as the list of features the modules must offer.
 
 ## 1. The TypeScript reference editor
 

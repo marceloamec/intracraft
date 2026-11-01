@@ -254,8 +254,9 @@ pub struct Symbol {
 /// its base): a profile drawn in `plane` and swept across it from `from` to `to`; or, with an
 /// `axis`, turned about it from `from` to `to` degrees; or triangles, as a file brings them. A
 /// material's name, or a material parameter's, says what it's made of; `visible` (a yes/no
-/// parameter, or a formula) whether it's there. A `void` is no solid: it cuts the solid forms listed
-/// before it that it passes through, and is never seen itself.
+/// parameter, or a formula) whether it's there; `repeat`, how many times it's there and how far
+/// apart (an array). A `void` is no solid: it cuts the solid forms listed before it that it passes
+/// through, and is never seen itself.
 #[derive(Clone, Debug, Default, PartialEq, Serialize, Deserialize)]
 #[serde(deny_unknown_fields)]
 pub struct Form {
@@ -284,9 +285,21 @@ pub struct Form {
     pub material: String,
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub visible: Option<Expr>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub repeat: Option<Repeat>,
     /// Shared, so an undo step's copy of the model doesn't copy it.
     #[serde(default, skip_serializing_if = "no_mesh")]
     pub mesh: Arc<Vec<[P3; 3]>>,
+}
+
+/// A form there `count` times (a formula may say how many; none, it isn't there), each copy `step`
+/// further along the family's axes than the one before, as an array of a family: the rollers of a
+/// conveyor at their pitch, the posts of a railing.
+#[derive(Clone, Debug, Default, PartialEq, Serialize, Deserialize)]
+#[serde(deny_unknown_fields)]
+pub struct Repeat {
+    pub count: Expr,
+    pub step: [Expr; 3],
 }
 
 fn no_mesh(mesh: &Arc<Vec<[P3; 3]>>) -> bool {
@@ -356,6 +369,8 @@ pub const MAX_SYMBOLS: usize = 64;
 pub const MAX_TYPES: usize = 1000;
 /// The longest formula, in characters.
 pub const MAX_FORMULA: usize = 1024;
+/// Copies one form's `repeat` may make.
+pub const MAX_REPEAT: usize = 1000;
 
 /// A formula, read.
 enum Node {
@@ -1066,11 +1081,23 @@ impl Family {
                     }
                 }
             };
+            let Some(r) = &form.repeat else {
+                if form.void {
+                    voids.push((i, out.len(), piece.tris));
+                } else {
+                    out.push(piece);
+                }
+                continue;
+            };
             if form.void {
-                voids.push((i, out.len(), piece.tris));
-            } else {
-                out.push(piece);
+                return Err(said("a void cuts once: it can't repeat".into()));
             }
+            let count = num(&r.count).map_err(said)?.round();
+            if !(0.0..=MAX_REPEAT as f64).contains(&count) {
+                return Err(said(format!("it repeats {count} times; 0 to {MAX_REPEAT}")));
+            }
+            let step = [num(&r.step[0]).map_err(said)?, num(&r.step[1]).map_err(said)?, num(&r.step[2]).map_err(said)?];
+            out.extend((0..count as usize).map(|k| shifted(&piece, step.map(|d| d * k as f64))));
         }
         // Each void cut from the solids listed before it that it reaches. A cut solid is no longer one round surface,
         // and its outline seen from above is as it was. ponytail: a notch or a hole doesn't show in plan; trace it if it must.
@@ -1110,6 +1137,19 @@ fn number<'a>(e: &'a Expr, values: &BTreeMap<String, Val>, read: &mut HashMap<&'
         },
     };
     if x.is_finite() && x.abs() <= MAX_COORD { Ok(x) } else { Err(format!("{x} is not a usable number")) }
+}
+
+/// `p` moved by `d` (x, y, z).
+fn shifted(p: &Piece, d: P3) -> Piece {
+    Piece {
+        tris: p.tris.iter().map(|t| t.map(|v| [v[0] + d[0], v[1] + d[1], v[2] + d[2]])).collect(),
+        caps: p.caps,
+        outline: p.outline.iter().map(|q| P2(q.0 + d[0], q.1 + d[1])).collect(),
+        bottom: p.bottom + d[2],
+        top: p.top + d[2],
+        material: p.material.clone(),
+        round: p.round,
+    }
 }
 
 /// How low and how high `tris` reach.
@@ -1849,6 +1889,28 @@ mod tests {
         let mut flat = table();
         flat.forms[0].to = Expr::Formula("Top".into());
         assert!(flat.pieces(&flat.values("Small", &BTreeMap::new()).unwrap()).unwrap_err().contains("form 1"));
+    }
+
+    #[test]
+    fn a_repeated_form_is_there_as_often_as_its_count_says_each_copy_a_step_further() {
+        // Rollers across a conveyor: as many as fit `R` at a 100 pitch, each a round bar along y.
+        let roller = json!({"plane": "xz", "circle": {"centre": [50, 600], "radius": 40}, "from": -500, "to": 500,
+            "repeat": {"count": "rounddown(R / 100)", "step": [100, 0, 0]}});
+        let pieces = built(json!([roller])).unwrap();
+        assert_eq!(pieces.len(), 3);
+        let last = &pieces[2];
+        assert!(last.round && (last.bottom, last.top) == (560.0, 640.0));
+        let (x0, x1) = last.outline.iter().fold((f64::INFINITY, f64::NEG_INFINITY), |(a, b), p| (a.min(p.0), b.max(p.0)));
+        assert!((x0 - 210.0).abs() < 1e-9 && (x1 - 290.0).abs() < 1e-9, "{x0}..{x1}");
+        // Up the z axis too; none at all; too many; a void that would repeat.
+        let stack = json!({"profile": [[0, 0], [10, 0], [10, 10], [0, 10]], "to": 10, "repeat": {"count": 2, "step": [0, 0, "R"]}});
+        assert_eq!(built(json!([stack])).unwrap()[1].bottom, 300.0);
+        let none = json!({"profile": [[0, 0], [10, 0], [10, 10]], "to": 10, "repeat": {"count": 0, "step": [10, 0, 0]}});
+        assert!(built(json!([none])).unwrap().is_empty());
+        let many = json!({"profile": [[0, 0], [10, 0], [10, 10]], "to": 10, "repeat": {"count": MAX_REPEAT + 1, "step": [10, 0, 0]}});
+        assert!(built(json!([many])).unwrap_err().contains("repeats"));
+        let void = json!({"profile": [[0, 0], [10, 0], [10, 10]], "to": 10, "void": true, "repeat": {"count": 2, "step": [10, 0, 0]}});
+        assert!(built(json!([void])).unwrap_err().contains("void"));
     }
 
     /// The pieces of a family of `forms`, its one type built.
