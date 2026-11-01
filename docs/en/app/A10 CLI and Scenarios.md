@@ -8,7 +8,7 @@ tags: [app, cli, scenarios]
 
 # A10 CLI and Scenarios
 
-> **Rust platform (2026-10-31):** this note describes the TypeScript reference, which is frozen ([[ADR-0020 Rust Platform on BIMCraft with Three Modules]]). In Rust, `intracraft-scenarios` reads the same scenario files and `intracraft-cli scenario <id|all>` runs them (phase R4 of [[A19 Rust Implementation Plan]]); BIMCraft's own CLI and MCP server run every command, IntraCraft's included.
+> **Rust platform (2026-10-31):** this note describes the TypeScript reference, which is frozen ([[ADR-0020 Rust Platform on BIMCraft with Three Modules]]). In Rust, `intracraft-scenarios` reads the same scenario files and `cargo run -p intracraft-cli -- scenario <id|all>` (in `platform/`) runs them: all analytic and layout scenarios pass since 2026-11-01 ([[A19 Rust Implementation Plan]]); BIMCraft's own CLI and MCP server run every command, IntraCraft's included.
 
 ## 1. Scenarios (`packages/scenarios`)
 

@@ -73,7 +73,7 @@ R5 and R5b can run in parallel with R1–R4; R8 in parallel with R3–R7. By mod
 - `intracraft-des` (`platform/sim/des`): event queue ordered by (time µs, priority, sequence); seeded random generator: the reference's PCG32 (XSH-RR) ported bit for bit, so the same seed gives the same arrivals as the TypeScript run; kinematics (trapezoidal profiles, T04); flow network built from the model; line conveyor without accumulation (ADR-0007); turntable (ADR-0008); transfer (ADR-0009); photoeye; source; sink.
 - Port order: kinematics → event queue → network → line conveyor → source/sink → photoeye → turntable → transfer.
 - Golden results: export the event logs of the TypeScript scenarios once (`pnpm run scenario all`) into `test_data/`; the Rust tests compare against them.
-- `sim-scenarios` + CLI `scenario <id|all>`.
+- `intracraft-scenarios` + CLI `intracraft-cli scenario <id|all>` (**done 2026-11-01**: it reads the reference's `analytic.json`, `layouts.json` and `physics.json`; the 15 analytic and layout scenarios pass on the Rust engines, the 21 physics ones are listed as not run until the bench harness of R5).
 - **Tests:** T1 12.25 s, T2 ≈ 0.185 pallets/s, T3 6.5 s, T4 7.4 s, T5 32 J, all within 1 %; scenario event logs identical; determinism (same layout and seed → same log, run twice and on two threads).
 - **Exit:** `bimcraft-cli scenario all` passes with the same numbers as `pnpm run scenario all`.
 

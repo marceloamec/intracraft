@@ -1857,6 +1857,14 @@ dependencies = [
 ]
 
 [[package]]
+name = "intracraft-cli"
+version = "0.1.0"
+dependencies = [
+ "intracraft-library",
+ "intracraft-scenarios",
+]
+
+[[package]]
 name = "intracraft-control"
 version = "0.1.0"
 dependencies = [
@@ -1893,6 +1901,16 @@ name = "intracraft-physics"
 version = "0.1.0"
 dependencies = [
  "rapier3d",
+]
+
+[[package]]
+name = "intracraft-scenarios"
+version = "0.1.0"
+dependencies = [
+ "intracraft-des",
+ "intracraft-library",
+ "serde",
+ "serde_json",
 ]
 
 [[package]]
