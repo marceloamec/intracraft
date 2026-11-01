@@ -1071,11 +1071,16 @@ version = "0.36.2"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "5eb3f3effb2726fee23449293e67acbf6cc6ce35525b1722bd5743bb348114d5"
 dependencies = [
+ "eframe",
  "egui",
+ "egui-wgpu",
+ "image",
  "kittest",
  "log",
+ "pollster 1.0.1",
  "serde",
  "toml",
+ "wgpu",
 ]
 
 [[package]]
@@ -1753,6 +1758,21 @@ checksum = "cc4e190f5d26ca7051642629da2c52fc03bde85a03197c99408dcd291734c855"
 dependencies = [
  "equivalent",
  "hashbrown 0.17.1",
+]
+
+[[package]]
+name = "intracraft"
+version = "0.1.0"
+dependencies = [
+ "bimcraft-core",
+ "bimcraft-ui-egui",
+ "eframe",
+ "egui",
+ "egui_kittest",
+ "intracraft-des",
+ "intracraft-library",
+ "intracraft-model",
+ "serde_json",
 ]
 
 [[package]]
