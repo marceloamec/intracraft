@@ -6,7 +6,10 @@
 
 use std::f64::consts::{FRAC_PI_2, PI};
 
-use crate::flow::network::{ExitRule, OperationMode, Side, TransferData, TransferDirection, TurntableData, TurntableExit};
+use crate::flow::network::{
+    ExitRule, LiftData, LiftPort, OperationMode, ProcessData, ProcessingMode, Side, TransferData, TransferDirection, TurntableData,
+    TurntableExit,
+};
 use crate::flow::sim::{EPS, Line};
 use crate::kinematics::{MoveProfile, profile_position_at, profile_time};
 use crate::rng::Pcg32;
@@ -556,10 +559,337 @@ fn is_centred(deck: &Line) -> bool {
     deck.pallets.first().is_some_and(|p| deck.incoming.is_none() && deck.holding && p.front >= deck.end - EPS)
 }
 
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+pub enum ProcessPhase {
+    Idle,
+    Receiving,
+    Processing,
+    Discharging,
+}
+
+/// The process station (S11): a short deck where one pallet at a time stops and is processed for a time.
+/// idle → receiving (the pallet stops centred) → processing (a timed step) → discharging (the deck runs it out through
+/// OUT; blocked while the next object is full) → idle.
+pub struct ProcessStation {
+    pub id: String,
+    pub data: ProcessData,
+    pub deck: usize,
+    pub phase: ProcessPhase,
+    /// Where OUT leads: the instance, the gap to it and its port.
+    output: (Option<String>, f64, Option<String>),
+    rng: Pcg32,
+    counters: Counters,
+    working: f64,
+    blocked: f64,
+    total: f64,
+    processed: u64,
+    processing_sum: SimTime,
+}
+
+impl ProcessStation {
+    pub fn new(
+        id: &str,
+        data: ProcessData,
+        deck: usize,
+        output: (Option<String>, f64, Option<String>),
+        seed: u64,
+        stream: u64,
+    ) -> ProcessStation {
+        ProcessStation {
+            id: id.to_string(),
+            data,
+            deck,
+            phase: ProcessPhase::Idle,
+            output,
+            rng: Pcg32::new(seed, stream),
+            counters: Counters::default(),
+            working: 0.0,
+            blocked: 0.0,
+            total: 0.0,
+            processed: 0,
+            processing_sum: 0,
+        }
+    }
+
+    fn entry_deck(&self, port: Option<&str>) -> Option<usize> {
+        (port == Some("IN")).then_some(self.deck)
+    }
+
+    fn can_receive(&self, port: Option<&str>, lines: &[Line]) -> bool {
+        self.entry_deck(port).is_some() && self.phase == ProcessPhase::Idle && lines[self.deck].pallets.is_empty()
+    }
+
+    fn receive(&mut self, pallet_length: f64, now: SimTime, lines: &mut [Line]) {
+        self.counters.start_cycle(now);
+        self.phase = ProcessPhase::Receiving;
+        let d = &mut lines[self.deck];
+        d.end = (self.data.length + pallet_length) / 2.0;
+        d.downstream = None;
+    }
+
+    fn step(&mut self, now: SimTime, lines: &[Line]) -> StationStep {
+        if self.phase == ProcessPhase::Receiving && is_centred(&lines[self.deck]) {
+            self.phase = ProcessPhase::Processing;
+            return StationStep { changed: true, wait: Some(self.draw_processing_time()) };
+        }
+        if self.phase == ProcessPhase::Discharging && lines[self.deck].pallets.is_empty() {
+            self.phase = ProcessPhase::Idle;
+            self.counters.end_cycle(now);
+            return StationStep { changed: true, wait: None };
+        }
+        StationStep::default()
+    }
+
+    fn finish_timed_step(&mut self, lines: &mut [Line]) {
+        self.processed += 1;
+        // The processed pallet may now run out through OUT.
+        let d = &mut lines[self.deck];
+        d.end = self.data.length;
+        d.holding = false;
+        if let Some(target) = &self.output.0 {
+            d.downstream = Some(target.clone());
+            d.gap = self.output.1;
+            if self.output.2.is_some() {
+                d.downstream_port = self.output.2.clone();
+            }
+        }
+        self.phase = ProcessPhase::Discharging;
+    }
+
+    fn accumulate(&mut self, seconds: f64, lines: &[Line]) {
+        self.total += seconds;
+        if self.phase == ProcessPhase::Processing {
+            self.working += seconds;
+        } else if self.phase == ProcessPhase::Discharging && lines[self.deck].is_blocked() {
+            self.blocked += seconds;
+        }
+    }
+
+    fn statistics(&self) -> Vec<(&'static str, f64)> {
+        let share = |s: f64| if self.total > 0.0 { s / self.total } else { 0.0 };
+        vec![
+            ("utilization", share(self.working)),
+            ("blockedShare", share(self.blocked)),
+            ("idleShare", share(self.total - self.working - self.blocked)),
+            ("palletsProcessed", self.processed as f64),
+            (
+                "meanProcessingTime",
+                if self.processed > 0 { self.processing_sum as f64 / self.processed as f64 / US_PER_S as f64 } else { 0.0 },
+            ),
+            ("meanCycleTime", self.counters.mean_cycle()),
+        ]
+    }
+
+    /// The next pallet's processing time, µs: fixed, normal (cut at 0) or exponential about the mean.
+    fn draw_processing_time(&mut self) -> SimTime {
+        let mean = self.data.processing_time;
+        let seconds = match self.data.mode {
+            ProcessingMode::Fixed => mean,
+            // Box–Muller, drawing in the reference's order.
+            ProcessingMode::Normal => {
+                let r = (-2.0 * (1.0 - self.rng.next_f64()).ln()).sqrt();
+                mean + self.data.processing_std_dev * r * (2.0 * PI * self.rng.next_f64()).cos()
+            }
+            ProcessingMode::Exponential => -mean * (1.0 - self.rng.next_f64()).ln(),
+        };
+        let time = from_seconds(seconds.max(0.0));
+        self.processing_sum += time;
+        time
+    }
+}
+
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+pub enum LiftPhase {
+    Idle,
+    Receiving,
+    Moving,
+    Discharging,
+    Returning,
+}
+
+#[derive(Clone, Copy, Debug)]
+struct VerticalMove {
+    start: SimTime,
+    from: f64,
+    to: f64,
+    profile: MoveProfile,
+}
+
+/// The exit a lift uses: the first connected one in the definition's order of preference.
+#[derive(Clone, Debug)]
+struct LiftExit {
+    port: LiftPort,
+    target: String,
+    gap: f64,
+    target_port: String,
+}
+
+/// The manual lift table, the scissor lift table and the pallet elevator (S12–S14, ADR-0013): one deck takes a pallet
+/// at the entry height, the station moves it to the exit height, the deck runs it out and the station goes back empty.
+/// idle → receiving (the pallet stops centred) → moving (a timed step) → discharging (blocked while the next object is
+/// full) → returning (a timed step) → idle. The deck conveys both ways: a pallet that leaves on the side it came in runs
+/// out backwards without turning.
+pub struct LiftStation {
+    pub id: String,
+    pub data: LiftData,
+    pub deck: usize,
+    pub phase: LiftPhase,
+    height: f64,
+    vertical: Option<VerticalMove>,
+    exit: Option<LiftExit>,
+    counters: Counters,
+    busy: f64,
+    blocked: f64,
+    total: f64,
+    moved: u64,
+}
+
+impl LiftStation {
+    pub fn new(id: &str, data: LiftData, deck: usize) -> LiftStation {
+        let exit = data.exit_ports.iter().find_map(|port| {
+            data.exits.get(&port.port_id).map(|e| LiftExit {
+                port: port.clone(),
+                target: e.target.clone(),
+                gap: e.gap,
+                target_port: e.port.clone(),
+            })
+        });
+        LiftStation {
+            id: id.to_string(),
+            height: data.entry.height,
+            data,
+            deck,
+            phase: LiftPhase::Idle,
+            vertical: None,
+            exit,
+            counters: Counters::default(),
+            busy: 0.0,
+            blocked: 0.0,
+            total: 0.0,
+            moved: 0,
+        }
+    }
+
+    fn entry_deck(&self, port: Option<&str>) -> Option<usize> {
+        (port == Some(self.data.entry.port_id.as_str())).then_some(self.deck)
+    }
+
+    fn busy_status(&self) -> Option<&'static str> {
+        self.vertical.map(|m| if m.to > m.from { "lifting" } else { "lowering" })
+    }
+
+    fn can_receive(&self, port: Option<&str>, lines: &[Line]) -> bool {
+        self.entry_deck(port).is_some() && self.phase == LiftPhase::Idle && lines[self.deck].pallets.is_empty()
+    }
+
+    fn receive(&mut self, pallet_length: f64, now: SimTime, lines: &mut [Line]) {
+        self.counters.start_cycle(now);
+        self.phase = LiftPhase::Receiving;
+        let d = &mut lines[self.deck];
+        d.end = (self.data.length + pallet_length) / 2.0;
+        d.downstream = None;
+    }
+
+    /// A centred pallet: move to the exit height. An emptied deck: go back to the entry height.
+    fn step(&mut self, now: SimTime, lines: &[Line]) -> StationStep {
+        if self.phase == LiftPhase::Receiving && is_centred(&lines[self.deck]) {
+            self.phase = LiftPhase::Moving;
+            let to = self.exit.as_ref().map_or(self.height, |e| e.port.height);
+            return StationStep { changed: true, wait: Some(self.start_move(to, now)) };
+        }
+        if self.phase == LiftPhase::Discharging && self.exit.is_some() && lines[self.deck].pallets.is_empty() {
+            self.moved += 1;
+            self.phase = LiftPhase::Returning;
+            let to = self.data.entry.height;
+            return StationStep { changed: true, wait: Some(self.start_move(to, now)) };
+        }
+        StationStep::default()
+    }
+
+    fn finish_timed_step(&mut self, now: SimTime, lines: &mut [Line]) {
+        if let Some(m) = self.vertical.take() {
+            self.height = m.to;
+        }
+        match self.phase {
+            LiftPhase::Moving => {
+                self.phase = LiftPhase::Discharging;
+                // Seen from the exit side the centred pallet is still centred: only the direction changes.
+                if let Some(exit) = &self.exit {
+                    let d = &mut lines[self.deck];
+                    d.end = self.data.length;
+                    d.holding = false;
+                    d.downstream = Some(exit.target.clone());
+                    d.gap = exit.gap;
+                    d.downstream_port = Some(exit.target_port.clone());
+                }
+            }
+            LiftPhase::Returning => {
+                self.phase = LiftPhase::Idle;
+                self.counters.end_cycle(now);
+            }
+            _ => {}
+        }
+    }
+
+    /// The deck's height at `t` µs, following the vertical profile during a move, m.
+    pub fn height_at(&self, t: SimTime) -> f64 {
+        let Some(m) = self.vertical else { return self.height };
+        let covered = profile_position_at(&m.profile, (t - m.start) as f64 / US_PER_S as f64).unwrap_or(m.profile.distance);
+        m.from + (m.to - m.from).signum() * covered
+    }
+
+    /// The deck runs from the entry end; while discharging, towards the exit end.
+    fn path_of(&self) -> DeckPath {
+        let from_end = match (&self.exit, self.phase) {
+            (Some(e), LiftPhase::Discharging) => !e.port.at_end,
+            _ => self.data.entry.at_end,
+        };
+        DeckPath { x: if from_end { self.data.length } else { 0.0 }, z: 0.0, heading: if from_end { PI } else { 0.0 } }
+    }
+
+    fn accumulate(&mut self, seconds: f64, lines: &[Line]) {
+        self.total += seconds;
+        if self.phase == LiftPhase::Idle {
+            return;
+        }
+        if self.phase == LiftPhase::Discharging && lines[self.deck].is_blocked() {
+            self.blocked += seconds;
+        } else {
+            self.busy += seconds;
+        }
+    }
+
+    fn statistics(&self) -> Vec<(&'static str, f64)> {
+        let share = |s: f64| if self.total > 0.0 { s / self.total } else { 0.0 };
+        vec![
+            ("utilization", share(self.busy)),
+            ("blockedShare", share(self.blocked)),
+            ("idleShare", share(self.total - self.busy - self.blocked)),
+            ("palletsMoved", self.moved as f64),
+            ("meanCycleTime", self.counters.mean_cycle()),
+        ]
+    }
+
+    /// Starts a vertical move to `to`, m; its time, µs (0 when already there).
+    fn start_move(&mut self, to: f64, now: SimTime) -> SimTime {
+        let distance = (to - self.height).abs();
+        if distance < EPS {
+            return 0;
+        }
+        let up = to > self.height;
+        let speed = if up { self.data.up_speed } else { self.data.down_speed };
+        let profile = MoveProfile { distance, max_speed: speed, accel: self.data.vertical_accel, decel: Some(self.data.vertical_accel) };
+        self.vertical = Some(VerticalMove { start: now, from: self.height, to, profile });
+        from_seconds(profile_time(&profile).unwrap_or(0.0))
+    }
+}
+
 /// A station of the run.
 pub enum Station {
     Turntable(Box<Turntable>),
     Transfer(Box<Transfer>),
+    Process(Box<ProcessStation>),
+    Lift(Box<LiftStation>),
 }
 
 impl Station {
@@ -567,6 +897,8 @@ impl Station {
         match self {
             Station::Turntable(t) => &t.id,
             Station::Transfer(t) => &t.id,
+            Station::Process(t) => &t.id,
+            Station::Lift(t) => &t.id,
         }
     }
 
@@ -574,6 +906,8 @@ impl Station {
         match self {
             Station::Turntable(t) => vec![t.deck],
             Station::Transfer(t) => vec![t.rollers, t.chains],
+            Station::Process(t) => vec![t.deck],
+            Station::Lift(t) => vec![t.deck],
         }
     }
 
@@ -581,6 +915,8 @@ impl Station {
         match self {
             Station::Turntable(t) => t.entry_deck(port),
             Station::Transfer(t) => t.entry_deck(port),
+            Station::Process(t) => t.entry_deck(port),
+            Station::Lift(t) => t.entry_deck(port),
         }
     }
 
@@ -588,6 +924,8 @@ impl Station {
         match self {
             Station::Turntable(t) => t.can_receive(port, lines),
             Station::Transfer(t) => t.can_receive(port, lines),
+            Station::Process(t) => t.can_receive(port, lines),
+            Station::Lift(t) => t.can_receive(port, lines),
         }
     }
 
@@ -595,6 +933,7 @@ impl Station {
         match self {
             Station::Turntable(t) => t.prepare_for(port, now, lines),
             Station::Transfer(t) => t.prepare_for(port, lines),
+            Station::Process(_) | Station::Lift(_) => None,
         }
     }
 
@@ -602,6 +941,8 @@ impl Station {
         match self {
             Station::Turntable(t) => t.receive(port, pallet_length, now, lines),
             Station::Transfer(t) => t.receive(port, pallet_length, now, lines),
+            Station::Process(t) => t.receive(pallet_length, now, lines),
+            Station::Lift(t) => t.receive(pallet_length, now, lines),
         }
     }
 
@@ -609,6 +950,8 @@ impl Station {
         match self {
             Station::Turntable(t) => t.step(now, lines),
             Station::Transfer(t) => t.step(now, lines),
+            Station::Process(t) => t.step(now, lines),
+            Station::Lift(t) => t.step(now, lines),
         }
     }
 
@@ -616,6 +959,8 @@ impl Station {
         match self {
             Station::Turntable(t) => t.finish_timed_step(lines),
             Station::Transfer(t) => t.finish_timed_step(now, lines),
+            Station::Process(t) => t.finish_timed_step(lines),
+            Station::Lift(t) => t.finish_timed_step(now, lines),
         }
     }
 
@@ -623,6 +968,8 @@ impl Station {
         match self {
             Station::Turntable(t) => t.busy_status(),
             Station::Transfer(t) => t.busy_status(),
+            Station::Process(t) => (t.phase == ProcessPhase::Processing).then_some("processing"),
+            Station::Lift(t) => t.busy_status(),
         }
     }
 
@@ -630,6 +977,16 @@ impl Station {
         match self {
             Station::Turntable(t) => t.path_at(now),
             Station::Transfer(t) => t.path_of(_deck),
+            Station::Process(_) => DeckPath::default(),
+            Station::Lift(t) => t.path_of(),
+        }
+    }
+
+    /// The deck's height above its base, where it moves up and down (a lift), for the snapshot, m.
+    pub fn height_at(&self, now: SimTime) -> Option<f64> {
+        match self {
+            Station::Lift(t) => Some(t.height_at(now)),
+            _ => None,
         }
     }
 
@@ -638,13 +995,16 @@ impl Station {
         match self {
             Station::Turntable(t) => Some(t.angle_at(now)),
             Station::Transfer(_) => None,
+            Station::Process(_) | Station::Lift(_) => None,
         }
     }
 
-    pub fn accumulate(&mut self, seconds: f64) {
+    pub fn accumulate(&mut self, seconds: f64, lines: &[Line]) {
         match self {
             Station::Turntable(t) => t.accumulate(seconds),
             Station::Transfer(t) => t.counters.accumulate(seconds, t.phase != TransferPhase::Idle),
+            Station::Process(t) => t.accumulate(seconds, lines),
+            Station::Lift(t) => t.accumulate(seconds, lines),
         }
     }
 
@@ -652,6 +1012,8 @@ impl Station {
         match self {
             Station::Turntable(t) => t.statistics(),
             Station::Transfer(t) => t.statistics(),
+            Station::Process(t) => t.statistics(),
+            Station::Lift(t) => t.statistics(),
         }
     }
 }

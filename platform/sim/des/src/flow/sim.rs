@@ -14,7 +14,7 @@ use intracraft_library::layout::Rule;
 use intracraft_library::reference::Reference;
 
 use crate::flow::network::{FlowIssue, FlowNetwork, FlowNode, Generation, Kind, LineData, SensorData, Side, SinkData, SourceData};
-use crate::flow::station::{Station, Transfer, Turntable};
+use crate::flow::station::{LiftStation, ProcessStation, Station, Transfer, Turntable};
 use crate::kinematics::{Segment, time_to_reach};
 use crate::queue::Simulator;
 use crate::rng::Pcg32;
@@ -125,6 +125,10 @@ impl Line {
 
     pub(crate) fn length(&self) -> f64 {
         self.data.length
+    }
+
+    pub(crate) fn is_blocked(&self) -> bool {
+        self.status == LineStatus::Blocked
     }
 
     fn rear_tail(&self) -> Option<f64> {
@@ -369,6 +373,8 @@ pub struct Snapshot {
     pub signals: Signals,
     /// The deck heading of every turntable (rad, its own frame), following the platform while it turns.
     pub angles: BTreeMap<String, f64>,
+    /// The deck height of every lift table and elevator (m above its base), following the vertical move.
+    pub heights: BTreeMap<String, f64>,
 }
 
 /// Statistics per instance id, keyed as the definition's `statistics` list says (times in s).
@@ -458,6 +464,20 @@ impl FlowSimulation {
                     f.lines.push(Line::deck(&format!("{}#rollers", b.id), &b.name, &b.id, r));
                     f.lines.push(Line::deck(&format!("{}#chains", b.id), &b.name, &b.id, c));
                     f.stations.push(Station::Transfer(Box::new(Transfer::new(&b.id, (**data).clone(), rollers, chains))));
+                }
+                Kind::Process(data) => {
+                    let deck = f.lines.len();
+                    let d = deck_data(data.length, data.nominal_speed, data.accel, data.pallet_side_along_travel);
+                    f.lines.push(Line::deck(&b.id, &b.name, &b.id, d));
+                    let output = (b.downstream.clone(), b.downstream_gap, b.downstream_port.clone());
+                    let station = ProcessStation::new(&b.id, (**data).clone(), deck, output, seed, index as u64 + 1);
+                    f.stations.push(Station::Process(Box::new(station)));
+                }
+                Kind::Lift(data) => {
+                    let deck = f.lines.len();
+                    let d = deck_data(data.length, data.nominal_speed, data.accel, data.pallet_side_along_travel);
+                    f.lines.push(Line::deck(&b.id, &b.name, &b.id, d));
+                    f.stations.push(Station::Lift(Box::new(LiftStation::new(&b.id, (**data).clone(), deck))));
                 }
                 Kind::Source(data) => f.sources.push(Source {
                     id: b.id.clone(),
@@ -606,6 +626,7 @@ impl FlowSimulation {
             status.insert(s.id.clone(), if s.detecting { "detecting" } else { "clear" });
         }
         let mut angles = BTreeMap::new();
+        let mut heights = BTreeMap::new();
         for st in &self.stations {
             let decks = st.decks();
             let deck_status = if decks.iter().any(|&d| self.lines[d].status == LineStatus::Blocked) {
@@ -619,8 +640,11 @@ impl FlowSimulation {
             if let Some(a) = st.angle_at(now) {
                 angles.insert(st.id().to_string(), a);
             }
+            if let Some(h) = st.height_at(now) {
+                heights.insert(st.id().to_string(), h);
+            }
         }
-        Snapshot { time: now, pallets, status, signals: self.signals.clone(), angles }
+        Snapshot { time: now, pallets, status, signals: self.signals.clone(), angles, heights }
     }
 
     pub fn statistics(&mut self) -> Statistics {
@@ -1194,7 +1218,7 @@ impl FlowSimulation {
             l.accumulate(seconds);
         }
         for st in &mut self.stations {
-            st.accumulate(seconds);
+            st.accumulate(seconds, &self.lines);
         }
         for s in &mut self.sensors {
             s.total += seconds;

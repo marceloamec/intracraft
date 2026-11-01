@@ -191,11 +191,61 @@ pub struct TransferData {
     pub exits: std::collections::BTreeMap<String, StationExit>,
 }
 
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+pub enum ProcessingMode {
+    Fixed,
+    Normal,
+    Exponential,
+}
+
+/// The process station (S11): a short deck where one pallet at a time is processed for a time.
+#[derive(Clone, Debug, PartialEq)]
+pub struct ProcessData {
+    pub length: f64,
+    pub nominal_speed: f64,
+    pub accel: f64,
+    pub pallet_side_along_travel: Side,
+    pub mode: ProcessingMode,
+    /// The fixed time, or the distribution's mean, s.
+    pub processing_time: f64,
+    pub processing_std_dev: f64,
+}
+
+/// A port of a lift station: which deck end it is at and the deck's height there, m.
+#[derive(Clone, Debug, PartialEq)]
+pub struct LiftPort {
+    pub port_id: String,
+    /// At x = length (the far end); else at x = 0.
+    pub at_end: bool,
+    pub height: f64,
+}
+
+/// A manual lift table, a scissor lift table or a pallet elevator (S12–S14, ADR-0013): one deck takes a pallet at the
+/// entry height, the station moves it to the exit height and gives it out.
+#[derive(Clone, Debug, PartialEq)]
+pub struct LiftData {
+    pub length: f64,
+    pub nominal_speed: f64,
+    pub accel: f64,
+    pub pallet_side_along_travel: Side,
+    pub entry: LiftPort,
+    /// The exit ports in order of preference (the elevator prefers OUT_NEAR, S14 §1).
+    pub exit_ports: Vec<LiftPort>,
+    pub up_speed: f64,
+    pub down_speed: f64,
+    pub vertical_accel: f64,
+    /// The operator side of a manual lift table (S12), checked for a source or a sink there.
+    pub operator_port: Option<String>,
+    pub exits: std::collections::BTreeMap<String, StationExit>,
+}
+
 #[derive(Clone, Debug, PartialEq)]
 pub enum Kind {
     Line(LineData),
     Turntable(Box<TurntableData>),
     Transfer(Box<TransferData>),
+    Process(Box<ProcessData>),
+    Lift(Box<LiftData>),
     Source(Box<SourceData>),
     Sink(SinkData),
     Sensor(SensorData),
@@ -220,7 +270,7 @@ impl FlowNode {
     fn output_port(&self) -> Option<&'static str> {
         match self.kind {
             Kind::Line(_) => Some("B"),
-            Kind::Source(_) => Some("OUT"),
+            Kind::Source(_) | Kind::Process(_) => Some("OUT"),
             _ => None,
         }
     }
@@ -268,10 +318,17 @@ pub fn build_flow_network(layout: &Layout, library: &Library) -> FlowNetwork {
             }
             continue;
         }
-        if let Kind::Transfer(t) = &mut nodes[from].kind {
-            t.exits
-                .insert(c.from.port_id.clone(), StationExit { target: c.to.instance_id.clone(), gap: c.gap, port: c.to.port_id.clone() });
-            continue;
+        let exit = StationExit { target: c.to.instance_id.clone(), gap: c.gap, port: c.to.port_id.clone() };
+        match &mut nodes[from].kind {
+            Kind::Transfer(t) => {
+                t.exits.insert(c.from.port_id.clone(), exit);
+                continue;
+            }
+            Kind::Lift(l) => {
+                l.exits.insert(c.from.port_id.clone(), exit);
+                continue;
+            }
+            _ => {}
         }
         if nodes[from].output_port() != Some(c.from.port_id.as_str()) {
             continue;
@@ -349,6 +406,26 @@ fn create_kind(d: &Definition, base: &Base, p: &Values, reference: &Reference, i
             pallet_side_along_travel: side(p, "palletSideAlongTravel"),
             exits: Default::default(),
         })),
+        "des.process_station" => Kind::Process(Box::new(ProcessData {
+            length: num(p, "length", 0.0),
+            nominal_speed: num(p, "nominalSpeed", 0.0),
+            accel: num(p, "accel", 0.0),
+            pallet_side_along_travel: side(p, "palletSideAlongTravel"),
+            mode: match text("processingMode").as_deref() {
+                Some("normal") => ProcessingMode::Normal,
+                Some("exponential") => ProcessingMode::Exponential,
+                _ => ProcessingMode::Fixed,
+            },
+            processing_time: num(p, "processingTime", 0.0),
+            processing_std_dev: num(p, "processingStdDev", 0.0).max(0.0),
+        })),
+        "des.lift_station" => match lift(d, p) {
+            Ok(l) => Kind::Lift(Box::new(l)),
+            Err(e) => {
+                issues.push(issue(base, "behaviorNotAvailable", e));
+                Kind::Inert { behavior: "des.lift_station".into() }
+            }
+        },
         "des.source" => source(base, p, reference, issues),
         "des.sink" => {
             let after_time = text("removalMode").as_deref() == Some("afterTime");
@@ -385,6 +462,47 @@ fn create_kind(d: &Definition, base: &Base, p: &Values, reference: &Reference, i
             Kind::Inert { behavior: behavior.to_string() }
         }
     }
+}
+
+/// The entry and exit ports of a lift station with their deck heights, from the definition's ports. The manual lift
+/// table's ports work both ways: `flowDirection` makes OP (operator) or LINE the entry.
+fn lift(d: &Definition, p: &Values) -> Result<LiftData, String> {
+    let length = num(p, "length", 0.0);
+    let ports = intracraft_library::ports::resolve_ports(d, p)?;
+    let lift_port = |r: &intracraft_library::ports::ResolvedPort| LiftPort {
+        port_id: r.id.clone(),
+        at_end: r.local.x > length / 2.0,
+        height: r.local.y,
+    };
+    let by_id = |id: &str| ports.iter().find(|r| r.id == id);
+    use intracraft_library::definition::Direction;
+    let manual = p.contains_key("flowDirection");
+    let mut entry = ports.iter().find(|r| r.direction == Direction::In).map(lift_port);
+    let mut exits: Vec<LiftPort> = ports.iter().filter(|r| r.direction == Direction::Out).map(lift_port).collect();
+    if manual && let (Some(op), Some(line)) = (by_id("OP"), by_id("LINE")) {
+        let out = p.get("flowDirection") == Some(&Value::Text("out".into()));
+        entry = Some(lift_port(if out { line } else { op }));
+        exits = vec![lift_port(if out { op } else { line })];
+    }
+    let entry = entry.ok_or_else(|| format!("{} has no entry port", d.id))?;
+    if exits.is_empty() {
+        return Err(format!("{} has no exit port", d.id));
+    }
+    // A speed each way (tables), or one speed both ways (elevator).
+    let vertical = num(p, "verticalSpeed", 0.0);
+    Ok(LiftData {
+        length,
+        nominal_speed: num(p, "nominalSpeed", 0.0),
+        accel: num(p, "accel", 0.0),
+        pallet_side_along_travel: side(p, "palletSideAlongTravel"),
+        entry,
+        exit_ports: exits,
+        up_speed: num(p, "liftSpeed", vertical),
+        down_speed: num(p, "lowerSpeed", vertical),
+        vertical_accel: num(p, "verticalAccel", 0.0),
+        operator_port: manual.then(|| "OP".to_string()),
+        exits: Default::default(),
+    })
 }
 
 /// A station list such as "0, 90, 180, 270" (degrees) as angles in rad; entries that aren't numbers are skipped.
@@ -467,15 +585,79 @@ fn connection_issues(node: &FlowNode, nodes: &[FlowNode], reference: &Reference)
     match &node.kind {
         Kind::Line(_) if next.is_none() => vec![issue(&node.base, "openEnd", "output is not connected; pallets stop at its end".into())],
         Kind::Transfer(t) => transfer_issues(&node.base, t),
+        Kind::Process(d) => process_issues(&node.base, d, next.is_some(), reference),
+        Kind::Lift(l) => lift_issues(node, l, nodes),
         Kind::Turntable(t) if t.exits.is_empty() => {
             vec![issue(&node.base, "noExit", "no station is connected to the entry of another object; pallets stay on it".into())]
         }
         Kind::Sensor(s) => sensor_issues(&node.base, s, nodes.iter().find(|n| n.base.id == s.host), reference),
-        Kind::Source(_) if !matches!(next.map(|n| &n.kind), Some(Kind::Line(_))) => {
+        Kind::Source(_) if !matches!(next.map(|n| &n.kind), Some(Kind::Line(_) | Kind::Lift(_))) => {
             vec![issue(&node.base, "sourceNotConnected", "must be connected to the entry of a conveyor; it creates no pallets".into())]
         }
         _ => vec![],
     }
+}
+
+fn process_issues(base: &Base, d: &ProcessData, connected: bool, reference: &Reference) -> Vec<FlowIssue> {
+    let mut out = Vec::new();
+    if !connected {
+        out.push(issue(base, "noExit", "OUT is not connected; the pallet stays on it after processing".into()));
+    }
+    let along = reference.pallet_type("eur").map_or(0.0, |e| if d.pallet_side_along_travel == Side::Long { e.length } else { e.width });
+    if d.length < along + 0.1 {
+        out.push(issue(
+            base,
+            "deckTooShort",
+            format!("the deck ({} mm) is shorter than the pallet plus 100 mm", round1(d.length * 1000.0)),
+        ));
+    }
+    out
+}
+
+/// The exits of a lift station (S12–S14 §4) and the operator side of a manual table.
+fn lift_issues(node: &FlowNode, l: &LiftData, nodes: &[FlowNode]) -> Vec<FlowIssue> {
+    let base = &node.base;
+    let mut out = Vec::new();
+    let connected: Vec<&LiftPort> = l.exit_ports.iter().filter(|p| l.exits.contains_key(&p.port_id)).collect();
+    if let Some(operator) = &l.operator_port {
+        let feeder =
+            nodes.iter().find(|n| n.base.downstream.as_deref() == Some(&base.id) && n.base.downstream_port.as_deref() == Some(operator));
+        let taker = l.exits.get(operator);
+        if feeder.is_none() && taker.is_none() {
+            out.push(issue(
+                base,
+                "noOperator",
+                format!("{operator} is not connected: place a source (input) or a sink (output) for the operator there"),
+            ));
+        }
+        let operator_is_entry = &l.entry.port_id == operator;
+        let taker_is_sink =
+            taker.and_then(|t| nodes.iter().find(|n| n.base.id == t.target)).is_some_and(|n| matches!(n.kind, Kind::Sink(_)));
+        let feeder_is_source = feeder.is_some_and(|n| matches!(n.kind, Kind::Source(_)));
+        if (operator_is_entry && taker_is_sink) || (!operator_is_entry && feeder_is_source) {
+            let text = if operator_is_entry {
+                "an input table needs a source on OP, not a sink"
+            } else {
+                "an output table needs a sink on OP, not a source"
+            };
+            out.push(issue(base, "operatorMismatch", text.into()));
+        }
+        if !operator_is_entry {
+            return out;
+        }
+    }
+    let names = |ports: &[&LiftPort]| ports.iter().map(|p| p.port_id.clone()).collect::<Vec<String>>();
+    if connected.is_empty() {
+        let all: Vec<&LiftPort> = l.exit_ports.iter().collect();
+        out.push(issue(base, "noExit", format!("{} is not connected; the pallet stays on it", names(&all).join(" / "))));
+    } else if connected.len() > 1 {
+        out.push(issue(
+            base,
+            "twoExits",
+            format!("{} are both connected; {} is used", names(&connected).join(" and "), connected[0].port_id),
+        ));
+    }
+    out
 }
 
 fn transfer_issues(base: &Base, t: &TransferData) -> Vec<FlowIssue> {

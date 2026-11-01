@@ -393,4 +393,43 @@ mod tests {
             assert!(((rate - 120.0) / 120.0).abs() < 0.01, "{rate} pallets/h");
         }
     }
+
+    /// The reference's layout scenarios (`packages/scenarios/scenarios/layouts.json`): the same files, the same expected
+    /// values, within 1 %.
+    mod scenarios {
+        use super::super::*;
+        use crate::time::from_seconds;
+        use intracraft_library::layout::Project;
+
+        fn statistic(json: &str, seconds: f64, instance: &str, statistic: &str) -> f64 {
+            let lib = Library::built_in().unwrap();
+            let project = Project::read(json).unwrap();
+            let mut sim = simulate(&project.layout, &lib, project.seed).unwrap();
+            sim.run_until(from_seconds(seconds)).unwrap();
+            let stats = sim.statistics();
+            *stats.get(instance).and_then(|s| s.get(statistic)).unwrap_or_else(|| panic!("no {instance}.{statistic}: {:?}", sim.issues))
+        }
+
+        fn within(actual: f64, expected: f64) {
+            assert!(((actual - expected) / expected).abs() < 0.01, "{actual} is not within 1 % of {expected}");
+        }
+
+        #[test]
+        fn proc_1_the_process_line_processes_30_pallets_an_hour() {
+            let json = include_str!("../../../../../packages/scenarios/scenarios/layouts/demo-process-line.intracraft.json");
+            within(statistic(json, 3600.0, "process_station1", "palletsProcessed"), 30.0);
+        }
+
+        #[test]
+        fn lift_c_the_c_elevator_delivers_60_pallets_an_hour() {
+            let json = include_str!("../../../../../packages/scenarios/scenarios/layouts/demo-elevator-c.intracraft.json");
+            within(statistic(json, 28_800.0, "sink1", "throughputPerHour"), 60.0);
+        }
+
+        #[test]
+        fn lift_out_the_manual_output_table_delivers_55_34_pallets_an_hour() {
+            let json = include_str!("../../../../../packages/scenarios/scenarios/layouts/demo-manual-output.intracraft.json");
+            within(statistic(json, 28_800.0, "sink1", "throughputPerHour"), 55.34204458109147);
+        }
+    }
 }
