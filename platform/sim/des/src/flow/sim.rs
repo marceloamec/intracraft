@@ -14,12 +14,12 @@ use intracraft_library::layout::Rule;
 use intracraft_library::reference::Reference;
 
 use crate::flow::gravity::GravityLine;
-use crate::flow::network::{FlowIssue, FlowNetwork, FlowNode, Generation, Kind, LineData, SensorData, Side, SinkData, SourceData};
+use crate::flow::network::{FlowIssue, FlowNetwork, FlowNode, Kind, LineData, Side};
+use crate::flow::parts::{Photoeye, Sink, Source};
 use crate::flow::station::{LiftStation, ProcessStation, Station, Transfer, Turntable};
 use crate::kinematics::{Segment, time_to_reach};
 use crate::queue::Simulator;
-use crate::rng::Pcg32;
-use crate::time::{SimTime, US_PER_S, from_ms, from_seconds};
+use crate::time::{SimTime, US_PER_S, from_ms};
 
 const MAX_SETTLE_PASSES: usize = 10_000;
 /// Rule evaluations in a row at one instant before the controller is taken to oscillate.
@@ -177,162 +177,6 @@ fn travel(speed: f64, accel: f64, dt: f64) -> f64 {
     speed * moving + 0.5 * accel * moving * moving
 }
 
-struct Source {
-    id: String,
-    data: SourceData,
-    downstream: Option<String>,
-    downstream_port: Option<String>,
-    /// When the waiting pallet became due.
-    due_since: Option<SimTime>,
-    created: u64,
-    rejected: u64,
-    waiting: SimTime,
-    rng: Pcg32,
-}
-
-impl Source {
-    fn active(&self) -> bool {
-        self.data.max_pallets == 0.0 || ((self.created + self.rejected) as f64) < self.data.max_pallets
-    }
-
-    /// The delay to the next pallet: the interval, or an exponential draw with the interval as mean.
-    fn next_delay(&mut self) -> SimTime {
-        match self.data.generation {
-            Generation::FixedInterval => from_seconds(self.data.interval),
-            Generation::Exponential => from_seconds(-self.data.interval * (1.0 - self.rng.next_f64()).ln()),
-        }
-    }
-
-    fn along_length(&self) -> f64 {
-        if self.data.orientation == Side::Long { self.data.item.long } else { self.data.item.short }
-    }
-}
-
-struct Sink {
-    id: String,
-    data: SinkData,
-    incoming: i64,
-    busy_until: SimTime,
-    received: u64,
-    cycle_sum: SimTime,
-}
-
-impl Sink {
-    /// With a removal time the sink takes one pallet at a time; without, it is always free.
-    fn accepts(&self, now: SimTime) -> bool {
-        self.data.removal_time == 0.0 || (self.incoming == 0 && now >= self.busy_until)
-    }
-
-    fn receive(&mut self, p: &Pallet, now: SimTime) {
-        self.incoming -= 1;
-        self.received += 1;
-        self.cycle_sum += now - p.created_at;
-        self.busy_until = now + from_seconds(self.data.removal_time);
-    }
-}
-
-type Interval = (f64, f64);
-
-/// A photoelectric sensor (S06, T06): the beam is the segment sensor → reflector in the host's frame; each solid part
-/// of a pallet blocks it while the pallet's front lies in one interval, exactly, so every edge is predicted.
-struct Photoeye {
-    id: String,
-    data: SensorData,
-    raw: bool,
-    detecting: bool,
-    pending: Option<u64>,
-    pulses: u64,
-    occupied: f64,
-    total: f64,
-    cache: BTreeMap<String, Vec<Interval>>,
-    signal: String,
-}
-
-impl Photoeye {
-    fn signal_value(&self) -> bool {
-        self.detecting != self.data.active_on_dark
-    }
-
-    fn intervals(&mut self, p: &Pallet, reference: &Reference) -> Vec<Interval> {
-        let key = format!("{}|{:?}|{}|{}|{}|{}", p.type_id, p.along, p.length, p.width, p.height, p.load_height);
-        if let Some(c) = self.cache.get(&key) {
-            return c.clone();
-        }
-        let result = match beam_span(&self.data, p.width / 2.0) {
-            None => vec![],
-            Some((from, to)) => merge(solid_parts(p, self.data.beam_height, reference).iter().map(|(a, b)| (from + a, to + b)).collect()),
-        };
-        self.cache.insert(key, result.clone());
-        result
-    }
-
-    /// The output's delay after a beam change, µs: the response time, plus the filter when the beam frees.
-    fn delay_for(&self, blocked: bool) -> SimTime {
-        from_seconds(self.data.response_time + if blocked { 0.0 } else { self.data.filter })
-    }
-
-    fn commit(&mut self, state: bool) {
-        if state == self.detecting {
-            return;
-        }
-        if state {
-            self.pulses += 1;
-        }
-        self.detecting = state;
-    }
-}
-
-/// Positions along travel where the beam lies over the pallet's width (|lateral| ≤ half width); none when it passes
-/// beside the pallet.
-fn beam_span(s: &SensorData, half_width: f64) -> Option<Interval> {
-    let (s1, z1, s2, z2) = (s.sensor_s, s.sensor_lateral, s.reflector_s, s.reflector_lateral);
-    let (mut from, mut to) = (0.0, 1.0);
-    if z1 == z2 {
-        if z1.abs() > half_width {
-            return None;
-        }
-    } else {
-        let a = (-half_width - z1) / (z2 - z1);
-        let b = (half_width - z1) / (z2 - z1);
-        from = a.min(b).max(0.0);
-        to = a.max(b).min(1.0);
-        if from > to {
-            return None;
-        }
-    }
-    let (sf, st) = (s1 + from * (s2 - s1), s1 + to * (s2 - s1));
-    Some((sf.min(st), sf.max(st)))
-}
-
-/// The solid parts (m from the pallet's front) a level beam at `height` meets.
-fn solid_parts(p: &Pallet, height: f64, reference: &Reference) -> Vec<Interval> {
-    if height < 0.0 {
-        return vec![];
-    }
-    if height >= p.height {
-        return if height < p.height + p.load_height { vec![(0.0, p.length)] } else { vec![] };
-    }
-    let bands =
-        reference.pallet_type(&p.type_id).map(|t| if p.along == Side::Long { &t.occupancy.along_length } else { &t.occupancy.along_width });
-    match bands.and_then(|b| b.iter().find(|b| height >= b.from_height && height < b.to_height)) {
-        // Without a profile the pallet is solid.
-        None => vec![(0.0, p.length)],
-        Some(band) => band.solid.iter().map(|[a, b]| (*a, *b)).collect(),
-    }
-}
-
-fn merge(mut intervals: Vec<Interval>) -> Vec<Interval> {
-    intervals.sort_by(|a, b| a.0.total_cmp(&b.0));
-    let mut out: Vec<Interval> = Vec::new();
-    for (from, to) in intervals {
-        match out.last_mut() {
-            Some(last) if from <= last.1 => last.1 = last.1.max(to),
-            _ => out.push((from, to)),
-        }
-    }
-    out
-}
-
 #[derive(Clone, Debug, PartialEq)]
 enum Event {
     SourceArrival(usize),
@@ -486,32 +330,16 @@ impl FlowSimulation {
                     f.lines.push(Line::deck(&b.id, &b.name, &b.id, d));
                     f.stations.push(Station::Lift(Box::new(LiftStation::new(&b.id, (**data).clone(), deck))));
                 }
-                Kind::Source(data) => f.sources.push(Source {
-                    id: b.id.clone(),
-                    data: (**data).clone(),
-                    downstream: b.downstream.clone(),
-                    downstream_port: b.downstream_port.clone(),
-                    due_since: None,
-                    created: 0,
-                    rejected: 0,
-                    waiting: 0,
-                    rng: Pcg32::new(seed, index as u64 + 1),
-                }),
-                Kind::Sink(data) => {
-                    f.sinks.push(Sink { id: b.id.clone(), data: data.clone(), incoming: 0, busy_until: 0, received: 0, cycle_sum: 0 })
-                }
-                Kind::Sensor(data) => f.sensors.push(Photoeye {
-                    id: b.id.clone(),
-                    signal: if data.output_signal.is_empty() { format!("{}.detected", b.id) } else { data.output_signal.clone() },
-                    data: data.clone(),
-                    raw: false,
-                    detecting: false,
-                    pending: None,
-                    pulses: 0,
-                    occupied: 0.0,
-                    total: 0.0,
-                    cache: BTreeMap::new(),
-                }),
+                Kind::Source(data) => f.sources.push(Source::new(
+                    &b.id,
+                    (**data).clone(),
+                    b.downstream.clone(),
+                    b.downstream_port.clone(),
+                    seed,
+                    index as u64 + 1,
+                )),
+                Kind::Sink(data) => f.sinks.push(Sink::new(&b.id, data.clone())),
+                Kind::Sensor(data) => f.sensors.push(Photoeye::new(&b.id, data.clone())),
                 Kind::Inert { .. } => {}
             }
         }
@@ -687,6 +515,7 @@ impl FlowSimulation {
         self.accumulate(self.sim.now());
         let hours = self.sim.now() as f64 / US_PER_S as f64 / 3600.0;
         let per_hour = |n: u64| if hours > 0.0 { n as f64 / hours } else { 0.0 };
+        let now = self.sim.now();
         let mean = |sum: SimTime, n: u64| if n > 0 { sum as f64 / n as f64 / US_PER_S as f64 } else { 0.0 };
         let mut out = Statistics::new();
         for l in self.lines.iter().filter(|l| !l.deck) {
@@ -706,15 +535,7 @@ impl FlowSimulation {
             );
         }
         for s in &self.sources {
-            let waiting_now = s.due_since.map_or(0, |d| self.sim.now() - d);
-            out.insert(
-                s.id.clone(),
-                BTreeMap::from([
-                    ("palletsCreated", s.created as f64),
-                    ("palletsRejected", s.rejected as f64),
-                    ("waitingTime", (s.waiting + waiting_now) as f64 / US_PER_S as f64),
-                ]),
-            );
+            out.insert(s.id.clone(), s.statistics(now));
         }
         for st in &self.stations {
             out.insert(st.id().to_string(), st.statistics().into_iter().collect());
@@ -723,24 +544,10 @@ impl FlowSimulation {
             out.insert(g.id.clone(), g.statistics().into_iter().collect());
         }
         for s in &self.sensors {
-            out.insert(
-                s.id.clone(),
-                BTreeMap::from([
-                    ("pulses", s.pulses as f64),
-                    ("occupiedTime", s.occupied),
-                    ("occupancy", if s.total > 0.0 { s.occupied / s.total } else { 0.0 }),
-                ]),
-            );
+            out.insert(s.id.clone(), s.statistics());
         }
         for s in &self.sinks {
-            out.insert(
-                s.id.clone(),
-                BTreeMap::from([
-                    ("palletsReceived", s.received as f64),
-                    ("throughputPerHour", per_hour(s.received)),
-                    ("meanCycleTime", mean(s.cycle_sum, s.received)),
-                ]),
-            );
+            out.insert(s.id.clone(), s.statistics(hours));
         }
         out
     }
@@ -905,14 +712,9 @@ impl FlowSimulation {
                 self.next_pallet_id += 1;
                 self.check_orientation(line, &pallet);
                 self.lines[line].pallets.push(pallet);
-                let s = &mut self.sources[i];
-                s.created += 1;
-                s.waiting += now - s.due_since.unwrap_or(now);
-                s.due_since = None;
+                self.sources[i].placed(now);
             } else if !self.sources[i].data.block_if_occupied {
-                let s = &mut self.sources[i];
-                s.rejected += 1;
-                s.due_since = None;
+                self.sources[i].reject();
             } else {
                 continue;
             }
@@ -1320,10 +1122,7 @@ impl FlowSimulation {
             g.accumulate(seconds);
         }
         for s in &mut self.sensors {
-            s.total += seconds;
-            if s.detecting {
-                s.occupied += seconds;
-            }
+            s.accumulate(seconds);
         }
         self.stats_time = now;
     }

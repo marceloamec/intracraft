@@ -4,10 +4,14 @@
 //! - `mechanics`: the closed-form figures the tests compare with (ω = v / r, μ·g, ½·m·v²).
 //! - `bench`: a world of rollers, chain strips, stops and pallets at a fixed step (1/120 s), the base of spike S1 and of
 //!   the world built from a layout. Chains carry pallets by a moving contact surface (Rapier's solver contacts'
-//!   `tangent_velocity`), which the JavaScript bindings lacked.
+//!   `tangent_velocity`), which the JavaScript bindings lacked; contacts take the library's pair table (S16).
+//! - `flow`: the 3D run of a layout, its decks driven by the 2D plant logic (ADR-0016): conveyors, lift and process
+//!   stations, sources, sinks, photocells and the controller's rules.
+//! - `frame`: where a deck's conveying surface lies in the plant.
 
 pub mod bench;
+pub mod flow;
+pub mod frame;
 pub mod mechanics;
-pub mod world;
 
 pub use rapier3d;

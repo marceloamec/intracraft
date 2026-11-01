@@ -2,6 +2,7 @@
 
 pub mod gravity;
 pub mod network;
+pub mod parts;
 pub mod sim;
 pub(crate) mod station;
 
@@ -11,6 +12,7 @@ use intracraft_library::snap::derive_connections;
 
 pub use network::{FlowIssue, FlowNetwork, build_flow_network};
 pub use sim::{FlowSimulation, PalletView, Snapshot, Statistics};
+pub use station::processing_time;
 
 /// The run of a layout as a project holds it (no connections stored: they come from the geometry, as in the editor).
 pub fn simulate(layout: &Layout, library: &Library, seed: u64) -> Result<FlowSimulation, String> {

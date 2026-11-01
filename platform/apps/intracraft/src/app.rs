@@ -4,7 +4,8 @@
 //!   attribute table (inherited ✔ / overridden ✖).
 //! - Discrete simulation: the plan of the layout with its pallets moving, the run controls, and the selected object's
 //!   statistics.
-//! - Physics simulation: the Rapier world and the Bevy viewer arrive in phase R6; until then the module says so.
+//! - Physics simulation: the same layout in Rapier, with the 2D plant logic driving its decks (ADR-0016), drawn on the plan
+//!   with the statistics beside it; the Bevy viewer comes later (ADR-0022).
 //!
 //! The window is a thin shell: it reads the model and changes it only through `intracraft_model`'s functions, which run
 //! BIMCraft's commands.
@@ -14,13 +15,14 @@ use std::collections::BTreeMap;
 use bimcraft_core::model::Id;
 use bimcraft_ui_egui::BimApp;
 use egui::{CentralPanel, Color32, Grid, Panel, RichText, ScrollArea, Sense, Stroke, StrokeKind, Ui, pos2};
-use intracraft_des::flow::{FlowSimulation, Snapshot, simulate};
+use intracraft_des::flow::{FlowSimulation, Snapshot, Statistics, simulate};
 use intracraft_des::time::{from_seconds, to_seconds};
 use intracraft_library::Library;
 use intracraft_library::definition::{ParamType, Value};
 use intracraft_library::layout::Layout;
 use intracraft_model::attributes::{Attribute, Source, attributes, definition_of, shown};
 use intracraft_model::tree::simulation_tree;
+use intracraft_physics::flow::PhysicsFlow;
 
 use crate::plan::{self, Point};
 
@@ -50,7 +52,7 @@ const PHYSICS_SPEEDS: [f64; 3] = [1.0, 2.0, 5.0];
 
 /// A physics run of the layout the model held when it started.
 pub struct PhysicsRun {
-    pub world: intracraft_physics::world::World,
+    pub flow: PhysicsFlow,
     pub layout: Layout,
     pub playing: bool,
     pub speed: f64,
@@ -58,14 +60,14 @@ pub struct PhysicsRun {
 
 impl PhysicsRun {
     pub fn start(layout: Layout, library: &Library) -> Result<PhysicsRun, String> {
-        let world = intracraft_physics::world::World::new(&layout, library)?;
-        Ok(PhysicsRun { world, layout, playing: false, speed: 1.0 })
+        let flow = PhysicsFlow::new(&layout, library, 1)?;
+        Ok(PhysicsRun { flow, layout, playing: false, speed: 1.0 })
     }
 
     /// Moves the run on by `real` seconds of the window's time at its speed (at most one second of physics a frame).
     pub fn advance(&mut self, real: f64) {
-        let target = self.world.time() + (real * self.speed).min(1.0);
-        self.world.run_until(target);
+        let target = self.flow.now() + from_seconds((real * self.speed).min(1.0)).max(1);
+        self.flow.run_until(target);
     }
 }
 
@@ -352,28 +354,9 @@ impl IntraApp {
     }
 
     fn statistics(&mut self, ui: &mut Ui) {
-        ui.heading("Statistics");
         let Some(run) = &mut self.run else { return };
         let stats = run.sim.statistics();
-        let selected = self.bim.selection.first().map(|id| id.to_string());
-        let ids: Vec<&String> = match &selected {
-            Some(id) if stats.contains_key(id) => vec![id],
-            _ => stats.keys().collect(),
-        };
-        ScrollArea::vertical().show(ui, |ui| {
-            for id in ids {
-                let name = run.layout.instance(id).map_or(id.as_str(), |i| i.name.as_str());
-                ui.label(RichText::new(name).strong());
-                Grid::new(("stats", id)).num_columns(2).show(ui, |ui| {
-                    for (k, v) in &stats[id] {
-                        ui.label(*k);
-                        ui.label(format!("{v:.3}"));
-                        ui.end_row();
-                    }
-                });
-                ui.separator();
-            }
-        });
+        statistics_sheet(ui, &stats, &run.layout, &self.bim.selection);
     }
 
     fn plan(&mut self, ui: &mut Ui) {
@@ -386,13 +369,7 @@ impl IntraApp {
         let scale = (f64::from(rect.width()) / (x1 - x0)).min(f64::from(rect.height()) / (y1 - y0));
         let to_screen = |p: Point| pos2(rect.left() + ((p.0 - x0) * scale) as f32, rect.bottom() - ((p.1 - y0) * scale) as f32);
         for f in &footprints {
-            let colour = match run.snapshot.status.get(&f.id).copied() {
-                Some("working") => Color32::from_rgb(120, 190, 120),
-                Some("blocked") => Color32::from_rgb(220, 110, 100),
-                Some("stopped") => Color32::from_rgb(235, 170, 80),
-                Some("detecting") => Color32::from_rgb(90, 140, 230),
-                _ => Color32::from_gray(200),
-            };
+            let colour = status_colour(run.snapshot.status.get(&f.id).copied());
             let selected = self.bim.selection.first().is_some_and(|id| id.to_string() == f.id);
             let stroke = Stroke::new(if selected { 3.0 } else { 1.0 }, Color32::from_gray(if selected { 20 } else { 90 }));
             painter.add(egui::Shape::convex_polygon(f.corners.iter().map(|c| to_screen(*c)).collect(), colour, stroke));
@@ -419,6 +396,11 @@ impl IntraApp {
 
     fn physics(&mut self, ui: &mut Ui) {
         Panel::left("intracraft-physics-run").default_size(260.0).show(ui, |ui| self.physics_controls(ui));
+        Panel::right("intracraft-physics-stats").default_size(280.0).show(ui, |ui| {
+            if let Some(run) = &self.physics_run {
+                statistics_sheet(ui, &run.flow.statistics(), &run.layout, &self.bim.selection);
+            }
+        });
         CentralPanel::default().show(ui, |ui| self.physics_plan(ui));
         if let Some(run) = &mut self.physics_run
             && run.playing
@@ -431,7 +413,7 @@ impl IntraApp {
 
     fn physics_controls(&mut self, ui: &mut Ui) {
         ui.heading("Physics run");
-        ui.label("Rapier: rollers turning at ω = v / r, chains with a moving surface, pallets as rigid bodies. The 3D viewer (Bevy) comes later; this is the plan of the same run.");
+        ui.label("Rapier: rollers turning at ω = v / r, chains with a moving surface, pallets as rigid bodies, driven by the same plant logic as the discrete run. The 3D viewer (Bevy) comes later; this is the plan of the same run.");
         if ui.button("Reset from the design").clicked() || self.physics_run.is_none() {
             let (layout, problems) = intracraft_model::layout::layout(&self.bim.session.model, &self.library);
             match PhysicsRun::start(layout, &self.library) {
@@ -457,20 +439,16 @@ impl IntraApp {
                 }
             }
         });
-        ui.label(format!("Time: {:.1} s", run.world.time()));
-        ui.label(format!("Pallets: {}", run.world.pallets.len()));
-        for id in run.layout.instances.iter().filter(|i| i.definition_id == "flow.sink").map(|i| i.id.clone()) {
-            if let Some((received, per_hour, cycle)) = run.world.sink_statistics(&id) {
-                ui.label(format!("Sink {id}: {received} pallets, {per_hour:.0}/h, cycle {cycle:.1} s"));
-            }
-        }
+        ui.label(format!("Time: {:.1} s", to_seconds(run.flow.now())));
+        ui.label(format!("Pallets: {}", run.flow.pallets().len()));
+        ui.label(format!("Fallen pallets: {}", run.flow.fallen_pallets()));
         ui.separator();
         ui.heading("Warnings");
-        if run.world.issues.is_empty() {
+        if run.flow.issues.is_empty() {
             ui.label("None.");
         }
-        for i in &run.world.issues {
-            ui.label(i);
+        for i in &run.flow.issues {
+            ui.label(&i.message);
         }
     }
 
@@ -483,21 +461,55 @@ impl IntraApp {
         let ((x0, y0), (x1, y1)) = plan::bounds(&footprints);
         let scale = (f64::from(rect.width()) / (x1 - x0)).min(f64::from(rect.height()) / (y1 - y0));
         let to_screen = |p: Point| pos2(rect.left() + ((p.0 - x0) * scale) as f32, rect.bottom() - ((p.1 - y0) * scale) as f32);
+        let status = run.flow.status();
         for f in &footprints {
-            let moving = run.world.conveyor_ids().contains(&f.id.as_str());
-            let colour = if moving { Color32::from_rgb(170, 200, 230) } else { Color32::from_gray(205) };
             painter.add(egui::Shape::convex_polygon(
                 f.corners.iter().map(|c| to_screen(*c)).collect(),
-                colour,
+                status_colour(status.get(&f.id).copied()),
                 Stroke::new(1.0, Color32::from_gray(90)),
             ));
         }
-        for p in run.world.poses() {
+        for p in run.flow.pallets() {
             let pts: Vec<_> = plan::body_outline(p.centre, p.yaw, p.size).iter().map(|c| to_screen(*c)).collect();
             painter.add(egui::Shape::convex_polygon(pts, Color32::from_rgb(181, 136, 84), Stroke::new(1.0, Color32::from_rgb(90, 60, 30))));
         }
         painter.rect_stroke(rect, 0.0, Stroke::new(1.0, Color32::from_gray(160)), StrokeKind::Inside);
     }
+}
+
+/// An object's colour on the plan by its state.
+fn status_colour(status: Option<&str>) -> Color32 {
+    match status {
+        Some("working" | "lifting" | "lowering" | "processing") => Color32::from_rgb(120, 190, 120),
+        Some("blocked") => Color32::from_rgb(220, 110, 100),
+        Some("stopped") => Color32::from_rgb(235, 170, 80),
+        Some("detecting") => Color32::from_rgb(90, 140, 230),
+        _ => Color32::from_gray(200),
+    }
+}
+
+/// The statistics of a run: the selected object's, or every object's.
+fn statistics_sheet(ui: &mut Ui, stats: &Statistics, layout: &Layout, selection: &[Id]) {
+    ui.heading("Statistics");
+    let selected = selection.first().map(|id| id.to_string());
+    let ids: Vec<&String> = match &selected {
+        Some(id) if stats.contains_key(id) => vec![id],
+        _ => stats.keys().collect(),
+    };
+    ScrollArea::vertical().show(ui, |ui| {
+        for id in ids {
+            let name = layout.instance(id).map_or(id.as_str(), |i| i.name.as_str());
+            ui.label(RichText::new(name).strong());
+            Grid::new(("stats", id)).num_columns(2).show(ui, |ui| {
+                for (k, v) in &stats[id] {
+                    ui.label(*k);
+                    ui.label(format!("{v:.3}"));
+                    ui.end_row();
+                }
+            });
+            ui.separator();
+        }
+    });
 }
 
 /// The text a value is edited as: mm and degrees where the library shows them so.
@@ -602,7 +614,7 @@ mod tests {
         assert!(h.query_by_label_contains("Rapier").is_some());
         let physics = h.state_mut().physics_run.as_mut().unwrap();
         physics.advance(0.5);
-        assert!(physics.world.time() > 0.4);
+        assert!(physics.flow.now() > from_seconds(0.4));
     }
 
     #[test]

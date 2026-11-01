@@ -1,44 +1,85 @@
 //! A physics bench (spike S1, ADR-0002, T10–T12): a Rapier world at a fixed step with a floor, kinematic rollers turning
 //! at ω = v / r, chain strips whose contact surface moves, fixed stops, and pallets as dynamic boxes with their mass. SI
 //! units, y up, travel along +x. Each part's friction and restitution are its own; a contact takes the lower friction and
-//! the higher restitution of its two parts, as a contact pair table would give them.
+//! the higher restitution of its two parts, as a contact pair table would give them. Parts given a contact material
+//! instead (`body`) take the friction and restitution of the library's pair table (S16), exactly.
 
+use std::collections::HashMap;
+
+use intracraft_library::reference::ContactPair;
 use rapier3d::prelude::*;
 
 /// The fixed physics step, s (A07 §4).
 pub const DT: f64 = 1.0 / 120.0;
 
-/// What carries pallets with a moving contact surface: a chain strip and its surface velocity (m/s, world frame).
-struct Surface {
-    collider: ColliderHandle,
-    velocity: Vector,
+/// What the contact hook needs: which colliders carry pallets with a moving surface (chain strips, a station's
+/// platform) and at what velocity (m/s, world frame), and each collider's contact material with the pair table.
+#[derive(Default)]
+struct Hooks {
+    surface_of: HashMap<ColliderHandle, usize>,
+    surfaces: Vec<Vector>,
+    material_of: HashMap<ColliderHandle, usize>,
+    materials: Vec<String>,
+    /// A friction a part sets itself, replacing the pair table's (S16: an instance's own roller or chain μ).
+    friction_of: HashMap<ColliderHandle, Real>,
+    /// Friction and restitution by pair of material indices (lower first).
+    pairs: HashMap<(usize, usize), (Real, Real)>,
 }
 
-/// The hook that gives a chain strip's contacts its surface velocity (Rapier's "conveyor belt").
-struct Surfaces(Vec<Surface>);
-
-impl PhysicsHooks for Surfaces {
+impl PhysicsHooks for Hooks {
     fn modify_solver_contacts(&self, context: &mut ContactModificationContext) {
         let (c1, c2) = (context.collider1, context.collider2);
         // `tangent_velocity` is the first surface's velocity relative to the second (measured on this bench: the other
         // way round carries the pallet backwards): a strip that is the first collider moves its own way; one that is the
         // second makes the other surface move the opposite way.
-        let v = self.0.iter().find_map(|s| {
-            if s.collider == c1 {
-                Some(s.velocity)
-            } else if s.collider == c2 {
-                Some(-s.velocity)
-            } else {
-                None
-            }
-        });
-        let Some(v) = v else { return };
-        if let Some(manifold) = context.rigid_mut() {
+        let v = match (self.surface_of.get(&c1), self.surface_of.get(&c2)) {
+            (Some(&s), _) => self.surfaces.get(s).copied(),
+            (None, Some(&s)) => self.surfaces.get(s).map(|v| -v),
+            _ => None,
+        };
+        let pair = match (self.material_of.get(&c1), self.material_of.get(&c2)) {
+            (Some(&a), Some(&b)) => self.pairs.get(&(a.min(b), a.max(b))).copied(),
+            _ => None,
+        };
+        let own = self.friction_of.get(&c1).or(self.friction_of.get(&c2)).copied();
+        let pair = pair.map(|(friction, restitution)| (own.unwrap_or(friction), restitution));
+        let Some(manifold) = context.rigid_mut() else { return };
+        if let Some(v) = v {
             for contact in manifold.solver_contacts.iter_mut() {
                 contact.tangent_velocity = v;
             }
         }
+        if let Some((friction, restitution)) = pair {
+            *manifold.friction = friction;
+            *manifold.restitution = restitution;
+        }
     }
+}
+
+/// How a body moves: never, as the run drives it, or by the forces on it.
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+pub enum Motion {
+    Fixed,
+    Kinematic,
+    Dynamic,
+}
+
+/// A shape in its part's frame: a box by its half sizes, or a cylinder lying along the part's z (a roller).
+#[derive(Clone, Copy, Debug, PartialEq)]
+pub enum Shape {
+    Cuboid([f64; 3]),
+    Cylinder { radius: f64, half_length: f64 },
+}
+
+/// A part of a body: its shape, where it sits in the body's frame, its contact material (and a friction of its own, if
+/// set) and, on a dynamic body, its mass.
+#[derive(Clone, Debug, PartialEq)]
+pub struct Part {
+    pub shape: Shape,
+    pub offset: [f64; 3],
+    pub material: String,
+    pub friction: Option<f64>,
+    pub mass: f64,
 }
 
 /// A part of the bench: its friction and restitution.
@@ -50,7 +91,7 @@ pub struct Material {
 
 pub struct Bench {
     pub world: PhysicsWorld,
-    surfaces: Surfaces,
+    hooks: Hooks,
     steps: u64,
 }
 
@@ -65,7 +106,119 @@ impl Bench {
         let mut world = PhysicsWorld::new();
         world.gravity = Vector::new(0.0, -crate::mechanics::GRAVITY as Real, 0.0);
         world.integration_parameters.dt = DT as Real;
-        Bench { world, surfaces: Surfaces(Vec::new()), steps: 0 }
+        Bench { world, hooks: Hooks::default(), steps: 0 }
+    }
+
+    /// The pair table the parts' contact materials look their friction and restitution up in.
+    pub fn use_pairs(&mut self, pairs: &[ContactPair]) {
+        for p in pairs {
+            let (a, b) = (self.material(&p.a), self.material(&p.b));
+            self.hooks.pairs.insert((a.min(b), a.max(b)), (p.mu as Real, p.restitution as Real));
+        }
+    }
+
+    fn material(&mut self, name: &str) -> usize {
+        match self.hooks.materials.iter().position(|m| m == name) {
+            Some(k) => k,
+            None => {
+                self.hooks.materials.push(name.to_string());
+                self.hooks.materials.len() - 1
+            }
+        }
+    }
+
+    /// A body of `parts` whose frame is at `origin`, turned `yaw` about +y and then tilted down along its x by `slope`
+    /// (fall per metre). A dynamic body's mass and centre of mass come from its parts.
+    pub fn body(
+        &mut self,
+        motion: Motion,
+        origin: [f64; 3],
+        yaw: f64,
+        slope: f64,
+        parts: &[Part],
+    ) -> (RigidBodyHandle, Vec<ColliderHandle>) {
+        let [x, y, z] = origin.map(|v| v as Real);
+        let rotation = Rotation::from_rotation_y(yaw as Real) * Rotation::from_rotation_z(-slope.atan() as Real);
+        let builder = match motion {
+            Motion::Fixed => RigidBodyBuilder::fixed(),
+            Motion::Kinematic => RigidBodyBuilder::kinematic_velocity_based(),
+            Motion::Dynamic => RigidBodyBuilder::dynamic().ccd_enabled(true),
+        };
+        let body = self.world.bodies.insert(builder.pose(Pose::from_parts(Vector::new(x, y, z), rotation)).can_sleep(false));
+        let mut colliders = Vec::new();
+        for p in parts {
+            let [ox, oy, oz] = p.offset.map(|v| v as Real);
+            let builder = match p.shape {
+                Shape::Cuboid([hx, hy, hz]) => {
+                    ColliderBuilder::cuboid(hx as Real, hy as Real, hz as Real).translation(Vector::new(ox, oy, oz))
+                }
+                // Rapier's cylinders stand along +y: lay it along z.
+                Shape::Cylinder { radius, half_length } => ColliderBuilder::cylinder(half_length as Real, radius as Real)
+                    .position(Pose::from_parts(Vector::new(ox, oy, oz), Rotation::from_rotation_x(std::f32::consts::FRAC_PI_2))),
+            };
+            let builder = if motion == Motion::Dynamic { builder.mass(p.mass as Real) } else { builder };
+            let collider = self.world.colliders.insert_with_parent(
+                builder.active_hooks(ActiveHooks::MODIFY_SOLVER_CONTACTS),
+                body,
+                &mut self.world.bodies,
+            );
+            let m = self.material(&p.material);
+            self.hooks.material_of.insert(collider, m);
+            if let Some(f) = p.friction {
+                self.hooks.friction_of.insert(collider, f as Real);
+            }
+            colliders.push(collider);
+        }
+        (body, colliders)
+    }
+
+    /// Makes `colliders` a moving contact surface; its index for `set_surface_velocity`.
+    pub fn surface(&mut self, colliders: &[ColliderHandle]) -> usize {
+        let k = self.hooks.surfaces.len();
+        self.hooks.surfaces.push(Vector::ZERO);
+        for &c in colliders {
+            self.hooks.surface_of.insert(c, k);
+        }
+        k
+    }
+
+    /// The velocity of a moving surface, m/s in the world.
+    pub fn set_surface_velocity(&mut self, surface: usize, v: [f64; 3]) {
+        if let Some(s) = self.hooks.surfaces.get_mut(surface) {
+            *s = Vector::new(v[0] as Real, v[1] as Real, v[2] as Real);
+        }
+    }
+
+    /// Sets a body's linear (m/s) and angular (rad/s) velocity.
+    pub fn set_velocity(&mut self, body: RigidBodyHandle, linear: [f64; 3], angular: [f64; 3]) {
+        if let Some(b) = self.world.bodies.get_mut(body) {
+            b.set_linvel(Vector::new(linear[0] as Real, linear[1] as Real, linear[2] as Real), true);
+            b.set_angvel(Vector::new(angular[0] as Real, angular[1] as Real, angular[2] as Real), true);
+        }
+    }
+
+    /// A body's own x and z axes in the world.
+    pub fn axes(&self, body: RigidBodyHandle) -> ([f64; 3], [f64; 3]) {
+        let as_f64 = |v: Vector| [f64::from(v.x), f64::from(v.y), f64::from(v.z)];
+        self.world
+            .bodies
+            .get(body)
+            .map_or(([1.0, 0.0, 0.0], [0.0, 0.0, 1.0]), |b| (as_f64(b.rotation() * Vector::X), as_f64(b.rotation() * Vector::Z)))
+    }
+
+    /// Whether the segment from `from` along `span` meets a part of one of `bodies` (a photocell's beam).
+    pub fn beam_blocked(&self, from: [f64; 3], span: [f64; 3], bodies: &std::collections::HashSet<RigidBodyHandle>) -> bool {
+        let length = (span[0] * span[0] + span[1] * span[1] + span[2] * span[2]).sqrt();
+        if length <= 0.0 {
+            return false;
+        }
+        let ray = Ray::new(
+            Vector::new(from[0] as Real, from[1] as Real, from[2] as Real),
+            Vector::new((span[0] / length) as Real, (span[1] / length) as Real, (span[2] / length) as Real),
+        );
+        let only = |_: ColliderHandle, c: &Collider| c.parent().is_some_and(|b| bodies.contains(&b));
+        let filter = QueryFilter { predicate: Some(&only), ..QueryFilter::default() };
+        self.world.cast_ray(&ray, length as Real, true, filter).is_some()
     }
 
     fn collider(builder: ColliderBuilder, m: Material) -> ColliderBuilder {
@@ -109,7 +262,8 @@ impl Bench {
             m,
         );
         let handle = self.world.colliders.insert(c);
-        self.surfaces.0.push(Surface { collider: handle, velocity: Vector::new(speed as Real, 0.0, 0.0) });
+        let k = self.surface(&[handle]);
+        self.set_surface_velocity(k, [speed, 0.0, 0.0]);
         handle
     }
 
@@ -173,15 +327,12 @@ impl Bench {
             m,
         );
         let handle = self.world.colliders.insert(c);
-        self.surfaces.0.push(Surface { collider: handle, velocity: Vector::ZERO });
-        self.surfaces.0.len() - 1
+        self.surface(&[handle])
     }
 
     /// Sets the surface speed of a strip of a conveyor turned `yaw`, m/s along its travel.
     pub fn set_strip_speed(&mut self, strip: usize, yaw: f64, speed: f64) {
-        if let Some(s) = self.surfaces.0.get_mut(strip) {
-            s.velocity = Vector::new((speed * yaw.cos()) as Real, 0.0, (-speed * yaw.sin()) as Real);
-        }
+        self.set_surface_velocity(strip, [speed * yaw.cos(), 0.0, -speed * yaw.sin()]);
     }
 
     /// A pallet as a dynamic box: its centre, its turn about +y, its sizes (along its own x, y, z) and mass.
@@ -205,12 +356,20 @@ impl Bench {
         })
     }
 
+    /// Removes a body and its parts.
     pub fn remove(&mut self, body: RigidBodyHandle) {
+        if let Some(b) = self.world.bodies.get(body) {
+            for c in b.colliders() {
+                self.hooks.surface_of.remove(c);
+                self.hooks.material_of.remove(c);
+                self.hooks.friction_of.remove(c);
+            }
+        }
         self.world.remove_body(body);
     }
 
     pub fn step(&mut self) {
-        self.world.step_with_events(&self.surfaces, &());
+        self.world.step_with_events(&self.hooks, &());
         self.steps += 1;
     }
 

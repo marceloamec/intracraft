@@ -680,19 +680,8 @@ impl ProcessStation {
         ]
     }
 
-    /// The next pallet's processing time, µs: fixed, normal (cut at 0) or exponential about the mean.
     fn draw_processing_time(&mut self) -> SimTime {
-        let mean = self.data.processing_time;
-        let seconds = match self.data.mode {
-            ProcessingMode::Fixed => mean,
-            // Box–Muller, drawing in the reference's order.
-            ProcessingMode::Normal => {
-                let r = (-2.0 * (1.0 - self.rng.next_f64()).ln()).sqrt();
-                mean + self.data.processing_std_dev * r * (2.0 * PI * self.rng.next_f64()).cos()
-            }
-            ProcessingMode::Exponential => -mean * (1.0 - self.rng.next_f64()).ln(),
-        };
-        let time = from_seconds(seconds.max(0.0));
+        let time = processing_time(&self.data, &mut self.rng);
         self.processing_sum += time;
         time
     }
@@ -882,6 +871,22 @@ impl LiftStation {
         self.vertical = Some(VerticalMove { start: now, from: self.height, to, profile });
         from_seconds(profile_time(&profile).unwrap_or(0.0))
     }
+}
+
+/// A pallet's processing time at a process station, µs: fixed, normal (cut at 0) or exponential about the mean. The 3D
+/// run draws it the same way.
+pub fn processing_time(data: &ProcessData, rng: &mut Pcg32) -> SimTime {
+    let mean = data.processing_time;
+    let seconds = match data.mode {
+        ProcessingMode::Fixed => mean,
+        // Box–Muller, drawing in the reference's order.
+        ProcessingMode::Normal => {
+            let r = (-2.0 * (1.0 - rng.next_f64()).ln()).sqrt();
+            mean + data.processing_std_dev * r * (2.0 * PI * rng.next_f64()).cos()
+        }
+        ProcessingMode::Exponential => -mean * (1.0 - rng.next_f64()).ln(),
+    };
+    from_seconds(seconds.max(0.0))
 }
 
 /// A station of the run.

@@ -12,5 +12,7 @@ workspace = true
 
 [dependencies]
 rapier3d = { version = "=0.36.1", features = ["enhanced-determinism"] }
+intracraft-control = { path = "../control" }
+intracraft-des = { path = "../des" }
 intracraft-library = { path = "../library" }
 
