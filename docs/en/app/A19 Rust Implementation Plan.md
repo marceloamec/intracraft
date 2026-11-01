@@ -46,6 +46,7 @@ R5 and R5b can run in parallel with R1–R4; R8 in parallel with R3–R7. By mod
 ### R1 – Design module: library, families and the attribute table
 
 - **Done 2026-10-31:** `intracraft-library` (`platform/sim/library`, 51 tests). It reads the same JSON definitions and reference data as the TypeScript reference (`include_str!`, one source), ports the derived values, the nine validation rules, world ports and geometric connections; its tests reproduce `library.test.ts`, `ports.test.ts` and `snap.test.ts`.
+- **Done 2026-11-01:** `intracraft-model` (`platform/sim/model`, 13 tests): each definition as a BIMCraft family (instance parameters with the library's defaults in mm and degrees, presets as types, derived values as formulas, a deck-and-frame form, the definition's id in a text type parameter); the attribute table with its source (instance, type, library, derived) and inherited flag; set, reset and detach through BIMCraft's `modify`; the simulation tree; the layout read back from the model; the reference's `.intracraft.json` layouts imported with the same connections. BIMCraft gained text parameters and instance values inherited from the type (file format 12, `platform/INTRACRAFT-CHANGES.md`).
 - `platform/apps/intracraft`: the BIMCraft window with a module selector (Design, Discrete simulation, Physics simulation).
 
 - New family categories: conveyor, transfer, turntable, lift, sensor, stop, guide, source, sink, station, MTBH.
@@ -67,6 +68,7 @@ R5 and R5b can run in parallel with R1–R4; R8 in parallel with R3–R7. By mod
 
 ### R3 – DES engine and controller in Rust
 
+- **Done 2026-11-01:** `intracraft-control` (3 tests) and the core of `intracraft-des` (seeded PCG32 identical bit for bit to the reference, event queue, kinematics: T1–T5 within 1 %), and the first part of the flow model: conveyors without accumulation, sources, sinks, photoeyes and the controller (T1-2D 12.25 s, T2-2D 666.7/h, determinism, no overlap). Turntables, transfer, process station, lifts and gravity line are still inert in the Rust engine.
 - `intracraft-control` (`platform/sim/control`): signals and if/then rules (ADR-0010), a pure evaluator as in the reference; evaluated on events in 2D and every 10 ms in 3D.
 - `intracraft-des` (`platform/sim/des`): event queue ordered by (time µs, priority, sequence); seeded random generator: the reference's PCG32 (XSH-RR) ported bit for bit, so the same seed gives the same arrivals as the TypeScript run; kinematics (trapezoidal profiles, T04); flow network built from the model; line conveyor without accumulation (ADR-0007); turntable (ADR-0008); transfer (ADR-0009); photoeye; source; sink.
 - Port order: kinematics → event queue → network → line conveyor → source/sink → photoeye → turntable → transfer.

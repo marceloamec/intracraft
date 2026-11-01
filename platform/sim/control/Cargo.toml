@@ -1,0 +1,14 @@
+[package]
+name = "intracraft-control"
+description = "IntraCraft's controller: If/Then rules over boolean signals, the same in the 2D and the 3D run"
+version = "0.1.0"
+edition.workspace = true
+license.workspace = true
+rust-version.workspace = true
+publish = false
+
+[lints]
+workspace = true
+
+[dependencies]
+intracraft-library = { path = "../library" }
