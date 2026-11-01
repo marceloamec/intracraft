@@ -14,6 +14,7 @@ use intracraft_library::layout::Rule;
 use intracraft_library::reference::Reference;
 
 use crate::flow::network::{FlowIssue, FlowNetwork, FlowNode, Generation, Kind, LineData, SensorData, Side, SinkData, SourceData};
+use crate::flow::station::{Station, Turntable};
 use crate::kinematics::{Segment, time_to_reach};
 use crate::queue::Simulator;
 use crate::rng::Pcg32;
@@ -63,15 +64,20 @@ struct LineStats {
     transit_sum: SimTime,
 }
 
-/// A straight conveyor without accumulation: its pallets share one motion.
-struct Line {
-    id: String,
+/// A straight conveyor without accumulation, or a station's deck: its pallets share one motion.
+pub(crate) struct Line {
+    pub(crate) id: String,
     name: String,
+    /// The instance its pallets are drawn on: itself, or the station a deck belongs to.
+    pub(crate) carrier: String,
+    /// A station's deck rather than a conveyor of the layout.
+    deck: bool,
     data: LineData,
-    downstream: Option<String>,
-    gap: f64,
+    pub(crate) downstream: Option<String>,
+    pub(crate) downstream_port: Option<String>,
+    pub(crate) gap: f64,
     /// Pallets on it, front first.
-    pallets: Vec<Pallet>,
+    pub(crate) pallets: Vec<Pallet>,
     speed: f64,
     accel: f64,
     /// When `speed` and the fronts hold, s.
@@ -79,10 +85,11 @@ struct Line {
     /// The front pallet, taken by the next object and crossing to it.
     outgoing: Option<u64>,
     /// A pallet taken from the previous conveyor and crossing onto this one.
-    incoming: Option<u64>,
+    pub(crate) incoming: Option<u64>,
     /// Its front pallet must stop at the end: the next object can't take it.
-    holding: bool,
-    end: f64,
+    pub(crate) holding: bool,
+    /// Where a held front pallet stops, m: the end, or the centre of a turntable's deck.
+    pub(crate) end: f64,
     status: LineStatus,
     stats: LineStats,
 }
@@ -137,6 +144,7 @@ struct Source {
     id: String,
     data: SourceData,
     downstream: Option<String>,
+    downstream_port: Option<String>,
     /// When the waiting pallet became due.
     due_since: Option<SimTime>,
     created: u64,
@@ -295,6 +303,7 @@ enum Event {
     SensorOutput(usize),
     SignalWrite(String, bool),
     FlowMotion,
+    StationDone(usize),
 }
 
 /// A pallet as a viewer draws it at the snapshot's time.
@@ -302,10 +311,15 @@ enum Event {
 pub struct PalletView {
     pub id: u64,
     pub type_id: String,
-    /// The conveyor carrying it.
+    /// The conveyor or station carrying it.
     pub carrier: String,
-    /// Its front edge along the carrier, m from its entry.
+    /// Its front edge along the carrier's path, m from its start.
     pub front: f64,
+    /// Where the carrier's path starts and which way it runs, in the carrier's own frame (m, rad): zero for a conveyor;
+    /// on a turntable the deck's entry edge and heading, which turn with the platform.
+    pub path_x: f64,
+    pub path_z: f64,
+    pub heading: f64,
     pub speed: f64,
     pub accel: f64,
     pub length: f64,
@@ -321,6 +335,8 @@ pub struct Snapshot {
     /// `empty`, `working`, `blocked`, `stopped`, `idle`, `waiting`, `busy`, `detecting`, `clear`.
     pub status: BTreeMap<String, &'static str>,
     pub signals: Signals,
+    /// The deck heading of every turntable (rad, its own frame), following the platform while it turns.
+    pub angles: BTreeMap<String, f64>,
 }
 
 /// Statistics per instance id, keyed as the definition's `statistics` list says (times in s).
@@ -334,6 +350,9 @@ pub struct FlowSimulation {
     sources: Vec<Source>,
     sinks: Vec<Sink>,
     sensors: Vec<Photoeye>,
+    stations: Vec<Station>,
+    /// The station each line is a deck of.
+    deck_owner: Vec<Option<usize>>,
     rules: Vec<Rule>,
     signals: Signals,
     /// The signals at the last rule evaluation: the "before" of edge conditions.
@@ -357,6 +376,8 @@ impl FlowSimulation {
             sources: Vec::new(),
             sinks: Vec::new(),
             sensors: Vec::new(),
+            stations: Vec::new(),
+            deck_owner: Vec::new(),
             rules: network.rules,
             signals: Signals::new(),
             evaluated: Signals::new(),
@@ -374,8 +395,11 @@ impl FlowSimulation {
                 Kind::Line(data) => f.lines.push(Line {
                     id: b.id.clone(),
                     name: b.name.clone(),
+                    carrier: b.id.clone(),
+                    deck: false,
                     data: data.clone(),
                     downstream: b.downstream.clone(),
+                    downstream_port: b.downstream_port.clone(),
                     gap: b.downstream_gap,
                     pallets: Vec::new(),
                     speed: 0.0,
@@ -388,10 +412,42 @@ impl FlowSimulation {
                     status: LineStatus::Empty,
                     stats: LineStats::default(),
                 }),
+                Kind::Turntable(data) => {
+                    let deck = f.lines.len();
+                    f.lines.push(Line {
+                        id: b.id.clone(),
+                        name: b.name.clone(),
+                        carrier: b.id.clone(),
+                        deck: true,
+                        data: LineData {
+                            length: data.platform_length,
+                            nominal_speed: data.nominal_speed,
+                            accel: data.accel,
+                            decel: data.accel,
+                            min_gap: 0.0,
+                            pallet_side_along_travel: data.pallet_side_along_travel,
+                        },
+                        downstream: None,
+                        downstream_port: None,
+                        gap: 0.0,
+                        pallets: Vec::new(),
+                        speed: 0.0,
+                        accel: 0.0,
+                        t0: 0.0,
+                        outgoing: None,
+                        incoming: None,
+                        holding: false,
+                        end: data.platform_length,
+                        status: LineStatus::Empty,
+                        stats: LineStats::default(),
+                    });
+                    f.stations.push(Station::Turntable(Box::new(Turntable::new(&b.id, (**data).clone(), deck, seed, index as u64 + 1))));
+                }
                 Kind::Source(data) => f.sources.push(Source {
                     id: b.id.clone(),
                     data: (**data).clone(),
                     downstream: b.downstream.clone(),
+                    downstream_port: b.downstream_port.clone(),
                     due_since: None,
                     created: 0,
                     rejected: 0,
@@ -417,8 +473,14 @@ impl FlowSimulation {
             }
         }
         f.nodes = network.nodes;
+        f.deck_owner = vec![None; f.lines.len()];
+        for (k, st) in f.stations.iter().enumerate() {
+            for d in st.decks() {
+                f.deck_owner[d] = Some(k);
+            }
+        }
         // Inputs start switched on; outputs start from the empty plant.
-        for l in &f.lines {
+        for l in f.lines.iter().filter(|l| !l.deck) {
             f.signals.insert(format!("{}.run", l.id), true);
         }
         for s in &f.sources {
@@ -427,7 +489,8 @@ impl FlowSimulation {
         f.update_outputs();
         f.evaluated = f.signals.clone();
         for i in 0..f.sources.len() {
-            if f.sources[i].active() && f.line_after(f.sources[i].downstream.as_deref()).is_some() {
+            if f.sources[i].active() && f.line_after(f.sources[i].downstream.as_deref(), f.sources[i].downstream_port.as_deref()).is_some()
+            {
                 f.sim.schedule(0, Event::SourceArrival(i), 0);
             }
         }
@@ -461,6 +524,13 @@ impl FlowSimulation {
                     self.signals.insert(signal, value);
                 }
                 Event::FlowMotion => self.motion_ticket = None,
+                Event::StationDone(k) => {
+                    // The step's time belongs to the phase that ends now.
+                    self.accumulate(now);
+                    if let Some(st) = self.stations.get_mut(k) {
+                        st.finish_timed_step(&mut self.lines);
+                    }
+                }
             }
             self.settle()?;
         }
@@ -476,14 +546,19 @@ impl FlowSimulation {
     pub fn snapshot(&mut self) -> Snapshot {
         self.update_outputs();
         let t = self.sim.now() as f64 / US_PER_S as f64;
+        let now = self.sim.now();
         let mut pallets = Vec::new();
-        for l in &self.lines {
+        for (k, l) in self.lines.iter().enumerate() {
+            let path = self.deck_owner[k].map(|s| self.stations[s].path_of(k, now)).unwrap_or_default();
             for p in &l.pallets {
                 pallets.push(PalletView {
                     id: p.id,
                     type_id: p.type_id.clone(),
-                    carrier: l.id.clone(),
+                    carrier: l.carrier.clone(),
                     front: l.front_at(p, t),
+                    path_x: path.x,
+                    path_z: path.z,
+                    heading: path.heading,
                     speed: l.speed_at(t),
                     accel: l.accel,
                     length: p.length,
@@ -494,7 +569,7 @@ impl FlowSimulation {
             }
         }
         let mut status = BTreeMap::new();
-        for l in &self.lines {
+        for l in self.lines.iter().filter(|l| !l.deck) {
             status.insert(
                 l.id.clone(),
                 match l.status {
@@ -514,7 +589,22 @@ impl FlowSimulation {
         for s in &self.sensors {
             status.insert(s.id.clone(), if s.detecting { "detecting" } else { "clear" });
         }
-        Snapshot { time: self.sim.now(), pallets, status, signals: self.signals.clone() }
+        let mut angles = BTreeMap::new();
+        for st in &self.stations {
+            let decks = st.decks();
+            let deck_status = if decks.iter().any(|&d| self.lines[d].status == LineStatus::Blocked) {
+                "blocked"
+            } else if decks.iter().any(|&d| self.lines[d].status == LineStatus::Working) {
+                "working"
+            } else {
+                "empty"
+            };
+            status.insert(st.id().to_string(), st.busy_status().unwrap_or(deck_status));
+            if let Some(a) = st.angle_at(now) {
+                angles.insert(st.id().to_string(), a);
+            }
+        }
+        Snapshot { time: now, pallets, status, signals: self.signals.clone(), angles }
     }
 
     pub fn statistics(&mut self) -> Statistics {
@@ -523,7 +613,7 @@ impl FlowSimulation {
         let per_hour = |n: u64| if hours > 0.0 { n as f64 / hours } else { 0.0 };
         let mean = |sum: SimTime, n: u64| if n > 0 { sum as f64 / n as f64 / US_PER_S as f64 } else { 0.0 };
         let mut out = Statistics::new();
-        for l in &self.lines {
+        for l in self.lines.iter().filter(|l| !l.deck) {
             let s = &l.stats;
             let total = s.empty + s.working + s.blocked;
             out.insert(
@@ -549,6 +639,9 @@ impl FlowSimulation {
                     ("waitingTime", (s.waiting + waiting_now) as f64 / US_PER_S as f64),
                 ]),
             );
+        }
+        for st in &self.stations {
+            out.insert(st.id().to_string(), st.statistics().into_iter().collect());
         }
         for s in &self.sensors {
             out.insert(
@@ -602,6 +695,7 @@ impl FlowSimulation {
             let mut changed = self.complete_crossings(now)?;
             changed = self.feed_sources(now) || changed;
             changed = self.decide(now) || changed;
+            changed = self.advance_stations(now) || changed;
             if !changed {
                 break;
             }
@@ -632,7 +726,7 @@ impl FlowSimulation {
             l.outgoing = None;
             l.stats.processed += 1;
             l.stats.transit_sum += now - pallet.entered_at;
-            let (length, gap, downstream) = (l.data.length, l.gap, l.downstream.clone());
+            let (length, gap, downstream, port) = (l.data.length, l.gap, l.downstream.clone(), l.downstream_port.clone());
             if let Some(k) = downstream.as_deref().and_then(|d| self.sinks.iter().position(|s| s.id == d)) {
                 let sink = &mut self.sinks[k];
                 sink.receive(&pallet, now);
@@ -642,7 +736,7 @@ impl FlowSimulation {
                 }
             } else {
                 let target = self
-                    .line_after(downstream.as_deref())
+                    .line_after(downstream.as_deref(), port.as_deref())
                     .ok_or_else(|| format!("{}: a crossing pallet has no destination", self.lines[i].id))?;
                 pallet.front -= length + gap;
                 pallet.entered_at = now;
@@ -659,12 +753,19 @@ impl FlowSimulation {
         let mut changed = false;
         for i in 0..self.sources.len() {
             let s = &self.sources[i];
-            let Some(line) = self.line_after(s.downstream.as_deref()) else { continue };
+            let Some(line) = self.line_after(s.downstream.as_deref(), s.downstream_port.as_deref()) else { continue };
             if s.due_since.is_none() || self.signals.get(&format!("{}.enable", s.id)) == Some(&false) {
                 continue;
             }
             let length = s.along_length();
-            if self.can_enter(line, length + self.lines[line].data.min_gap) {
+            let port = s.downstream_port.clone();
+            // A source may feed a station directly (the operator at a manual lift table, S12).
+            let station = self.deck_owner[line];
+            let accepts = station.is_none_or(|k| self.stations[k].can_receive(port.as_deref(), &self.lines));
+            if accepts && self.can_enter(line, length + self.lines[line].data.min_gap) {
+                if let Some(k) = station {
+                    self.stations[k].receive(port.as_deref(), length, now, &mut self.lines);
+                }
                 let s = &self.sources[i];
                 let item = &s.data.item;
                 let pallet = Pallet {
@@ -734,6 +835,7 @@ impl FlowSimulation {
             None => return false,
         };
         let downstream = self.lines[i].downstream.clone();
+        let port = self.lines[i].downstream_port.clone();
         if let Some(k) = downstream.as_deref().and_then(|d| self.sinks.iter().position(|s| s.id == d)) {
             if !self.sinks[k].accepts(now) {
                 return false;
@@ -742,7 +844,7 @@ impl FlowSimulation {
             self.lines[i].outgoing = Some(front_id);
             return true;
         }
-        let Some(target) = self.line_after(downstream.as_deref()) else { return false };
+        let Some(target) = self.line_after(downstream.as_deref(), port.as_deref()) else { return false };
         let travel = self.lines[i].data.length - front_tail + self.lines[i].gap;
         if !self.can_enter(target, 0.0) || !has_room_for(&self.lines[target], travel) {
             return false;
@@ -751,7 +853,14 @@ impl FlowSimulation {
         if !self.group(target).iter().all(|&m| self.runs(m)) {
             return false;
         }
-        let _ = front_len;
+        if let Some(k) = self.deck_owner[target] {
+            if !self.stations[k].can_receive(port.as_deref(), &self.lines) {
+                let wait = self.stations[k].prepare_for(port.as_deref(), now, &self.lines);
+                self.schedule_step(k, wait, now);
+                return false;
+            }
+            self.stations[k].receive(port.as_deref(), front_len, now, &mut self.lines);
+        }
         self.lines[target].incoming = Some(front_id);
         self.lines[i].outgoing = Some(front_id);
         if let Some(p) = self.lines[i].pallets.first().cloned() {
@@ -814,7 +923,7 @@ impl FlowSimulation {
             if self.lines[i].outgoing.is_none() {
                 continue;
             }
-            let Some(j) = self.line_after(self.lines[i].downstream.as_deref()) else { continue };
+            let Some(j) = self.line_after(self.lines[i].downstream.as_deref(), self.lines[i].downstream_port.as_deref()) else { continue };
             let (ri, rj) = (root(&parent, i), root(&parent, j));
             parent[rj] = ri;
         }
@@ -975,14 +1084,16 @@ impl FlowSimulation {
                 return Some(s.along_length() + self.lines[line].data.min_gap);
             }
         }
-        let feeder = (0..self.lines.len())
-            .find(|&l| self.lines[l].outgoing.is_none() && self.line_after(self.lines[l].downstream.as_deref()) == Some(line));
+        let feeder = (0..self.lines.len()).find(|&l| {
+            self.lines[l].outgoing.is_none()
+                && self.line_after(self.lines[l].downstream.as_deref(), self.lines[l].downstream_port.as_deref()) == Some(line)
+        });
         feeder.filter(|&f| self.lines[f].holding).map(|_| 0.0)
     }
 
     /// The conveyors' and sensors' output signals from the current state.
     fn update_outputs(&mut self) {
-        for l in &self.lines {
+        for l in self.lines.iter().filter(|l| !l.deck) {
             self.signals.insert(format!("{}.running", l.id), l.speed > 0.0 || l.accel > 0.0);
             self.signals.insert(format!("{}.occupied", l.id), !l.pallets.is_empty());
         }
@@ -1066,6 +1177,9 @@ impl FlowSimulation {
         for l in &mut self.lines {
             l.accumulate(seconds);
         }
+        for st in &mut self.stations {
+            st.accumulate(seconds);
+        }
         for s in &mut self.sensors {
             s.total += seconds;
             if s.detecting {
@@ -1094,10 +1208,36 @@ impl FlowSimulation {
         });
     }
 
-    /// The conveyor that takes what a node with this downstream delivers.
-    fn line_after(&self, downstream: Option<&str>) -> Option<usize> {
+    /// The conveyor or station deck that takes what a node with this downstream (and port) delivers.
+    fn line_after(&self, downstream: Option<&str>, port: Option<&str>) -> Option<usize> {
         let d = downstream?;
-        self.lines.iter().position(|l| l.id == d)
+        if let Some(st) = self.stations.iter().find(|s| s.id() == d) {
+            return st.entry_deck(port);
+        }
+        self.lines.iter().position(|l| !l.deck && l.id == d)
+    }
+
+    /// Stations move on: a centred pallet starts a turn, an emptied deck frees the station.
+    fn advance_stations(&mut self, now: SimTime) -> bool {
+        let mut changed = false;
+        for k in 0..self.stations.len() {
+            let step = self.stations[k].step(now, &self.lines);
+            self.schedule_step(k, step.wait, now);
+            changed = step.changed || changed;
+        }
+        changed
+    }
+
+    /// Ends a station's timed step after `duration` µs, or at once when it takes no time.
+    fn schedule_step(&mut self, k: usize, duration: Option<SimTime>, now: SimTime) {
+        let _ = now;
+        match duration {
+            None => {}
+            Some(0) => self.stations[k].finish_timed_step(&mut self.lines),
+            Some(d) => {
+                self.sim.schedule(d, Event::StationDone(k), 0);
+            }
+        }
     }
 
     /// The nodes of the network the run was built from.

@@ -57,11 +57,15 @@ pub fn footprints(layout: &Layout) -> Vec<Footprint> {
         .collect()
 }
 
-/// A pallet's outline on the plan: its front at `front` along its carrier, its length behind it.
+/// A pallet's outline on the plan: its front at `front` along its carrier's path (which starts at the path's point and
+/// runs along its heading: a turntable's deck turns), its length behind it.
 pub fn pallet_outline(layout: &Layout, p: &PalletView) -> Option<[Point; 4]> {
     let i = layout.instance(&p.carrier)?;
     let (rear, half) = (p.front - p.length, p.width / 2.0);
-    Some([to_plan(i, rear, -half), to_plan(i, p.front, -half), to_plan(i, p.front, half), to_plan(i, rear, half)])
+    // Along the path: direction (cos h, −sin h) in the carrier's (x, z); across it: (sin h, cos h).
+    let (c, s) = (p.heading.cos(), p.heading.sin());
+    let at = |along: f64, across: f64| to_plan(i, p.path_x + along * c + across * s, p.path_z - along * s + across * c);
+    Some([at(rear, -half), at(p.front, -half), at(p.front, half), at(rear, half)])
 }
 
 /// The plan's bounds, (min, max), with a margin; a unit square for an empty layout.
@@ -128,6 +132,9 @@ mod tests {
             type_id: "eur".into(),
             carrier: "7".into(),
             front: 2.0,
+            path_x: 0.0,
+            path_z: 0.0,
+            heading: 0.0,
             speed: 0.25,
             accel: 0.0,
             length: 1.2,
@@ -138,6 +145,33 @@ mod tests {
         let o = pallet_outline(&layout, &p).unwrap();
         assert!(close(o[0], (0.8, 0.4)) && close(o[2], (2.0, -0.4)));
         assert!(pallet_outline(&Layout::default(), &p).is_none());
+    }
+
+    #[test]
+    fn a_pallet_on_a_turned_deck_turns_with_it() {
+        let layout = Layout { instances: vec![instance("9", "conveyor.roller_turntable", Vec3::default(), 0.0)], ..Layout::default() };
+        let h = std::f64::consts::FRAC_PI_2;
+        // A deck heading +90° (north) with its entry edge 0.7 m south of the centre: a centred pallet sits on the centre.
+        let p = PalletView {
+            id: 1,
+            type_id: "eur".into(),
+            carrier: "9".into(),
+            front: 1.3,
+            path_x: -0.7 * h.cos(),
+            path_z: 0.7 * h.sin(),
+            heading: h,
+            speed: 0.0,
+            accel: 0.0,
+            length: 1.2,
+            width: 0.8,
+            height: 0.144,
+            load_height: 1.0,
+        };
+        let o = pallet_outline(&layout, &p).unwrap();
+        let centre = ((o[0].0 + o[2].0) / 2.0, (o[0].1 + o[2].1) / 2.0);
+        assert!(close(centre, (0.0, 0.0)), "{centre:?}");
+        // It runs north: its front edge is 0.6 m north of the centre.
+        assert!((o[1].1 - 0.6).abs() < 1e-9 && (o[2].1 - 0.6).abs() < 1e-9);
     }
 
     #[test]

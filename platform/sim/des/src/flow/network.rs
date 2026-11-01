@@ -109,9 +109,49 @@ pub struct SensorData {
     pub output_signal: String,
 }
 
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+pub enum ExitRule {
+    Alternate,
+    FirstExit,
+    Random,
+}
+
+/// A station port of a turntable connected to the entry of another object.
+#[derive(Clone, Debug, PartialEq)]
+pub struct TurntableExit {
+    pub port_id: String,
+    /// The station's angle (rad): the direction a pallet leaves in, in the turntable's frame.
+    pub angle: f64,
+    pub target: String,
+    pub gap: f64,
+}
+
+/// A chain or roller turntable (S03, S04): it receives, centres, turns to an exit station and discharges.
+#[derive(Clone, Debug, PartialEq)]
+pub struct TurntableData {
+    pub platform_length: f64,
+    /// The deck's conveying speed and ramp (chains or rollers).
+    pub nominal_speed: f64,
+    pub accel: f64,
+    pub max_angular_speed: f64,
+    pub angular_accel: f64,
+    pub angular_decel: f64,
+    pub settle_time: f64,
+    /// The station angles (rad) the platform may stop at.
+    pub stations: Vec<f64>,
+    pub pallet_side_along_travel: Side,
+    pub exit_rule: ExitRule,
+    pub exits: Vec<TurntableExit>,
+}
+
+/// The station ports of a turntable and their angles (rad, right-handed about +Y; 0 = its own +x).
+pub const STATION_PORTS: [(&str, f64); 4] =
+    [("P0", 0.0), ("P90", std::f64::consts::FRAC_PI_2), ("P180", std::f64::consts::PI), ("P270", 3.0 * std::f64::consts::FRAC_PI_2)];
+
 #[derive(Clone, Debug, PartialEq)]
 pub enum Kind {
     Line(LineData),
+    Turntable(Box<TurntableData>),
     Source(Box<SourceData>),
     Sink(SinkData),
     Sensor(SensorData),
@@ -173,7 +213,15 @@ pub fn build_flow_network(layout: &Layout, library: &Library) -> FlowNetwork {
     }
     for c in &layout.connections {
         let Some(from) = nodes.iter().position(|n| n.base.id == c.from.instance_id) else { continue };
-        if !nodes.iter().any(|n| n.base.id == c.to.instance_id) {
+        let Some(to) = nodes.iter().position(|n| n.base.id == c.to.instance_id) else { continue };
+        if matches!(nodes[from].kind, Kind::Turntable(_)) {
+            let angle = STATION_PORTS.iter().find(|(p, _)| *p == c.from.port_id).map(|(_, a)| *a);
+            if matches!(nodes[to].kind, Kind::Turntable(_)) {
+                let text = format!("pallets cannot yet pass directly to the turntable {}", c.to.instance_id);
+                issues.push(issue(&nodes[from].base, "turntableToTurntable", text));
+            } else if let (Some(angle), Kind::Turntable(t)) = (angle, &mut nodes[from].kind) {
+                t.exits.push(TurntableExit { port_id: c.from.port_id.clone(), angle, target: c.to.instance_id.clone(), gap: c.gap });
+            }
             continue;
         }
         if nodes[from].output_port() != Some(c.from.port_id.as_str()) {
@@ -208,6 +256,26 @@ fn create_kind(d: &Definition, base: &Base, p: &Values, reference: &Reference, i
                 min_gap: num(p, "minGap", 0.0),
                 pallet_side_along_travel: side(p, "palletSideAlongTravel"),
             })
+        }
+        "des.turntable" => {
+            let rule = text("exitRule");
+            Kind::Turntable(Box::new(TurntableData {
+                platform_length: num(p, "platformLength", 0.0),
+                nominal_speed: num(p, "nominalSpeed", num(p, "loadSpeed", 0.0)),
+                accel: num(p, "accel", 0.0),
+                max_angular_speed: num(p, "maxAngularSpeed", 0.0),
+                angular_accel: num(p, "angularAccel", 0.0),
+                angular_decel: num(p, "angularDecel", 0.0),
+                settle_time: num(p, "settleTime", 0.0),
+                stations: parse_stations(p.get("stations")),
+                pallet_side_along_travel: side(p, "palletSideAlongTravel"),
+                exit_rule: match rule.as_deref() {
+                    Some("firstExit") => ExitRule::FirstExit,
+                    Some("random") => ExitRule::Random,
+                    _ => ExitRule::Alternate,
+                },
+                exits: Vec::new(),
+            }))
         }
         "des.source" => source(base, p, reference, issues),
         "des.sink" => {
@@ -245,6 +313,17 @@ fn create_kind(d: &Definition, base: &Base, p: &Values, reference: &Reference, i
             Kind::Inert { behavior: behavior.to_string() }
         }
     }
+}
+
+/// A station list such as "0, 90, 180, 270" (degrees) as angles in rad; entries that aren't numbers are skipped.
+fn parse_stations(value: Option<&Value>) -> Vec<f64> {
+    let Some(Value::Text(t)) = value else { return STATION_PORTS.iter().map(|(_, a)| *a).collect() };
+    t.split(|c: char| c == ',' || c == ';' || c.is_whitespace())
+        .filter(|s| !s.is_empty())
+        .filter_map(|s| s.parse::<f64>().ok())
+        .filter(|d| d.is_finite())
+        .map(|d| ((d % 360.0) + 360.0) % 360.0 * (std::f64::consts::PI / 180.0))
+        .collect()
 }
 
 fn source(base: &Base, p: &Values, reference: &Reference, issues: &mut Vec<FlowIssue>) -> Kind {
@@ -315,6 +394,9 @@ fn connection_issues(node: &FlowNode, nodes: &[FlowNode], reference: &Reference)
     let next = node.base.downstream.as_ref().and_then(|d| nodes.iter().find(|n| &n.base.id == d));
     match &node.kind {
         Kind::Line(_) if next.is_none() => vec![issue(&node.base, "openEnd", "output is not connected; pallets stop at its end".into())],
+        Kind::Turntable(t) if t.exits.is_empty() => {
+            vec![issue(&node.base, "noExit", "no station is connected to the entry of another object; pallets stay on it".into())]
+        }
         Kind::Sensor(s) => sensor_issues(&node.base, s, nodes.iter().find(|n| n.base.id == s.host), reference),
         Kind::Source(_) if !matches!(next.map(|n| &n.kind), Some(Kind::Line(_))) => {
             vec![issue(&node.base, "sourceNotConnected", "must be connected to the entry of a conveyor; it creates no pallets".into())]
