@@ -164,9 +164,14 @@ pub enum Kind {
     Angle,
     YesNo,
     Material,
+    /// A free text, or one of a list of choices a front end offers (IntraCraft: an accumulation mode, a pallet type). It
+    /// takes no formula, and formulas don't read it.
+    Text,
 }
 
-/// A parameter: a type's (each type its own value) or, `instance`, each component's.
+/// A parameter: a type's (each type its own value) or, `instance`, each component's; an instance parameter takes its
+/// type's value, where the type gives one, before the parameter's own (IntraCraft: a component inherits its type's
+/// values until it sets its own).
 #[derive(Clone, Debug, Default, PartialEq, Serialize, Deserialize)]
 #[serde(deny_unknown_fields)]
 pub struct Parameter {
@@ -691,6 +696,11 @@ pub(crate) fn read(p: &Parameter, v: &Value) -> Result<Val, String> {
             Value::Null => Ok(Val::Text(String::new())),
             _ => Err(bad("a material's name")),
         },
+        Kind::Text => match v {
+            Value::String(s) => Ok(Val::Text(s.clone())),
+            Value::Null => Ok(Val::Text(String::new())),
+            _ => Err(bad("a text")),
+        },
         Kind::YesNo => match v {
             Value::Bool(b) => Ok(Val::Number(truth(*b))),
             Value::Null => Ok(Val::Number(0.0)),
@@ -803,12 +813,13 @@ impl Family {
                 path.push(name.to_string());
                 let x = eval(f, &mut |n: &str| match self.resolve(n, set, instance, done, path)? {
                     Val::Number(x) => Ok(x),
-                    Val::Text(_) => Err(format!("`{n}` is a material, not a number")),
+                    Val::Text(_) => Err(format!("`{n}` is a material or a text, not a number")),
                 });
                 path.pop();
                 Val::Number(x.map_err(|e| format!("parameter `{name}`: {e}"))?)
             }
-            None => read(p, if p.instance { instance.get(name) } else { set.get(name) }.unwrap_or(&p.value))?,
+            // An instance parameter: the component's value, else its type's, else the parameter's own.
+            None => read(p, if p.instance { instance.get(name).or_else(|| set.get(name)) } else { set.get(name) }.unwrap_or(&p.value))?,
         };
         done.insert(name.to_string(), v.clone());
         Ok(v)
@@ -862,10 +873,11 @@ impl Family {
             }
             match (&p.formula, p.kind) {
                 (Some(_), Kind::Material) => return Err(format!("{who}: a material takes no formula")),
+                (Some(_), Kind::Text) => return Err(format!("{who}: a text takes no formula")),
                 (Some(f), _) if long(f) => return Err(format!("{who}: its formula is longer than {MAX_FORMULA} characters")),
                 _ => {}
             }
-            if let Val::Text(m) = read(p, &p.value)? {
+            if let (Val::Text(m), Kind::Material) = (read(p, &p.value)?, p.kind) {
                 material_ok(&who, &m)?;
             }
         }
@@ -876,13 +888,10 @@ impl Family {
             }
             for (k, v) in set {
                 let p = self.parameters.iter().find(|p| p.name == *k).ok_or_else(|| format!("{who}: `{k}` isn't one of its parameters"))?;
-                if p.instance {
-                    return Err(format!("{who}: `{k}` is an instance parameter; each component sets its own"));
-                }
                 if p.formula.is_some() {
                     return Err(format!("{who}: `{k}` is worked out by its formula"));
                 }
-                if let Val::Text(m) = read(p, v)? {
+                if let (Val::Text(m), Kind::Material) = (read(p, v)?, p.kind) {
                     material_ok(&who, &m)?;
                 }
             }

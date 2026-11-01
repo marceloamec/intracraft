@@ -87,7 +87,7 @@ pub const MAX_SLOPE: f64 = 75.0;
 /// 2: the library has ids and GUIDs too
 /// (`library`), and what names a library entry holds its GUID. 1: elements have GUIDs, ids six digits, and what points at
 /// an element holds its GUID. None (0): a file from before.
-pub const FORMAT: u32 = 11;
+pub const FORMAT: u32 = 12;
 /// How far past the model a level reaches without an extent of its own, mm.
 pub const LEVEL_PAST: f64 = 1000.0;
 
@@ -2577,6 +2577,7 @@ impl Model {
                 return Err(format!("{who}: `{k}` is worked out by its formula"));
             }
             if let crate::family::Val::Text(m) = crate::family::read(p, v).map_err(|e| format!("{who}: {e}"))?
+                && p.kind == crate::family::Kind::Material
                 && !m.is_empty()
                 && !self.materials.contains_key(&m)
             {
@@ -2812,6 +2813,8 @@ impl Model {
         // dimension type; one of 10 read by 9 would measure its points as lines. A dimension of 9 gets its kind's type.
         self.typed_dimensions();
         // 10 to 11 (Swedish, Czech and French as a project's language) has no step: a file of 10 holds none of them.
+        // 11 to 12 (IntraCraft: text parameters in families, and a type's value for an instance parameter) has no step: a file of
+        // 11 holds neither; one of 12 read by 11 would refuse a text parameter, or misread an inherited value.
         self.format = FORMAT;
     }
 

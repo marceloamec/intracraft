@@ -514,7 +514,7 @@ pub fn fields(m: &Model, cat: &str) -> Vec<(String, Kind)> {
                     family::Kind::Length => Kind::Length,
                     family::Kind::Number | family::Kind::Angle => Kind::Number,
                     family::Kind::YesNo => Kind::YesNo,
-                    family::Kind::Material => Kind::Text,
+                    family::Kind::Material | family::Kind::Text => Kind::Text,
                 },
             );
         }
@@ -851,7 +851,7 @@ impl Row<'_> {
             let v = j.get("values").and_then(|v| v.get(name)).cloned().unwrap_or(Value::Null);
             return match (p.kind, v.as_f64()) {
                 (family::Kind::YesNo, Some(x)) => Value::Bool(x != 0.0),
-                (family::Kind::Material, _) if v.as_str() == Some("") => Value::Null,
+                (family::Kind::Material | family::Kind::Text, _) if v.as_str() == Some("") => Value::Null,
                 _ => v,
             };
         }

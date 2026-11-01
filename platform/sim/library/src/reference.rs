@@ -66,12 +66,23 @@ pub struct ContactPair {
     pub restitution: f64,
 }
 
-/// A model of the asset catalogue, as far as the library needs it: what option it is and how it is called.
+/// A model's size, m: x and z in plan, y up.
+#[derive(Clone, Copy, Debug, Default, PartialEq, Serialize, Deserialize)]
+pub struct Dimensions {
+    pub x: f64,
+    pub y: f64,
+    pub z: f64,
+}
+
+/// A model of the asset catalogue, as far as the library and the engines need it: what option it is, how it is
+/// called, and its size.
 #[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
 pub struct Asset {
     pub id: String,
     pub category: String,
     pub name: Text,
+    #[serde(default)]
+    pub dimensions: Dimensions,
 }
 
 /// The catalogue's categories, in the reference's order.
@@ -129,6 +140,10 @@ impl Reference {
     /// The pair of materials `a` and `b`, in either order.
     pub fn contact_pair(&self, a: &str, b: &str) -> Option<&ContactPair> {
         self.contact_pairs.iter().find(|p| (p.a == a && p.b == b) || (p.a == b && p.b == a))
+    }
+
+    pub fn asset(&self, id: &str) -> Option<&Asset> {
+        self.assets.iter().find(|a| a.id == id)
     }
 
     /// The catalogue's models of a category, in the catalogue's order.

@@ -1756,10 +1756,34 @@ dependencies = [
 ]
 
 [[package]]
+name = "intracraft-control"
+version = "0.1.0"
+dependencies = [
+ "intracraft-library",
+]
+
+[[package]]
+name = "intracraft-des"
+version = "0.1.0"
+dependencies = [
+ "intracraft-control",
+ "intracraft-library",
+]
+
+[[package]]
 name = "intracraft-library"
 version = "0.1.0"
 dependencies = [
  "serde",
+ "serde_json",
+]
+
+[[package]]
+name = "intracraft-model"
+version = "0.1.0"
+dependencies = [
+ "bimcraft-core",
+ "intracraft-library",
  "serde_json",
 ]
 

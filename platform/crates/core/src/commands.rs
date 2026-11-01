@@ -834,7 +834,7 @@ pub static ALL: &[Command] = &[
         "Load Family",
         &[],
         "{name, category?: furniture|casework|plumbing|lighting|generic|door|window, parameters?: [{name, kind?: length|number|\
-         angle|yesno|material, instance?, value?, formula?}], types?: {type: {parameter: value}}, forms?: [{plane?: xy|xz|yz, \
+         angle|yesno|material|text, instance?, value?, formula?}], types?: {type: {parameter: value}}, forms?: [{plane?: xy|xz|yz, \
          profile?: [[a, b], …], circle?: {centre: [a, b], radius}, axis?: [[a, b], [a, b]], from?, to, material?, visible?, \
          void?}], symbols?: [{line?: [[x, y], …] | arc?: {centre: [x, y], radius, from?, to}, visible?}], operation?: swing|\
          double-swing|sliding|double-sliding|folding|fixed (a door's or window's, for IFC and schedules), rename?, delete?: \

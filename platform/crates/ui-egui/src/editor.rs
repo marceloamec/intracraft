@@ -195,6 +195,7 @@ fn kind_name(k: Holds) -> &'static str {
         Holds::Angle => "Angle",
         Holds::YesNo => msg!("Yes/No"),
         Holds::Material => "Material",
+        Holds::Text => "Text",
     }
 }
 
@@ -215,7 +216,7 @@ fn text_value(kind: Holds, s: &str, who: &str) -> Result<Option<Value>, String> 
         return Ok(None);
     }
     Ok(Some(match kind {
-        Holds::Material => json!(s),
+        Holds::Material | Holds::Text => json!(s),
         Holds::YesNo => json!(matches!(s, "1" | "true" | "yes" | "Yes")),
         Holds::Length | Holds::Number | Holds::Angle => {
             json!(s.parse::<f64>().ok().filter(|x| x.is_finite()).ok_or_else(|| tf("{}: `{}` isn't a number", &[who, s]))?)
@@ -576,7 +577,7 @@ fn parameters_tab(ed: &mut FamilyEditor, ui: &mut Ui, materials: &[String]) {
         for (i, p) in ed.params.iter_mut().enumerate() {
             let n = i + 1;
             field(ui, format!("{} {n}", t("Parameter Name")), &mut p.name, 130.0);
-            let kinds = [Holds::Length, Holds::Number, Holds::Angle, Holds::YesNo, Holds::Material];
+            let kinds = [Holds::Length, Holds::Number, Holds::Angle, Holds::YesNo, Holds::Material, Holds::Text];
             ComboBox::from_id_salt(("fe-param-kind", i)).selected_text(t(kind_name(p.kind))).width(84.0).show_ui(ui, |ui| {
                 for k in kinds {
                     ui.selectable_value(&mut p.kind, k, t(kind_name(k)));

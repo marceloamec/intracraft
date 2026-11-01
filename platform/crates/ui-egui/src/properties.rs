@@ -1370,7 +1370,7 @@ impl BimApp {
         for (group, kinds) in [
             ("Dimensions", &[Holds::Length, Holds::Number, Holds::Angle][..]),
             (msg!("Materials and Finishes"), &[Holds::Material][..]),
-            ("Other", &[Holds::YesNo][..]),
+            ("Other", &[Holds::YesNo, Holds::Text][..]),
         ] {
             let params: Vec<_> = f.parameters.iter().filter(|p| p.instance && kinds.contains(&p.kind)).collect();
             if params.is_empty() {
@@ -1409,6 +1409,12 @@ impl BimApp {
                             Holds::Length | Holds::Number | Holds::Angle => {
                                 if let Some(typed) = self.field(ui, id, &p.name, shown(kind, &val, units), name.id, "") {
                                     change = Some((p.name.clone(), parse(kind, &typed, units)));
+                                }
+                            }
+                            Holds::Text => {
+                                let now = val.as_str().unwrap_or_default().to_string();
+                                if let Some(typed) = self.field(ui, id, &p.name, now, name.id, "") {
+                                    change = Some((p.name.clone(), Ok(json!(typed))));
                                 }
                             }
                         }
@@ -2009,7 +2015,7 @@ impl FamilyDialog {
                 Holds::Length => json!(units.parse(typed).ok_or_else(|| tf("{}: `{}` is not a length", &[key, typed]))?),
                 Holds::Number | Holds::Angle => json!(number(typed).ok_or_else(|| tf("{}: `{}` is not a number", &[key, typed]))?),
                 Holds::YesNo => json!(typed == "1"),
-                Holds::Material => json!(typed),
+                Holds::Material | Holds::Text => json!(typed),
             };
             set.insert(key.clone(), v);
         }
@@ -2033,7 +2039,7 @@ impl BimApp {
                 let group = |kind: &Holds| match kind {
                     Holds::Length | Holds::Angle => "Dimensions",
                     Holds::Material => msg!("Materials and Finishes"),
-                    Holds::Number | Holds::YesNo => "Other",
+                    Holds::Number | Holds::YesNo | Holds::Text => "Other",
                 };
                 let mut groups: Vec<&str> = Vec::new();
                 for (_, kind, ..) in &d.fields {
@@ -2057,7 +2063,7 @@ impl BimApp {
                                 Holds::Material => tb.pick(key, typed, &materials),
                                 Holds::Length => tb.text(key, typed, model.units.name()),
                                 Holds::Angle => tb.text(key, typed, "°"),
-                                Holds::Number => tb.text(key, typed, ""),
+                                Holds::Number | Holds::Text => tb.text(key, typed, ""),
                             }
                         }
                     }
