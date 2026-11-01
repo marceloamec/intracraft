@@ -1,7 +1,8 @@
 //! `intracraft`: pallet conveyor design and simulation on BIMCraft, in three modules (ADR-0020).
 //!
-//! `intracraft [FILE]`: FILE is a `.bimcraft` project, or a layout of the TypeScript reference (`.intracraft.json`),
-//! which is placed in a new project.
+//! `intracraft [FILE] [--module design|discrete|physics] [--play]`: FILE is a `.bimcraft` project, or a layout of the
+//! TypeScript reference (`.intracraft.json`), which is placed in a new project; `--module` opens that module, and
+//! `--play` starts its run at once.
 
 #![cfg_attr(all(windows, not(debug_assertions)), windows_subsystem = "windows")]
 
@@ -23,9 +24,19 @@ fn main() -> ExitCode {
             return ExitCode::FAILURE;
         }
     };
+    let args: Vec<String> = std::env::args().skip(1).collect();
+    let module = args.iter().position(|a| a == "--module").and_then(|k| args.get(k + 1)).map(String::as_str);
+    let module = match module {
+        Some("discrete") => app::Module::Discrete,
+        Some("physics") => app::Module::Physics,
+        _ => app::Module::Design,
+    };
+    let play = args.iter().any(|a| a == "--play");
+    let file =
+        args.iter().enumerate().find(|(k, a)| !a.starts_with("--") && (*k == 0 || args[k - 1] != "--module")).map(|(_, a)| a.clone());
     let mut session = Session::new();
     let mut problem = None;
-    if let Some(file) = std::env::args().nth(1) {
+    if let Some(file) = file {
         problem = open(&mut session, &library, &file).err();
     }
     // The library's objects are families of the project, so the Project Browser places them too.
@@ -42,7 +53,10 @@ fn main() -> ExitCode {
         if let Some(state) = cc.wgpu_render_state.as_ref() {
             bim.use_graphics_card(state);
         }
-        Ok(Box::new(app::IntraApp::new(bim, library)))
+        let mut app = app::IntraApp::new(bim, library);
+        app.module = module;
+        app.autoplay = play;
+        Ok(Box::new(app))
     };
     match eframe::run_native("IntraCraft", options, Box::new(start)) {
         Ok(()) => ExitCode::SUCCESS,

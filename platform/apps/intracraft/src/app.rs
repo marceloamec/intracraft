@@ -118,6 +118,8 @@ pub struct IntraApp {
     pub physics_run: Option<PhysicsRun>,
     /// What is typed in the attribute table, by attribute key, until it is applied.
     typed: BTreeMap<String, String>,
+    /// Runs start playing as soon as they are made (`--play`).
+    pub autoplay: bool,
     /// Where the next object of the library palette goes, mm east.
     next_x: f64,
     problem: Option<String>,
@@ -125,7 +127,17 @@ pub struct IntraApp {
 
 impl IntraApp {
     pub fn new(bim: BimApp, library: Library) -> IntraApp {
-        IntraApp { bim, library, module: Module::Design, run: None, physics_run: None, typed: BTreeMap::new(), next_x: 0.0, problem: None }
+        IntraApp {
+            bim,
+            library,
+            module: Module::Design,
+            run: None,
+            physics_run: None,
+            autoplay: false,
+            typed: BTreeMap::new(),
+            next_x: 0.0,
+            problem: None,
+        }
     }
 
     pub fn show(&mut self, ui: &mut Ui) {
@@ -299,7 +311,8 @@ impl IntraApp {
         if ui.button("Reset from the design").clicked() || self.run.is_none() {
             let (layout, problems) = intracraft_model::layout::layout(&self.bim.session.model, &self.library);
             match Run::start(layout, &self.library) {
-                Ok(run) => {
+                Ok(mut run) => {
+                    run.playing = self.autoplay;
                     self.run = Some(run);
                     self.problem = problems.first().cloned();
                 }
@@ -422,7 +435,8 @@ impl IntraApp {
         if ui.button("Reset from the design").clicked() || self.physics_run.is_none() {
             let (layout, problems) = intracraft_model::layout::layout(&self.bim.session.model, &self.library);
             match PhysicsRun::start(layout, &self.library) {
-                Ok(run) => {
+                Ok(mut run) => {
+                    run.playing = self.autoplay;
                     self.physics_run = Some(run);
                     self.problem = problems.first().cloned();
                 }
