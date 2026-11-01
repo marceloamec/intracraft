@@ -1900,6 +1900,7 @@ dependencies = [
 name = "intracraft-physics"
 version = "0.1.0"
 dependencies = [
+ "intracraft-library",
  "rapier3d",
 ]
 

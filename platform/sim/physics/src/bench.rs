@@ -279,6 +279,71 @@ mod tests {
         assert_eq!(run(), run());
     }
 
+    /// The friction and restitution of a contact pair of the library (S16): both parts get the pair's values, so the
+    /// contact takes them as they are.
+    fn pair(a: &str, b: &str) -> Material {
+        let lib = intracraft_library::Library::built_in().unwrap();
+        let p = lib.reference.contact_pair(a, b).unwrap();
+        Material { friction: p.mu, restitution: p.restitution }
+    }
+
+    /// The acceleration of a pallet at rest put on rollers already turning at 1 m/s: while it slips, μ·g.
+    fn traction(pallet: &str, roller: &str) -> f64 {
+        let m = pair(pallet, roller);
+        let mut b = Bench::new();
+        b.floor(m);
+        for k in 0..30 {
+            b.roller(0.1 + 0.2063 * f64::from(k), 0.6, 0.0445, 1.0, 1.0, m);
+        }
+        let p = b.pallet(1.4, 0.6, EUR, MASS, 0.0, m);
+        b.run(0.05);
+        let (t1, v1) = (b.time(), b.velocity(p)[0]);
+        b.run(0.1);
+        (b.velocity(p)[0] - v1) / (b.time() - t1)
+    }
+
+    #[test]
+    fn p2_a_pallet_slipping_on_rollers_accelerates_at_mu_g_for_each_material() {
+        for (pallet, roller, expected) in [("wood", "steel-zinc", 3.4335), ("plastic", "steel-zinc", 2.4525)] {
+            let a = traction(pallet, roller);
+            assert!((a - expected).abs() / expected < 0.10, "{pallet} on {roller}: {a} m/s², expected {expected}");
+        }
+    }
+
+    /// Open (ADR-0023): on rubber-coated rollers (μ = 0.6) Rapier gives about 3.7 m/s², not μ·g = 5.9 m/s²; neither the
+    /// Coulomb friction model nor more solver iterations change it.
+    #[test]
+    #[ignore]
+    fn p2_rubber_rollers_open() {
+        let a = traction("wood", "rubber");
+        assert!((a - 5.886).abs() / 5.886 < 0.10, "wood on rubber: {a} m/s²");
+    }
+
+    /// The restitution against a stop: a pallet sliding without friction at 0.25 m/s hits the stop; its speed back over
+    /// its speed in.
+    fn restitution(stop: &str) -> f64 {
+        let m = pair("wood", stop);
+        let slide = Material { friction: 0.0, restitution: 0.0 };
+        let mut b = Bench::new();
+        b.floor(slide);
+        b.stop(3.0, 0.141, m);
+        let p = b.pallet(2.0, 0.0, EUR, MASS, 0.25, Material { friction: 0.0, restitution: m.restitution });
+        let mut back: f64 = 0.0;
+        for _ in 0..(8.0 / DT) as usize {
+            b.step();
+            back = back.max(-b.velocity(p)[0]);
+        }
+        back / 0.25
+    }
+
+    #[test]
+    fn p5_a_pallet_bounces_off_a_stop_as_its_material_pair_says() {
+        for (stop, expected) in [("steel-painted", 0.1), ("polyurethane", 0.2), ("rubber", 0.35)] {
+            let e = restitution(stop);
+            assert!((e - expected).abs() / expected < 0.10, "wood on {stop}: {e}, expected {expected}");
+        }
+    }
+
     /// The figures of spike S1 on Rapier, for the decision record: `cargo test -p intracraft-physics --release -- --ignored
     /// --nocapture s1_figures`.
     #[test]
