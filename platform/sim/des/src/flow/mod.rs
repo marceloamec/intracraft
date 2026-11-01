@@ -243,4 +243,154 @@ mod tests {
             assert!(sim.issues.iter().any(|i| i.rule == "noExit"));
         }
     }
+
+    mod transfer {
+        use super::super::*;
+        use crate::time::from_seconds;
+        use intracraft_library::definition::Value;
+        use intracraft_library::layout::{Instance, Vec3};
+        use std::f64::consts::{FRAC_PI_2, PI};
+
+        /// A yaw that points an object's +x to the world's +z (or −z).
+        const TO_PLUS_Z: f64 = 3.0 * PI / 2.0;
+        const TO_MINUS_Z: f64 = FRAC_PI_2;
+        /// The transfer table's A at x = 3.02; 1.4 m long, 1.0 m wide: its centre at x = 3.72, chain ports at z = ±0.5.
+        const TX: f64 = 3.02;
+        const CX: f64 = TX + 0.7;
+        const CHAIN_HEIGHT: f64 = 0.64;
+
+        fn instance(id: &str, definition: &str, x: f64, z: f64, yaw: f64, params: &[(&str, Value)]) -> Instance {
+            Instance {
+                id: id.into(),
+                definition_id: definition.into(),
+                definition_version: "0.1.0".into(),
+                name: id.into(),
+                position: Vec3::new(x, 0.0, z),
+                yaw,
+                params: params.iter().map(|(k, v)| (k.to_string(), v.clone())).collect(),
+                attributes: Default::default(),
+            }
+        }
+
+        fn n(x: f64) -> Value {
+            Value::Number(x)
+        }
+
+        fn t(x: &str) -> Value {
+            Value::Text(x.into())
+        }
+
+        /// Source → roller1 → transfer (A) → C2 → chain1 → sink1 (and C1 → chain2 → sink2 when `both`).
+        fn rollers_to_chains(source: &[(&str, Value)], transfer: &[(&str, Value)], both: bool) -> Layout {
+            let h = [("surfaceHeight", n(CHAIN_HEIGHT))];
+            let mut instances = vec![
+                instance("source1", "flow.source", -0.42, 0.0, 0.0, source),
+                instance("roller1", "conveyor.roller", 0.0, 0.0, 0.0, &[]),
+                instance("transfer_rc1", "conveyor.transfer_rc", TX, 0.0, 0.0, transfer),
+                instance("chain1", "conveyor.chain", CX, 0.52, TO_PLUS_Z, &h),
+                instance("sink1", "flow.sink", CX, 3.54, TO_PLUS_Z, &h),
+            ];
+            if both {
+                instances.push(instance("chain2", "conveyor.chain", CX, -0.52, TO_MINUS_Z, &h));
+                instances.push(instance("sink2", "flow.sink", CX, -3.54, TO_MINUS_Z, &h));
+            }
+            Layout { instances, ..Layout::default() }
+        }
+
+        /// Source → chain1 (running +z) → transfer C1 → B → roller1 → sink1.
+        fn chains_to_rollers() -> Layout {
+            let h = ("surfaceHeight", n(CHAIN_HEIGHT));
+            Layout {
+                instances: vec![
+                    instance(
+                        "source1",
+                        "flow.source",
+                        0.7,
+                        -3.94,
+                        TO_PLUS_Z,
+                        &[("maxPallets", n(1.0)), ("orientation", t("short")), h.clone()],
+                    ),
+                    instance("chain1", "conveyor.chain", 0.7, -3.52, TO_PLUS_Z, &[h]),
+                    instance("transfer_rc1", "conveyor.transfer_rc", 0.0, 0.0, 0.0, &[("operationMode", t("chainsToRollers"))]),
+                    instance("roller1", "conveyor.roller", 1.42, 0.0, 0.0, &[]),
+                    instance("sink1", "flow.sink", 4.44, 0.0, 0.0, &[]),
+                ],
+                ..Layout::default()
+            }
+        }
+
+        fn run(layout: &Layout, seconds: f64) -> FlowSimulation {
+            let lib = Library::built_in().unwrap();
+            let mut sim = simulate(layout, &lib, 5).unwrap();
+            sim.run_until(from_seconds(seconds)).unwrap();
+            sim
+        }
+
+        fn rules(sim: &FlowSimulation) -> Vec<&'static str> {
+            sim.issues.iter().map(|i| i.rule).collect()
+        }
+
+        #[test]
+        fn lifts_the_pallet_off_the_rollers_and_sends_it_sideways_short_side_first() {
+            let mut sim = run(&rollers_to_chains(&[("maxPallets", n(1.0))], &[], false), 120.0);
+            let s = sim.statistics();
+            assert_eq!(s["sink1"]["palletsReceived"], 1.0);
+            assert_eq!((s["transfer_rc1"]["transfers"], s["transfer_rc1"]["palletsProcessed"]), (1.0, 1.0));
+            assert!(!rules(&sim).contains(&"palletOrientationMismatch"));
+        }
+
+        #[test]
+        fn adds_the_lift_and_lowering_times_to_its_cycle() {
+            let cycle = |params: &[(&str, Value)]| {
+                run(&rollers_to_chains(&[("maxPallets", n(1.0))], params, false), 120.0).statistics()["transfer_rc1"]["meanCycleTime"]
+            };
+            let added = cycle(&[("liftTime", n(2.0)), ("lowerTime", n(2.5))]) - cycle(&[("liftTime", n(1.0)), ("lowerTime", n(1.0))]);
+            assert!((added - 2.5).abs() < 1e-5, "{added}");
+        }
+
+        #[test]
+        fn keeps_the_rollers_closed_while_the_chains_work() {
+            let s = run(&rollers_to_chains(&[("interval", n(1.0))], &[], false), 3600.0).statistics();
+            let cycle = s["transfer_rc1"]["meanCycleTime"];
+            assert!(s["transfer_rc1"]["utilization"] > 0.9);
+            assert!(s["sink1"]["throughputPerHour"] <= 3600.0 / cycle + 1.0);
+        }
+
+        #[test]
+        fn warns_and_keeps_the_pallet_when_the_chosen_side_is_not_connected() {
+            let mut sim = run(&rollers_to_chains(&[("maxPallets", n(1.0))], &[("transferDirection", t("left"))], false), 60.0);
+            assert!(rules(&sim).contains(&"noExit"));
+            assert_eq!(sim.snapshot().pallets[0].carrier, "transfer_rc1");
+        }
+
+        #[test]
+        fn sends_pallets_to_both_sides_in_turn_when_bidirectional() {
+            let layout =
+                rollers_to_chains(&[("maxPallets", n(4.0)), ("interval", n(15.0))], &[("transferDirection", t("bidirectional"))], true);
+            let s = run(&layout, 600.0).statistics();
+            assert_eq!((s["sink1"]["palletsReceived"], s["sink2"]["palletsReceived"]), (2.0, 2.0));
+        }
+
+        #[test]
+        fn takes_pallets_from_the_chains_and_sends_them_on_along_the_rollers() {
+            let mut sim = run(&chains_to_rollers(), 120.0);
+            let s = sim.statistics();
+            assert_eq!(s["sink1"]["palletsReceived"], 1.0);
+            assert_eq!(s["transfer_rc1"]["transfers"], 1.0);
+            assert!(!rules(&sim).contains(&"palletOrientationMismatch"));
+        }
+
+        #[test]
+        fn ref_5_the_reference_layout_with_all_five_conveyors_delivers_120_pallets_an_hour() {
+            let lib = Library::built_in().unwrap();
+            let project = intracraft_library::layout::Project::read(include_str!(
+                "../../../../../packages/scenarios/scenarios/layouts/reference-all-five.intracraft.json"
+            ))
+            .unwrap();
+            let mut sim = simulate(&project.layout, &lib, project.seed).unwrap();
+            sim.run_until(from_seconds(28_800.0)).unwrap();
+            let rate = sim.statistics()["sink1"]["throughputPerHour"];
+            assert!(((rate - 120.0) / 120.0).abs() < 0.01, "{rate} pallets/h");
+        }
+    }
 }

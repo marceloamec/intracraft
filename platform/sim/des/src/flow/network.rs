@@ -148,10 +148,54 @@ pub struct TurntableData {
 pub const STATION_PORTS: [(&str, f64); 4] =
     [("P0", 0.0), ("P90", std::f64::consts::FRAC_PI_2), ("P180", std::f64::consts::PI), ("P270", 3.0 * std::f64::consts::FRAC_PI_2)];
 
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+pub enum TransferDirection {
+    Right,
+    Left,
+    Bidirectional,
+}
+
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+pub enum OperationMode {
+    RollersToChains,
+    ChainsToRollers,
+    Bidirectional,
+}
+
+/// A connected output port of a station and what it leads to.
+#[derive(Clone, Debug, PartialEq)]
+pub struct StationExit {
+    pub target: String,
+    pub gap: f64,
+    /// The port of the target it reaches.
+    pub port: String,
+}
+
+/// A roller-to-chain transfer table (S05): rollers along x (A → B), liftable chains across (C1 at −z, C2 at +z) that
+/// raise the pallet and move it sideways without turning it.
+#[derive(Clone, Debug, PartialEq)]
+pub struct TransferData {
+    pub length: f64,
+    pub usable_width: f64,
+    pub nominal_speed: f64,
+    pub accel: f64,
+    pub transfer_speed: f64,
+    pub transfer_accel: f64,
+    pub lift_time: f64,
+    pub lower_time: f64,
+    pub lift_stroke: f64,
+    pub transfer_direction: TransferDirection,
+    pub operation_mode: OperationMode,
+    pub pallet_side_along_travel: Side,
+    /// Its connected output ports (B, C1, C2) and where they lead.
+    pub exits: std::collections::BTreeMap<String, StationExit>,
+}
+
 #[derive(Clone, Debug, PartialEq)]
 pub enum Kind {
     Line(LineData),
     Turntable(Box<TurntableData>),
+    Transfer(Box<TransferData>),
     Source(Box<SourceData>),
     Sink(SinkData),
     Sensor(SensorData),
@@ -224,6 +268,11 @@ pub fn build_flow_network(layout: &Layout, library: &Library) -> FlowNetwork {
             }
             continue;
         }
+        if let Kind::Transfer(t) = &mut nodes[from].kind {
+            t.exits
+                .insert(c.from.port_id.clone(), StationExit { target: c.to.instance_id.clone(), gap: c.gap, port: c.to.port_id.clone() });
+            continue;
+        }
         if nodes[from].output_port() != Some(c.from.port_id.as_str()) {
             continue;
         }
@@ -277,6 +326,29 @@ fn create_kind(d: &Definition, base: &Base, p: &Values, reference: &Reference, i
                 exits: Vec::new(),
             }))
         }
+        "des.transfer_rc" => Kind::Transfer(Box::new(TransferData {
+            length: num(p, "length", 0.0),
+            usable_width: num(p, "usableWidth", 0.0),
+            nominal_speed: num(p, "nominalSpeed", 0.0),
+            accel: num(p, "accel", 0.0),
+            transfer_speed: num(p, "transferSpeed", 0.0),
+            transfer_accel: num(p, "transferAccel", 0.0),
+            lift_time: num(p, "liftTime", 0.0),
+            lower_time: num(p, "lowerTime", 0.0),
+            lift_stroke: num(p, "liftStroke", 0.0),
+            transfer_direction: match text("transferDirection").as_deref() {
+                Some("left") => TransferDirection::Left,
+                Some("bidirectional") => TransferDirection::Bidirectional,
+                _ => TransferDirection::Right,
+            },
+            operation_mode: match text("operationMode").as_deref() {
+                Some("chainsToRollers") => OperationMode::ChainsToRollers,
+                Some("bidirectional") => OperationMode::Bidirectional,
+                _ => OperationMode::RollersToChains,
+            },
+            pallet_side_along_travel: side(p, "palletSideAlongTravel"),
+            exits: Default::default(),
+        })),
         "des.source" => source(base, p, reference, issues),
         "des.sink" => {
             let after_time = text("removalMode").as_deref() == Some("afterTime");
@@ -394,6 +466,7 @@ fn connection_issues(node: &FlowNode, nodes: &[FlowNode], reference: &Reference)
     let next = node.base.downstream.as_ref().and_then(|d| nodes.iter().find(|n| &n.base.id == d));
     match &node.kind {
         Kind::Line(_) if next.is_none() => vec![issue(&node.base, "openEnd", "output is not connected; pallets stop at its end".into())],
+        Kind::Transfer(t) => transfer_issues(&node.base, t),
         Kind::Turntable(t) if t.exits.is_empty() => {
             vec![issue(&node.base, "noExit", "no station is connected to the entry of another object; pallets stay on it".into())]
         }
@@ -403,6 +476,22 @@ fn connection_issues(node: &FlowNode, nodes: &[FlowNode], reference: &Reference)
         }
         _ => vec![],
     }
+}
+
+fn transfer_issues(base: &Base, t: &TransferData) -> Vec<FlowIssue> {
+    let mut out = Vec::new();
+    let side: &[&str] = match t.transfer_direction {
+        TransferDirection::Right => &["C2"],
+        TransferDirection::Left => &["C1"],
+        TransferDirection::Bidirectional => &["C1", "C2"],
+    };
+    if t.operation_mode != OperationMode::ChainsToRollers && !side.iter().any(|p| t.exits.contains_key(*p)) {
+        out.push(issue(base, "noExit", format!("the chain side {} is not connected; pallets from A stay on it", side.join("/"))));
+    }
+    if t.operation_mode != OperationMode::RollersToChains && !t.exits.contains_key("B") {
+        out.push(issue(base, "noExit", "B is not connected; pallets from the chains stay on it".into()));
+    }
+    out
 }
 
 fn sensor_issues(base: &Base, s: &SensorData, host: Option<&FlowNode>, reference: &Reference) -> Vec<FlowIssue> {

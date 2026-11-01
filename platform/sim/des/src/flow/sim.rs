@@ -14,7 +14,7 @@ use intracraft_library::layout::Rule;
 use intracraft_library::reference::Reference;
 
 use crate::flow::network::{FlowIssue, FlowNetwork, FlowNode, Generation, Kind, LineData, SensorData, Side, SinkData, SourceData};
-use crate::flow::station::{Station, Turntable};
+use crate::flow::station::{Station, Transfer, Turntable};
 use crate::kinematics::{Segment, time_to_reach};
 use crate::queue::Simulator;
 use crate::rng::Pcg32;
@@ -94,7 +94,39 @@ pub(crate) struct Line {
     stats: LineStats,
 }
 
+/// A station deck: a short conveyor with one ramp for starting and stopping.
+fn deck_data(length: f64, speed: f64, accel: f64, side: Side) -> LineData {
+    LineData { length, nominal_speed: speed, accel, decel: accel, min_gap: 0.0, pallet_side_along_travel: side }
+}
+
 impl Line {
+    fn deck(id: &str, name: &str, carrier: &str, data: LineData) -> Line {
+        Line {
+            id: id.to_string(),
+            name: name.to_string(),
+            carrier: carrier.to_string(),
+            deck: true,
+            end: data.length,
+            data,
+            downstream: None,
+            downstream_port: None,
+            gap: 0.0,
+            pallets: Vec::new(),
+            speed: 0.0,
+            accel: 0.0,
+            t0: 0.0,
+            outgoing: None,
+            incoming: None,
+            holding: false,
+            status: LineStatus::Empty,
+            stats: LineStats::default(),
+        }
+    }
+
+    pub(crate) fn length(&self) -> f64 {
+        self.data.length
+    }
+
     fn rear_tail(&self) -> Option<f64> {
         self.pallets.last().map(|p| p.front - p.length)
     }
@@ -414,34 +446,18 @@ impl FlowSimulation {
                 }),
                 Kind::Turntable(data) => {
                     let deck = f.lines.len();
-                    f.lines.push(Line {
-                        id: b.id.clone(),
-                        name: b.name.clone(),
-                        carrier: b.id.clone(),
-                        deck: true,
-                        data: LineData {
-                            length: data.platform_length,
-                            nominal_speed: data.nominal_speed,
-                            accel: data.accel,
-                            decel: data.accel,
-                            min_gap: 0.0,
-                            pallet_side_along_travel: data.pallet_side_along_travel,
-                        },
-                        downstream: None,
-                        downstream_port: None,
-                        gap: 0.0,
-                        pallets: Vec::new(),
-                        speed: 0.0,
-                        accel: 0.0,
-                        t0: 0.0,
-                        outgoing: None,
-                        incoming: None,
-                        holding: false,
-                        end: data.platform_length,
-                        status: LineStatus::Empty,
-                        stats: LineStats::default(),
-                    });
+                    let d = deck_data(data.platform_length, data.nominal_speed, data.accel, data.pallet_side_along_travel);
+                    f.lines.push(Line::deck(&b.id, &b.name, &b.id, d));
                     f.stations.push(Station::Turntable(Box::new(Turntable::new(&b.id, (**data).clone(), deck, seed, index as u64 + 1))));
+                }
+                Kind::Transfer(data) => {
+                    let (rollers, chains) = (f.lines.len(), f.lines.len() + 1);
+                    let across = if data.pallet_side_along_travel == Side::Long { Side::Short } else { Side::Long };
+                    let r = deck_data(data.length, data.nominal_speed, data.accel, data.pallet_side_along_travel);
+                    let c = deck_data(data.usable_width, data.transfer_speed, data.transfer_accel, across);
+                    f.lines.push(Line::deck(&format!("{}#rollers", b.id), &b.name, &b.id, r));
+                    f.lines.push(Line::deck(&format!("{}#chains", b.id), &b.name, &b.id, c));
+                    f.stations.push(Station::Transfer(Box::new(Transfer::new(&b.id, (**data).clone(), rollers, chains))));
                 }
                 Kind::Source(data) => f.sources.push(Source {
                     id: b.id.clone(),
@@ -528,7 +544,7 @@ impl FlowSimulation {
                     // The step's time belongs to the phase that ends now.
                     self.accumulate(now);
                     if let Some(st) = self.stations.get_mut(k) {
-                        st.finish_timed_step(&mut self.lines);
+                        st.finish_timed_step(now, &mut self.lines);
                     }
                 }
             }
@@ -1230,10 +1246,9 @@ impl FlowSimulation {
 
     /// Ends a station's timed step after `duration` µs, or at once when it takes no time.
     fn schedule_step(&mut self, k: usize, duration: Option<SimTime>, now: SimTime) {
-        let _ = now;
         match duration {
             None => {}
-            Some(0) => self.stations[k].finish_timed_step(&mut self.lines),
+            Some(0) => self.stations[k].finish_timed_step(now, &mut self.lines),
             Some(d) => {
                 self.sim.schedule(d, Event::StationDone(k), 0);
             }

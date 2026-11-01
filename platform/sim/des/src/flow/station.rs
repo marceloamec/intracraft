@@ -6,7 +6,7 @@
 
 use std::f64::consts::{FRAC_PI_2, PI};
 
-use crate::flow::network::{ExitRule, TurntableData, TurntableExit};
+use crate::flow::network::{ExitRule, OperationMode, Side, TransferData, TransferDirection, TurntableData, TurntableExit};
 use crate::flow::sim::{EPS, Line};
 use crate::kinematics::{MoveProfile, profile_position_at, profile_time};
 use crate::rng::Pcg32;
@@ -325,69 +325,311 @@ fn clockwise_from(from: f64, to: f64) -> f64 {
     normalize(from - to)
 }
 
+/// The chains' heading when they run towards C2 (+z) or C1 (−z); direction(h) = (cos h, −sin h).
+const TOWARDS_C2: f64 = -FRAC_PI_2;
+const TOWARDS_C1: f64 = FRAC_PI_2;
+const CHAIN_PORTS: [&str; 2] = ["C1", "C2"];
+
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+pub enum TransferPhase {
+    Idle,
+    Lifting,
+    Lowering,
+    Receiving,
+    Discharging,
+}
+
+/// What happens when the running lift or lowering ends.
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+enum After {
+    Ready,
+    CarryOnChains,
+    CarryOnRollers,
+    CycleDone,
+}
+
+/// The roller-to-chain transfer table (S05, T13, ADR-0009): two decks, rollers along x (A → B) and liftable chains
+/// across (C1 at −z, C2 at +z). The pallet changes direction without turning, so its side along travel swaps.
+/// From A: receive on the rollers, centre → lift → the chains carry it out through C1/C2 → lower → idle.
+/// From C1/C2 (chains up): receive on the chains, centre → lower → the rollers carry it out through B → idle.
+pub struct Transfer {
+    pub id: String,
+    pub data: TransferData,
+    pub rollers: usize,
+    pub chains: usize,
+    pub phase: TransferPhase,
+    chains_up: bool,
+    transfers: u64,
+    chain_heading: f64,
+    after: After,
+    exit_port: Option<String>,
+    alternate: usize,
+    counters: Counters,
+}
+
+impl Transfer {
+    pub fn new(id: &str, data: TransferData, rollers: usize, chains: usize) -> Transfer {
+        Transfer {
+            id: id.to_string(),
+            data,
+            rollers,
+            chains,
+            phase: TransferPhase::Idle,
+            chains_up: false,
+            transfers: 0,
+            chain_heading: TOWARDS_C2,
+            after: After::Ready,
+            exit_port: None,
+            alternate: 0,
+            counters: Counters::default(),
+        }
+    }
+
+    pub fn entry_deck(&self, port: Option<&str>) -> Option<usize> {
+        match port {
+            Some("A") if self.data.operation_mode != OperationMode::ChainsToRollers => Some(self.rollers),
+            Some(p) if CHAIN_PORTS.contains(&p) && self.data.operation_mode != OperationMode::RollersToChains => Some(self.chains),
+            _ => None,
+        }
+    }
+
+    fn busy_status(&self) -> Option<&'static str> {
+        match self.phase {
+            TransferPhase::Lifting => Some("lifting"),
+            TransferPhase::Lowering => Some("lowering"),
+            _ => None,
+        }
+    }
+
+    fn is_free(&self, lines: &[Line]) -> bool {
+        self.phase == TransferPhase::Idle && lines[self.rollers].pallets.is_empty() && lines[self.chains].pallets.is_empty()
+    }
+
+    fn can_receive(&self, port: Option<&str>, lines: &[Line]) -> bool {
+        let Some(deck) = self.entry_deck(port) else { return false };
+        self.is_free(lines) && (if deck == self.chains { self.chains_up } else { !self.chains_up })
+    }
+
+    /// Lifts the chains for a pallet coming in on them, or lowers them for one coming in on the rollers.
+    fn prepare_for(&mut self, port: Option<&str>, lines: &[Line]) -> Option<SimTime> {
+        let deck = self.entry_deck(port)?;
+        if !self.is_free(lines) || (deck == self.chains) == self.chains_up {
+            return None;
+        }
+        self.after = After::Ready;
+        Some(self.start_lift(deck == self.chains))
+    }
+
+    fn receive(&mut self, port: Option<&str>, pallet_length: f64, now: SimTime, lines: &mut [Line]) {
+        self.counters.start_cycle(now);
+        self.phase = TransferPhase::Receiving;
+        let deck = self.entry_deck(port).unwrap_or(self.rollers);
+        if deck == self.chains {
+            self.chain_heading = if port == Some("C1") { TOWARDS_C2 } else { TOWARDS_C1 };
+        }
+        let d = &mut lines[deck];
+        d.end = (d.length() + pallet_length) / 2.0;
+        d.downstream = None;
+    }
+
+    fn step(&mut self, now: SimTime, lines: &[Line]) -> StationStep {
+        if self.phase == TransferPhase::Receiving {
+            if is_centred(&lines[self.rollers]) {
+                self.exit_port = self.choose_chain_exit();
+                if self.exit_port.is_none() {
+                    return StationStep::default();
+                }
+                self.after = After::CarryOnChains;
+                return StationStep { changed: true, wait: Some(self.start_lift(true)) };
+            }
+            if is_centred(&lines[self.chains]) {
+                if !self.data.exits.contains_key("B") {
+                    return StationStep::default();
+                }
+                self.exit_port = Some("B".into());
+                self.after = After::CarryOnRollers;
+                return StationStep { changed: true, wait: Some(self.start_lift(false)) };
+            }
+        }
+        if self.phase == TransferPhase::Discharging && lines[self.rollers].pallets.is_empty() && lines[self.chains].pallets.is_empty() {
+            self.transfers += 1;
+            if self.chains_up {
+                // The chains stay up until the pallet has left them, then go down.
+                self.after = After::CycleDone;
+                return StationStep { changed: true, wait: Some(self.start_lift(false)) };
+            }
+            self.finish_cycle(now);
+            return StationStep { changed: true, wait: None };
+        }
+        StationStep::default()
+    }
+
+    fn finish_timed_step(&mut self, now: SimTime, lines: &mut [Line]) {
+        self.chains_up = self.phase == TransferPhase::Lifting;
+        match self.after {
+            After::Ready => self.phase = TransferPhase::Idle,
+            After::CarryOnChains => {
+                let port = self.exit_port.clone().unwrap_or_else(|| "C2".into());
+                self.hand_over(self.rollers, self.chains, &port, lines);
+            }
+            After::CarryOnRollers => self.hand_over(self.chains, self.rollers, "B", lines),
+            After::CycleDone => self.finish_cycle(now),
+        }
+    }
+
+    fn path_of(&self, deck: usize) -> DeckPath {
+        if deck == self.rollers {
+            return DeckPath::default();
+        }
+        let half = self.data.usable_width / 2.0;
+        let towards_c2 = self.chain_heading == TOWARDS_C2;
+        DeckPath { x: self.data.length / 2.0, z: if towards_c2 { -half } else { half }, heading: self.chain_heading }
+    }
+
+    fn statistics(&self) -> Vec<(&'static str, f64)> {
+        vec![
+            ("utilization", self.counters.utilization()),
+            ("transfers", self.transfers as f64),
+            ("meanCycleTime", self.counters.mean_cycle()),
+            ("palletsProcessed", self.counters.cycles as f64),
+        ]
+    }
+
+    /// Starts lifting (true) or lowering (false) the chains; how long it takes, µs.
+    fn start_lift(&mut self, up: bool) -> SimTime {
+        self.phase = if up { TransferPhase::Lifting } else { TransferPhase::Lowering };
+        from_seconds(if up { self.data.lift_time } else { self.data.lower_time })
+    }
+
+    /// Moves the centred pallet to the other deck (its sides along travel swap) and lets it run out.
+    fn hand_over(&mut self, from: usize, to: usize, exit_port: &str, lines: &mut [Line]) {
+        let Some(exit) = self.data.exits.get(exit_port).cloned() else { return };
+        if lines[from].pallets.is_empty() {
+            return;
+        }
+        let mut p = lines[from].pallets.remove(0);
+        if to == self.chains {
+            self.chain_heading = if exit_port == "C1" { TOWARDS_C1 } else { TOWARDS_C2 };
+        }
+        p.along = if p.along == Side::Long { Side::Short } else { Side::Long };
+        std::mem::swap(&mut p.length, &mut p.width);
+        p.front = (lines[to].length() + p.length) / 2.0;
+        let f = &mut lines[from];
+        f.holding = false;
+        f.end = f.length();
+        let t = &mut lines[to];
+        t.pallets.push(p);
+        t.end = t.length();
+        t.holding = false;
+        t.downstream = Some(exit.target);
+        t.downstream_port = None;
+        t.gap = exit.gap;
+        self.phase = TransferPhase::Discharging;
+    }
+
+    fn finish_cycle(&mut self, now: SimTime) {
+        self.phase = TransferPhase::Idle;
+        self.exit_port = None;
+        self.counters.end_cycle(now);
+    }
+
+    /// right → C2 (+z), left → C1 (−z), bidirectional → the connected chain exits in turn.
+    fn choose_chain_exit(&mut self) -> Option<String> {
+        let connected: Vec<&str> = CHAIN_PORTS.iter().copied().filter(|p| self.data.exits.contains_key(*p)).collect();
+        let wanted: Vec<&str> = match self.data.transfer_direction {
+            TransferDirection::Right => vec!["C2"],
+            TransferDirection::Left => vec!["C1"],
+            TransferDirection::Bidirectional => connected.clone(),
+        };
+        let candidates: Vec<&str> = wanted.into_iter().filter(|p| connected.contains(p)).collect();
+        if candidates.is_empty() {
+            return None;
+        }
+        let k = self.alternate % candidates.len();
+        self.alternate += 1;
+        Some(candidates[k].to_string())
+    }
+}
+
+/// The deck holds its only pallet stopped with its front at the stop position (centred).
+fn is_centred(deck: &Line) -> bool {
+    deck.pallets.first().is_some_and(|p| deck.incoming.is_none() && deck.holding && p.front >= deck.end - EPS)
+}
+
 /// A station of the run.
 pub enum Station {
     Turntable(Box<Turntable>),
+    Transfer(Box<Transfer>),
 }
 
 impl Station {
     pub fn id(&self) -> &str {
         match self {
             Station::Turntable(t) => &t.id,
+            Station::Transfer(t) => &t.id,
         }
     }
 
     pub fn decks(&self) -> Vec<usize> {
         match self {
             Station::Turntable(t) => vec![t.deck],
+            Station::Transfer(t) => vec![t.rollers, t.chains],
         }
     }
 
     pub fn entry_deck(&self, port: Option<&str>) -> Option<usize> {
         match self {
             Station::Turntable(t) => t.entry_deck(port),
+            Station::Transfer(t) => t.entry_deck(port),
         }
     }
 
     pub fn can_receive(&self, port: Option<&str>, lines: &[Line]) -> bool {
         match self {
             Station::Turntable(t) => t.can_receive(port, lines),
+            Station::Transfer(t) => t.can_receive(port, lines),
         }
     }
 
     pub fn prepare_for(&mut self, port: Option<&str>, now: SimTime, lines: &[Line]) -> Option<SimTime> {
         match self {
             Station::Turntable(t) => t.prepare_for(port, now, lines),
+            Station::Transfer(t) => t.prepare_for(port, lines),
         }
     }
 
     pub fn receive(&mut self, port: Option<&str>, pallet_length: f64, now: SimTime, lines: &mut [Line]) {
         match self {
             Station::Turntable(t) => t.receive(port, pallet_length, now, lines),
+            Station::Transfer(t) => t.receive(port, pallet_length, now, lines),
         }
     }
 
     pub fn step(&mut self, now: SimTime, lines: &[Line]) -> StationStep {
         match self {
             Station::Turntable(t) => t.step(now, lines),
+            Station::Transfer(t) => t.step(now, lines),
         }
     }
 
-    pub fn finish_timed_step(&mut self, lines: &mut [Line]) {
+    pub fn finish_timed_step(&mut self, now: SimTime, lines: &mut [Line]) {
         match self {
             Station::Turntable(t) => t.finish_timed_step(lines),
+            Station::Transfer(t) => t.finish_timed_step(now, lines),
         }
     }
 
     pub fn busy_status(&self) -> Option<&'static str> {
         match self {
             Station::Turntable(t) => t.busy_status(),
+            Station::Transfer(t) => t.busy_status(),
         }
     }
 
     pub fn path_of(&self, _deck: usize, now: SimTime) -> DeckPath {
         match self {
             Station::Turntable(t) => t.path_at(now),
+            Station::Transfer(t) => t.path_of(_deck),
         }
     }
 
@@ -395,18 +637,21 @@ impl Station {
     pub fn angle_at(&self, now: SimTime) -> Option<f64> {
         match self {
             Station::Turntable(t) => Some(t.angle_at(now)),
+            Station::Transfer(_) => None,
         }
     }
 
     pub fn accumulate(&mut self, seconds: f64) {
         match self {
             Station::Turntable(t) => t.accumulate(seconds),
+            Station::Transfer(t) => t.counters.accumulate(seconds, t.phase != TransferPhase::Idle),
         }
     }
 
     pub fn statistics(&self) -> Vec<(&'static str, f64)> {
         match self {
             Station::Turntable(t) => t.statistics(),
+            Station::Transfer(t) => t.statistics(),
         }
     }
 }
