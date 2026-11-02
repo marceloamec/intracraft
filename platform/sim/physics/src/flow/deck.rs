@@ -54,12 +54,13 @@ impl Status {
     }
 }
 
-/// Where a deck's pallets go: another deck (a conveyor or a station's entry), or a sink with the bed it lays beyond the
-/// deck's end (a moving surface).
+/// Where a deck's pallets go: another deck (a conveyor or a station's entry), a sink with the bed it lays beyond the
+/// deck's end (a moving surface), or a gravity line.
 #[derive(Clone, Debug, PartialEq)]
 pub enum Exit {
     Deck { deck: usize, port: Option<String>, gap: f64 },
     Sink { sink: usize, bed: usize },
+    Gravity { line: usize, gap: f64 },
 }
 
 #[derive(Clone, Debug, Default)]

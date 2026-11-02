@@ -11,6 +11,7 @@
 //! by friction and contact.
 
 pub mod deck;
+pub mod gravity;
 pub mod pallet;
 pub mod sensor;
 pub mod station;
@@ -20,7 +21,7 @@ pub mod turntable;
 use std::collections::{BTreeMap, HashSet};
 
 use intracraft_control::{Signals, evaluate_rules};
-use intracraft_des::flow::network::{Base, FlowIssue, FlowNode, Kind, LiftPort, LineData, Side, TransferData, TurntableData};
+use intracraft_des::flow::network::{Base, FlowIssue, FlowNode, GravityData, Kind, LiftPort, LineData, Side, TransferData, TurntableData};
 use intracraft_des::flow::parts::{Photoeye, Sink, Source};
 use intracraft_des::flow::sim::Pallet;
 use intracraft_des::flow::{Statistics, build_flow_network};
@@ -36,6 +37,7 @@ use rapier3d::prelude::RigidBodyHandle;
 use crate::bench::{Bench, DT, Motion, Part, Shape};
 use crate::frame::Frame;
 use deck::{Deck, DeckSpec, Drive, Exit, Pallets, Status};
+use gravity::{GravityLine3D, SEPARATOR_OPEN_Y, SEPARATOR_THICKNESS};
 use pallet::{WorldPallet, pallet_parts};
 use sensor::{Sensor3D, SensorEdge};
 use station::Station3D;
@@ -63,6 +65,12 @@ const CHAIN_EDGE_INSET: f64 = 0.1;
 /// A new pallet starts this far above the conveying surface, so it settles without overlapping, m.
 const SPAWN_LIFT: f64 = 0.002;
 const FLOOR_HALF: [f64; 3] = [250.0, 0.05, 250.0];
+/// A gravity line's separator and end stop: plates this thick; the separator this high; the end stop's top above the
+/// rollers and its depth below them, m (the reference's).
+const PLATE_THICKNESS: f64 = 0.02;
+const SEPARATOR_HALF_HEIGHT: f64 = 0.075;
+const END_STOP_TOP: f64 = 0.12;
+const END_STOP_DEPTH: f64 = 0.03;
 /// A turntable's rollers stop this far short of its platform's width, m (its side frames).
 const TURNTABLE_EDGE: f64 = 0.12;
 
@@ -250,6 +258,7 @@ pub struct PhysicsFlow {
     pub issues: Vec<FlowIssue>,
     decks: Vec<Deck>,
     stations: Vec<Station>,
+    gravity: Vec<GravityLine3D>,
     sources: Vec<Source3D>,
     sinks: Vec<Sink3D>,
     sensors: Vec<Sensor3D>,
@@ -278,6 +287,7 @@ impl PhysicsFlow {
             issues: network.issues,
             decks: Vec::new(),
             stations: Vec::new(),
+            gravity: Vec::new(),
             sources: Vec::new(),
             sinks: Vec::new(),
             sensors: Vec::new(),
@@ -328,8 +338,9 @@ impl PhysicsFlow {
                     f.add_turntable(b, data, &p, chains, Pcg32::new(seed, index as u64 + 1));
                 }
                 Kind::Transfer(data) => f.add_transfer(b, data, &p),
+                Kind::Gravity(data) => f.add_gravity(b, data, &p),
                 Kind::Sensor(_) => {}
-                Kind::Gravity(_) | Kind::Inert { .. } => f.issues.push(FlowIssue {
+                Kind::Inert { .. } => f.issues.push(FlowIssue {
                     instance_id: b.id.clone(),
                     rule: "behaviorNotAvailable3D",
                     message: format!(
@@ -398,6 +409,16 @@ impl PhysicsFlow {
         for s in &self.stations {
             s.drive(&mut self.bench, t);
         }
+        // The speed each pallet entering a gravity line is pushed in at: its feeder's.
+        let feeding: BTreeMap<u64, f64> = self
+            .decks
+            .iter()
+            .filter(|d| matches!(d.exit, Some(Exit::Gravity { .. })))
+            .filter_map(|d| d.outgoing.map(|id| (id, d.speed)))
+            .collect();
+        for g in &self.gravity {
+            g.drive(&mut self.bench, &self.pallets, DT, &feeding);
+        }
         self.bench.step();
         let after = self.now();
         for s in &mut self.stations {
@@ -418,7 +439,7 @@ impl PhysicsFlow {
         self.pallets
             .values()
             .map(|p| {
-                let e = self.deck_of(p).map(|d| self.decks[d].extent(p));
+                let e = self.extent_of(p);
                 PalletPose {
                     id: p.pallet.id,
                     carrier: p.carrier.clone(),
@@ -451,6 +472,9 @@ impl PhysicsFlow {
         }
         for s in &self.stations {
             out.insert(s.id().to_string(), s.status(&self.decks));
+        }
+        for g in &self.gravity {
+            out.insert(g.id.clone(), g.status);
         }
         out
     }
@@ -491,6 +515,9 @@ impl PhysicsFlow {
         }
         for s in &self.stations {
             out.insert(s.id().to_string(), s.statistics());
+        }
+        for g in &self.gravity {
+            out.insert(g.id.clone(), g.statistics());
         }
         for s in &self.sensors {
             out.insert(s.logic.id.clone(), s.logic.statistics());
@@ -613,6 +640,42 @@ impl PhysicsFlow {
         deck.direction = station.entry_direction();
         self.decks.push(deck);
         self.stations.push(Station::Platform(Box::new(station)));
+    }
+
+    /// A gravity roller line (S15): free rollers on the slope that follow their pallets, the separator plate that rises at
+    /// the start of the pick-up position, and the end stop.
+    fn add_gravity(&mut self, b: &Base, data: &GravityData, p: &Values) {
+        let width = num(p, "usableWidth", 1.0);
+        let frame = Frame { origin: [b.position.x, b.position.y + data.entry_height, b.position.z], yaw: b.yaw, slope: data.slope };
+        let diameter = num(p, "rollerDiameter", 0.089);
+        let roller = Part {
+            shape: Shape::Cylinder { radius: diameter / 2.0, half_length: width / 2.0 },
+            offset: [0.0; 3],
+            material: "steel-zinc".into(),
+            friction: None,
+            mass: 0.0,
+        };
+        let rollers = roller_positions(data.length, num(p, "rollerPitch", 0.2063))
+            .into_iter()
+            .map(|s| {
+                let at = frame.to_world([s, -diameter / 2.0, 0.0]);
+                (self.bench.body(Motion::Kinematic, at, b.yaw, data.slope, std::slice::from_ref(&roller)).0, s)
+            })
+            .collect();
+        let plate = |half_y: f64, half_z: f64| Part {
+            shape: Shape::Cuboid([PLATE_THICKNESS / 2.0, half_y, half_z]),
+            offset: [0.0; 3],
+            material: "steel-painted".into(),
+            friction: None,
+            mass: 0.0,
+        };
+        let separator_x = data.length - data.pickup_length + SEPARATOR_THICKNESS / 2.0;
+        let at = frame.to_world([separator_x, SEPARATOR_OPEN_Y, 0.0]);
+        let separator = self.bench.body(Motion::Kinematic, at, b.yaw, data.slope, &[plate(SEPARATOR_HALF_HEIGHT, width * 0.3)]).0;
+        let stop_half = (END_STOP_TOP + END_STOP_DEPTH) / 2.0;
+        let at = frame.to_world([data.length + PLATE_THICKNESS / 2.0, END_STOP_TOP - stop_half, 0.0]);
+        self.bench.body(Motion::Fixed, at, b.yaw, data.slope, &[plate(stop_half, width * 0.4)]);
+        self.gravity.push(GravityLine3D::new(&b.id, (*data).clone(), frame, rollers, diameter / 2.0, separator));
     }
 
     /// The roller-to-chain transfer table (S05, T13 §2): rollers that turn as a conveyor's, and liftable chains across
@@ -780,6 +843,12 @@ impl PhysicsFlow {
                         }
                     }
                 }
+                Kind::Gravity(_) => {
+                    let sink = b.downstream.as_ref().and_then(|d| self.sinks.iter().position(|s| &s.logic.id == d));
+                    if let Some(g) = self.gravity.iter_mut().find(|g| g.id == b.id) {
+                        g.sink = sink;
+                    }
+                }
                 Kind::Transfer(data) => {
                     let Some(k) = self.stations.iter().position(|s| s.id() == b.id) else { continue };
                     for (port, link) in &data.exits {
@@ -817,6 +886,9 @@ impl PhysicsFlow {
         if let Some(next) = self.entry_deck_of(target, port.as_deref()) {
             return Some(Exit::Deck { deck: next, port, gap });
         }
+        if let Some(line) = self.gravity.iter().position(|g| g.id == target) {
+            return Some(Exit::Gravity { line, gap });
+        }
         let sink = self.sinks.iter().position(|s| s.logic.id == target)?;
         let d = &self.decks[deck];
         let base = frame.unwrap_or(d.frame);
@@ -851,6 +923,14 @@ impl PhysicsFlow {
         Some((deck, self.decks[deck].station))
     }
 
+    /// Where a pallet lies on what carries it: its deck, or its gravity line.
+    fn extent_of(&self, p: &WorldPallet) -> Option<pallet::Extent> {
+        match self.gravity.iter().find(|g| g.id == p.carrier) {
+            Some(g) => g.extent(p.pallet.id, &self.pallets),
+            None => self.deck_of(p).map(|d| self.decks[d].extent(p)),
+        }
+    }
+
     /// The deck a pallet lies on: the one listing it, else the first of its carrier's.
     fn deck_of(&self, p: &WorldPallet) -> Option<usize> {
         let id = p.pallet.id;
@@ -864,6 +944,11 @@ impl PhysicsFlow {
         for s in &mut self.stations {
             s.step(now, &mut self.decks, &self.pallets);
         }
+        let t = now as f64 / US_PER_S as f64;
+        for g in &mut self.gravity {
+            g.update(t, &self.pallets);
+        }
+        self.serve_gravity(now);
         self.feed_sources(now);
         self.decide(now);
     }
@@ -893,6 +978,31 @@ impl PhysicsFlow {
                         self.sinks[sink].logic.receive(&p.pallet, now);
                     }
                 }
+                Exit::Gravity { line, .. } => {
+                    let g = &mut self.gravity[line];
+                    if let Some(p) = self.pallets.get_mut(&id) {
+                        p.carrier = g.id.clone();
+                        p.pallet.entered_at = now;
+                    }
+                    g.receive(id);
+                }
+            }
+        }
+    }
+
+    /// The operator takes the pallet resting at a gravity line's end stop when free (S15 §2.5).
+    fn serve_gravity(&mut self, now: SimTime) {
+        for k in 0..self.gravity.len() {
+            let Some(sink) = self.gravity[k].sink else { continue };
+            let Some(id) = self.gravity[k].at_end_stop(&self.pallets) else { continue };
+            if !self.sinks[sink].logic.accepts(now) {
+                continue;
+            }
+            self.sinks[sink].logic.incoming += 1;
+            let entered = self.pallets.get(&id).map_or(now, |p| p.pallet.entered_at);
+            self.gravity[k].take(id, entered, now);
+            if let Some(p) = self.remove_pallet(id) {
+                self.sinks[sink].logic.receive(&p.pallet, now);
             }
         }
     }
@@ -988,6 +1098,19 @@ impl PhysicsFlow {
     fn reserve(&mut self, i: usize, lead: u64, now: SimTime) -> bool {
         let Some(exit) = self.decks[i].exit.clone() else { return false };
         match exit {
+            Exit::Gravity { line, gap } => {
+                let Some(p) = self.pallets.get(&lead) else { return false };
+                let e = self.decks[i].extent(p);
+                let length = e.front - e.rear;
+                if !self.gravity[line].can_accept(length + gap, &self.pallets) {
+                    self.gravity[line].waiting_length = Some(length);
+                    return false;
+                }
+                self.gravity[line].waiting_length = None;
+                self.gravity[line].entering.push(lead);
+                self.decks[i].outgoing = Some(lead);
+                true
+            }
             Exit::Sink { sink, .. } => {
                 if !self.sinks[sink].logic.accepts(now) {
                     return false;
@@ -1209,7 +1332,7 @@ impl PhysicsFlow {
         let fallen: Vec<(u64, String)> = self
             .pallets
             .values()
-            .filter(|p| self.deck_of(p).is_some_and(|d| self.decks[d].extent(p).lift <= -FALL_DEPTH))
+            .filter(|p| self.extent_of(p).is_some_and(|e| e.lift <= -FALL_DEPTH))
             .map(|p| (p.pallet.id, p.carrier.clone()))
             .collect();
         for (id, carrier) in fallen {
@@ -1219,6 +1342,9 @@ impl PhysicsFlow {
                 rule: "palletFell",
                 message: format!("pallet {id} fell off {carrier} at {:.2} s", now as f64 / US_PER_S as f64),
             });
+            for g in &mut self.gravity {
+                g.forget(id);
+            }
             for d in &mut self.decks {
                 d.pallets.retain(|&p| p != id);
                 if d.incoming == Some(id) {
@@ -1248,6 +1374,9 @@ impl PhysicsFlow {
         }
         for s in &mut self.sensors {
             s.logic.accumulate(seconds);
+        }
+        for g in &mut self.gravity {
+            g.accumulate(seconds, &self.pallets);
         }
     }
 }

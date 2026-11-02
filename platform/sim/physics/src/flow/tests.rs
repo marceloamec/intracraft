@@ -220,10 +220,28 @@ mod stations {
     }
 
     #[test]
-    fn warns_that_the_gravity_line_has_no_3d_behaviour_yet() {
-        let parts = [("flow.source", &[("maxPallets", n(1.0))][..]), ("conveyor.roller", &[]), ("conveyor.gravity", &[])];
-        let sim = run(&line(&parts), 1.0);
-        assert!(sim.issues.iter().any(|i| i.rule == "behaviorNotAvailable3D"));
+    fn pallets_roll_to_the_end_stop_no_faster_than_the_brake_speed_and_the_operator_takes_one_a_minute() {
+        let parts = [
+            ("flow.source", &[("interval", n(1.0)), ("maxPallets", n(3.0)), ("surfaceHeight", n(0.34))][..]),
+            ("conveyor.roller", &[("surfaceHeight", n(0.34))]),
+            ("conveyor.gravity", &[]),
+            ("flow.sink", &[("removalMode", t("afterTime")), ("removalTime", n(60.0)), ("surfaceHeight", n(0.1))]),
+        ];
+        let mut sim = PhysicsFlow::new(&line(&parts), &library(), SEED).unwrap();
+        // How fast pallets come to the end stop: over the last 300 mm of the 6 m line.
+        let mut fastest = 0.0f64;
+        while sim.now() < from_seconds(80.0) {
+            sim.step();
+            let approaching = sim.pallets().into_iter().filter(|p| p.carrier == "gravity1" && p.front > 5.7);
+            fastest = approaching.map(|p| p.speed).fold(fastest, f64::max);
+        }
+        // The brake rollers cap the speed at 0.2 m/s: the impact on the end stop is ½·m·v² at 0.2 m/s (S15).
+        assert!(fastest > 0.15 && fastest < 0.21, "{fastest} m/s");
+        // The operator needs 60 s per pallet: one taken, the next waits at the end stop.
+        assert_eq!(stat(&sim.statistics(), "sink1", "palletsReceived"), 1.0);
+        assert_eq!(sim.status()["gravity1"], "waiting");
+        assert_eq!(sim.fallen_pallets(), 0);
+        assert!(!sim.issues.iter().any(|i| i.rule == "behaviorNotAvailable3D"));
     }
 }
 

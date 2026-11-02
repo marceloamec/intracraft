@@ -49,8 +49,7 @@ date: 2026-11-02
 
 ## Not yet in 3D
 
-The gravity line has no 3D behaviour in Rust yet (the reference has one, still to port); the run warns
-`behaviorNotAvailable3D` and pallets stop in front of it. Impacts against stops and pallets are not logged yet.
+Impacts against stops and pallets are not logged yet (the gravity line's impact energy, P3's rebound in a layout).
 
 ## Amendment 2026-11-02: turntables and the transfer table in 3D
 
@@ -63,7 +62,11 @@ Beyond the reference, which had neither:
 2. **The roller-to-chain transfer table (S05, T13 §2).** Rollers turning as a conveyor's; the chains in the middle of gaps
    between them, on one kinematic body that rises `liftStroke` in `liftTime` (from `lowerClearance` below the rollers),
    lifting the pallet by contact, carries it sideways and goes down in `lowerTime`. The cycle is the 2D table's.
-3. **Chain strands have rounded edges (5 mm).** A pallet arriving on raised transfer chains at 640 mm met the next
+3. **The gravity line (S15)**, the reference's 3D line ported: free rollers that follow the pallet above them, the
+   separator and the end stop, the operator at OUT. One difference: while a feeder still pushes a pallet in, the rollers
+   under it turn at the feeder's speed, not at the pallet's measured speed, which on the slope fed back on itself up to
+   1.4 m/s in Rapier. Pallets reach the end stop at no more than 0.21 m/s (the reference's criterion on the impact).
+4. **Chain strands have rounded edges (5 mm).** A pallet arriving on raised transfer chains at 640 mm met the next
    chain conveyor's strands at 640 mm and caught on their square ends; a real strand's end wraps round its sprocket.
    Like the sink's bed (decision 5), this is geometry, not a change of masses, frictions or time step.
 
