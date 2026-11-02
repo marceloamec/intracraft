@@ -14,11 +14,13 @@ pub mod deck;
 pub mod pallet;
 pub mod sensor;
 pub mod station;
+pub mod transfer;
+pub mod turntable;
 
 use std::collections::{BTreeMap, HashSet};
 
 use intracraft_control::{Signals, evaluate_rules};
-use intracraft_des::flow::network::{Base, FlowIssue, FlowNode, Kind, LiftPort, LineData, Side};
+use intracraft_des::flow::network::{Base, FlowIssue, FlowNode, Kind, LiftPort, LineData, Side, TransferData, TurntableData};
 use intracraft_des::flow::parts::{Photoeye, Sink, Source};
 use intracraft_des::flow::sim::Pallet;
 use intracraft_des::flow::{Statistics, build_flow_network};
@@ -37,6 +39,8 @@ use deck::{Deck, DeckSpec, Drive, Exit, Pallets, Status};
 use pallet::{WorldPallet, pallet_parts};
 use sensor::{Sensor3D, SensorEdge};
 use station::Station3D;
+use transfer::Transfer3D;
+use turntable::Turntable3D;
 
 /// The controller runs every 10 ms (A07 §4).
 const CONTROL_PERIOD: SimTime = 10_000;
@@ -51,11 +55,16 @@ const BED_THICKNESS: f64 = 0.03;
 /// depth catches the edge of a bed exactly level with them and loses about 40 mm; this way it steps onto it (ADR-0024).
 const BED_DROP: f64 = 0.002;
 const STRAND_HEIGHT: f64 = 0.03;
+/// A chain strand's edges are rounded this much, m: a pallet's edge running onto a strand at the same height slides over
+/// its end, as over a sprocket, instead of catching on it (ADR-0024).
+const STRAND_ROUNDING: f64 = 0.005;
 /// Lateral strand positions keep this far from the deck's edges, m (`chainLayout` of the reference's geometry).
 const CHAIN_EDGE_INSET: f64 = 0.1;
 /// A new pallet starts this far above the conveying surface, so it settles without overlapping, m.
 const SPAWN_LIFT: f64 = 0.002;
 const FLOOR_HALF: [f64; 3] = [250.0, 0.05, 250.0];
+/// A turntable's rollers stop this far short of its platform's width, m (its side frames).
+const TURNTABLE_EDGE: f64 = 0.12;
 
 struct Source3D {
     logic: Source,
@@ -72,6 +81,152 @@ struct Write {
     due: SimTime,
     signal: String,
     value: bool,
+}
+
+/// A station of the 3D run: one deck on a platform that lifts or processes, or on one that turns; or the transfer
+/// table's two decks. Each keeps the indices of its decks and is handed all of them.
+enum Station {
+    Platform(Box<Station3D>),
+    Turntable(Box<Turntable3D>),
+    Transfer(Box<Transfer3D>),
+}
+
+impl Station {
+    fn id(&self) -> &str {
+        match self {
+            Station::Platform(s) => &s.id,
+            Station::Turntable(t) => &t.id,
+            Station::Transfer(t) => &t.id,
+        }
+    }
+
+    /// Its decks.
+    fn decks(&self) -> Vec<usize> {
+        match self {
+            Station::Platform(s) => vec![s.deck],
+            Station::Turntable(t) => vec![t.deck],
+            Station::Transfer(t) => vec![t.rollers, t.chains],
+        }
+    }
+
+    fn exits(&mut self) -> &mut BTreeMap<String, Exit> {
+        match self {
+            Station::Platform(s) => &mut s.exits,
+            Station::Turntable(t) => &mut t.exits,
+            Station::Transfer(t) => &mut t.exits,
+        }
+    }
+
+    fn entry_deck(&self, port: Option<&str>) -> Option<usize> {
+        match self {
+            Station::Platform(s) => s.entry_deck(port),
+            Station::Turntable(t) => t.entry_deck(port),
+            Station::Transfer(t) => t.entry_deck(port),
+        }
+    }
+
+    fn can_receive(&self, port: Option<&str>, decks: &[Deck]) -> bool {
+        match self {
+            Station::Platform(s) => s.can_receive(port, &decks[s.deck]),
+            Station::Turntable(t) => t.can_receive(port, &decks[t.deck]),
+            Station::Transfer(t) => t.can_receive(port, decks),
+        }
+    }
+
+    /// A pallet waits at `port` and can't come in: a turntable turns to it, a transfer table lifts or lowers its chains.
+    fn prepare_for(&mut self, port: Option<&str>, now: SimTime, decks: &[Deck]) {
+        match self {
+            Station::Platform(_) => {}
+            Station::Turntable(t) => t.prepare_for(port, now, &decks[t.deck]),
+            Station::Transfer(t) => t.prepare_for(port, now, decks),
+        }
+    }
+
+    fn receive(&mut self, port: Option<&str>, length: f64, now: SimTime, decks: &mut [Deck]) {
+        match self {
+            Station::Platform(s) => s.receive(length, now, &mut decks[s.deck]),
+            Station::Turntable(t) => {
+                let deck = t.deck;
+                t.receive(port, length, now, &mut decks[deck]);
+            }
+            Station::Transfer(t) => t.receive(port, length, now, decks),
+        }
+    }
+
+    fn step(&mut self, now: SimTime, decks: &mut [Deck], pallets: &Pallets) {
+        match self {
+            Station::Platform(s) => {
+                let deck = s.deck;
+                s.step(now, &mut decks[deck], pallets);
+            }
+            Station::Turntable(t) => {
+                let deck = t.deck;
+                t.step(now, &mut decks[deck], pallets);
+            }
+            Station::Transfer(t) => t.step(now, decks, pallets),
+        }
+    }
+
+    /// Sets the platform's or the chains' motion over the next step (`t` s).
+    fn drive(&self, bench: &mut Bench, t: f64) {
+        match self {
+            Station::Platform(s) => s.drive_vertical(bench, t),
+            Station::Turntable(tt) => tt.drive(bench, t),
+            Station::Transfer(tr) => tr.drive(bench, t),
+        }
+    }
+
+    /// After a step (`t` s): the decks' frames follow the platform or the chains.
+    fn sync(&mut self, bench: &Bench, t: f64, decks: &mut [Deck]) {
+        match self {
+            Station::Platform(s) => {
+                let deck = s.deck;
+                s.sync_height(bench, t, &mut decks[deck]);
+            }
+            Station::Turntable(tt) => {
+                let deck = tt.deck;
+                tt.sync(t, &mut decks[deck]);
+            }
+            Station::Transfer(tr) => tr.sync(bench, decks),
+        }
+    }
+
+    fn busy_status(&self) -> Option<&'static str> {
+        match self {
+            Station::Platform(s) => s.busy_status(),
+            Station::Turntable(t) => t.busy_status(),
+            Station::Transfer(t) => t.busy_status(),
+        }
+    }
+
+    fn accumulate(&mut self, seconds: f64, decks: &[Deck]) {
+        match self {
+            Station::Platform(s) => s.accumulate(seconds, decks[s.deck].status),
+            Station::Turntable(t) => t.accumulate(seconds),
+            Station::Transfer(t) => t.accumulate(seconds),
+        }
+    }
+
+    fn statistics(&self) -> BTreeMap<&'static str, f64> {
+        match self {
+            Station::Platform(s) => s.statistics(),
+            Station::Turntable(t) => t.statistics(),
+            Station::Transfer(t) => t.statistics(),
+        }
+    }
+
+    /// A lift station's deck height above its base, m.
+    fn height(&self) -> Option<f64> {
+        match self {
+            Station::Platform(s) => Some(s.height),
+            _ => None,
+        }
+    }
+
+    /// Its state when busy, else its first deck's.
+    fn status(&self, decks: &[Deck]) -> &'static str {
+        self.busy_status().unwrap_or(self.decks().first().map_or("empty", |&d| decks[d].status.name()))
+    }
 }
 
 /// A pallet as a viewer draws it and the tests read it.
@@ -94,7 +249,7 @@ pub struct PhysicsFlow {
     pub bench: Bench,
     pub issues: Vec<FlowIssue>,
     decks: Vec<Deck>,
-    stations: Vec<Station3D>,
+    stations: Vec<Station>,
     sources: Vec<Source3D>,
     sinks: Vec<Sink3D>,
     sensors: Vec<Sensor3D>,
@@ -168,8 +323,13 @@ impl PhysicsFlow {
                     next_arrival: None,
                 }),
                 Kind::Sink(data) => f.sinks.push(Sink3D { logic: Sink::new(&b.id, data.clone()), beds: Vec::new() }),
+                Kind::Turntable(data) => {
+                    let chains = definition.id == "conveyor.chain_turntable";
+                    f.add_turntable(b, data, &p, chains, Pcg32::new(seed, index as u64 + 1));
+                }
+                Kind::Transfer(data) => f.add_transfer(b, data, &p),
                 Kind::Sensor(_) => {}
-                Kind::Turntable(_) | Kind::Transfer(_) | Kind::Gravity(_) | Kind::Inert { .. } => f.issues.push(FlowIssue {
+                Kind::Gravity(_) | Kind::Inert { .. } => f.issues.push(FlowIssue {
                     instance_id: b.id.clone(),
                     rule: "behaviorNotAvailable3D",
                     message: format!(
@@ -236,12 +396,12 @@ impl PhysicsFlow {
             }
         }
         for s in &self.stations {
-            s.drive_vertical(&mut self.bench, t);
+            s.drive(&mut self.bench, t);
         }
         self.bench.step();
         let after = self.now();
         for s in &mut self.stations {
-            s.sync_height(&self.bench, after as f64 / US_PER_S as f64, &mut self.decks[s.deck]);
+            s.sync(&self.bench, after as f64 / US_PER_S as f64, &mut self.decks);
         }
         self.observe(after);
         let stamp = now + (after - now + 1) / 2;
@@ -258,7 +418,7 @@ impl PhysicsFlow {
         self.pallets
             .values()
             .map(|p| {
-                let e = self.carrier_deck(&p.carrier).map(|d| self.decks[d].extent(p));
+                let e = self.deck_of(p).map(|d| self.decks[d].extent(p));
                 PalletPose {
                     id: p.pallet.id,
                     carrier: p.carrier.clone(),
@@ -290,14 +450,14 @@ impl PhysicsFlow {
             out.insert(s.logic.id.clone(), if s.logic.detecting { "detecting" } else { "clear" });
         }
         for s in &self.stations {
-            out.insert(s.id.clone(), s.busy_status().unwrap_or(self.decks[s.deck].status.name()));
+            out.insert(s.id().to_string(), s.status(&self.decks));
         }
         out
     }
 
     /// The deck height of every lift station, m above its base.
     pub fn heights(&self) -> BTreeMap<String, f64> {
-        self.stations.iter().map(|s| (s.id.clone(), s.height)).collect()
+        self.stations.iter().filter_map(|s| s.height().map(|h| (s.id().to_string(), h))).collect()
     }
 
     pub fn signals(&self) -> &Signals {
@@ -330,7 +490,7 @@ impl PhysicsFlow {
             out.insert(s.logic.id.clone(), s.logic.statistics(self.now()));
         }
         for s in &self.stations {
-            out.insert(s.id.clone(), s.statistics());
+            out.insert(s.id().to_string(), s.statistics());
         }
         for s in &self.sensors {
             out.insert(s.logic.id.clone(), s.logic.statistics());
@@ -369,7 +529,7 @@ impl PhysicsFlow {
             let parts: Vec<Part> = chain_layout(spec.usable_width, num(p, "chainCount", 3.0))
                 .into_iter()
                 .map(|z| Part {
-                    shape: Shape::Cuboid([spec.length / 2.0, STRAND_HEIGHT / 2.0, strand / 2.0]),
+                    shape: Shape::Rounded { half: [spec.length / 2.0, STRAND_HEIGHT / 2.0, strand / 2.0], radius: STRAND_ROUNDING },
                     offset: [spec.length / 2.0, -STRAND_HEIGHT / 2.0, z],
                     material: "steel-chain".into(),
                     friction,
@@ -426,7 +586,7 @@ impl PhysicsFlow {
             chain_layout(spec.usable_width, num(p, "chainCount", 3.0))
                 .into_iter()
                 .map(|z| Part {
-                    shape: Shape::Cuboid([length / 2.0, STRAND_HEIGHT / 2.0, strand / 2.0]),
+                    shape: Shape::Rounded { half: [length / 2.0, STRAND_HEIGHT / 2.0, strand / 2.0], radius: STRAND_ROUNDING },
                     offset: [0.0, -STRAND_HEIGHT / 2.0, z],
                     material: "steel-chain".into(),
                     friction: None,
@@ -452,7 +612,124 @@ impl PhysicsFlow {
         let mut deck = Deck::new(spec, frame, Drive::Surface(surface), &b.id, Some(self.stations.len()));
         deck.direction = station.entry_direction();
         self.decks.push(deck);
-        self.stations.push(station);
+        self.stations.push(Station::Platform(Box::new(station)));
+    }
+
+    /// The roller-to-chain transfer table (S05, T13 §2): rollers that turn as a conveyor's, and liftable chains across
+    /// them in the gaps between the rollers, on one kinematic body.
+    fn add_transfer(&mut self, b: &Base, data: &TransferData, p: &Values) {
+        let (length, width) = (data.length, data.usable_width);
+        let roller_frame = Frame { origin: [b.position.x, b.position.y + b.surface_height, b.position.z], yaw: b.yaw, slope: 0.0 };
+        let centre = roller_frame.to_world([length / 2.0, 0.0, 0.0]);
+        let diameter = num(p, "rollerDiameter", 0.089);
+        let pitch = num(p, "rollerPitch", 0.2063);
+        let roller = Part {
+            shape: Shape::Cylinder { radius: diameter / 2.0, half_length: width / 2.0 },
+            offset: [0.0; 3],
+            material: "steel-zinc".into(),
+            friction: None,
+            mass: 0.0,
+        };
+        let rollers: Vec<f64> = roller_positions(length, pitch);
+        let bodies = rollers
+            .iter()
+            .map(|&x| {
+                self.bench
+                    .body(Motion::Kinematic, roller_frame.to_world([x, -diameter / 2.0, 0.0]), b.yaw, 0.0, std::slice::from_ref(&roller))
+                    .0
+            })
+            .collect();
+        // The chains in the middle of gaps between rollers, spread from the first gap to the last (`transferChainPositions`).
+        let gaps: Vec<f64> = rollers.windows(2).map(|w| (w[0] + w[1]) / 2.0).collect();
+        let count = num(p, "transferChainCount", 3.0).round().max(1.0) as usize;
+        let chain_width = num(p, "transferChainWidth", 0.04);
+        let clearance = num(p, "lowerClearance", 0.01);
+        let parts: Vec<Part> = (0..count)
+            .filter_map(|i| {
+                let k = if count > 1 { (i as f64 * (gaps.len().max(1) - 1) as f64 / (count - 1) as f64).round() as usize } else { 0 };
+                gaps.get(k).map(|&x| Part {
+                    shape: Shape::Rounded { half: [chain_width / 2.0, STRAND_HEIGHT / 2.0, width / 2.0], radius: STRAND_ROUNDING },
+                    offset: [x - length / 2.0, -STRAND_HEIGHT / 2.0, 0.0],
+                    material: "steel-chain".into(),
+                    friction: None,
+                    mass: 0.0,
+                })
+            })
+            .collect();
+        let lowered = [centre[0], centre[1] - clearance, centre[2]];
+        let (chain_body, colliders) = self.bench.body(Motion::Kinematic, lowered, b.yaw, 0.0, &parts);
+        let surface = self.bench.surface(&colliders);
+        let decks = (self.decks.len(), self.decks.len() + 1);
+        let transfer = Transfer3D::new(&b.id, decks, data.clone(), clearance, centre, b.yaw, chain_body);
+        let k = Some(self.stations.len());
+        let along = DeckSpec {
+            id: b.id.clone(),
+            length,
+            usable_width: width,
+            nominal_speed: data.nominal_speed,
+            accel: data.accel,
+            decel: data.accel,
+            min_gap: 0.0,
+        };
+        let across = DeckSpec {
+            id: format!("{}#chains", b.id),
+            length: width,
+            usable_width: length,
+            nominal_speed: data.transfer_speed,
+            accel: data.transfer_accel,
+            decel: data.transfer_accel,
+            min_gap: 0.0,
+        };
+        let chain_frame = transfer.chain_frame(Transfer3D::heading_to("C2"), -clearance);
+        self.decks.push(Deck::new(along, transfer.roller_frame(), Drive::Rollers { bodies, radius: diameter / 2.0 }, &b.id, k));
+        self.decks.push(Deck::new(across, chain_frame, Drive::Surface(surface), &b.id, k));
+        self.stations.push(Station::Transfer(Box::new(transfer)));
+    }
+
+    /// Chain and roller turntables: one deck on a platform that turns about its centre (S03, S04, T13 §1.6).
+    fn add_turntable(&mut self, b: &Base, data: &TurntableData, p: &Values, chains: bool, rng: Pcg32) {
+        let (length, width) = (data.platform_length, num(p, "platformWidth", 1.2));
+        let spec = DeckSpec {
+            id: b.id.clone(),
+            length,
+            usable_width: width,
+            nominal_speed: data.nominal_speed,
+            accel: data.accel,
+            decel: data.accel,
+            min_gap: 0.0,
+        };
+        let centre = [b.position.x, b.position.y + b.surface_height, b.position.z];
+        let parts: Vec<Part> = if chains {
+            let strand = num(p, "chainSupportWidth", 0.04);
+            chain_layout(width, num(p, "chainCount", 3.0))
+                .into_iter()
+                .map(|z| Part {
+                    shape: Shape::Rounded { half: [length / 2.0, STRAND_HEIGHT / 2.0, strand / 2.0], radius: STRAND_ROUNDING },
+                    offset: [0.0, -STRAND_HEIGHT / 2.0, z],
+                    material: "steel-chain".into(),
+                    friction: None,
+                    mass: 0.0,
+                })
+                .collect()
+        } else {
+            let diameter = num(p, "rollerDiameter", 0.089);
+            roller_positions(length, num(p, "rollerPitch", 0.2063))
+                .into_iter()
+                .map(|x| Part {
+                    shape: Shape::Cylinder { radius: diameter / 2.0, half_length: (width - TURNTABLE_EDGE) / 2.0 },
+                    offset: [x - length / 2.0, -diameter / 2.0, 0.0],
+                    material: "steel-zinc".into(),
+                    friction: None,
+                    mass: 0.0,
+                })
+                .collect()
+        };
+        let (platform, colliders) = self.bench.body(Motion::Kinematic, centre, b.yaw, 0.0, &parts);
+        let surface = self.bench.surface(&colliders);
+        let turntable = Turntable3D::new(&b.id, self.decks.len(), data.clone(), centre, b.yaw, platform, rng);
+        let deck = Deck::new(spec, turntable.frame(0.0), Drive::Surface(surface), &b.id, Some(self.stations.len()));
+        self.decks.push(deck);
+        self.stations.push(Station::Turntable(Box::new(turntable)));
     }
 
     /// Wires every object's output to what it feeds, and lays a receiving bed in front of each sink.
@@ -464,25 +741,60 @@ impl PhysicsFlow {
                     let Some(deck) = self.decks.iter().position(|d| d.station.is_none() && d.spec.id == b.id) else { continue };
                     if let Some(target) = &b.downstream {
                         let to = (target.as_str(), b.downstream_port.clone(), b.downstream_gap);
-                        self.decks[deck].exit = self.exit_to(deck, to, true, b.position.y + b.surface_height);
+                        self.decks[deck].exit = self.exit_to(deck, to, true, b.position.y + b.surface_height, None);
                     }
                 }
                 Kind::Lift(data) => {
-                    let Some(k) = self.stations.iter().position(|s| s.id == b.id) else { continue };
+                    let Some(k) = self.stations.iter().position(|s| s.id() == b.id) else { continue };
                     for port in &data.exit_ports {
                         let Some(link) = data.exits.get(&port.port_id) else { continue };
                         let to = (link.target.as_str(), Some(link.port.clone()), link.gap);
-                        if let Some(exit) = self.exit_to(self.stations[k].deck, to, port.at_end, b.position.y + port.height) {
-                            self.stations[k].exits.insert(port.port_id.clone(), exit);
+                        let deck = self.stations[k].decks()[0];
+                        if let Some(exit) = self.exit_to(deck, to, port.at_end, b.position.y + port.height, None) {
+                            self.stations[k].exits().insert(port.port_id.clone(), exit);
                         }
                     }
                 }
                 Kind::Process(_) => {
-                    let Some(k) = self.stations.iter().position(|s| s.id == b.id) else { continue };
+                    let Some(k) = self.stations.iter().position(|s| s.id() == b.id) else { continue };
                     if let Some(target) = &b.downstream {
                         let to = (target.as_str(), b.downstream_port.clone(), b.downstream_gap);
-                        if let Some(exit) = self.exit_to(self.stations[k].deck, to, true, b.position.y + b.surface_height) {
-                            self.stations[k].exits.insert("OUT".into(), exit);
+                        let deck = self.stations[k].decks()[0];
+                        if let Some(exit) = self.exit_to(deck, to, true, b.position.y + b.surface_height, None) {
+                            self.stations[k].exits().insert("OUT".into(), exit);
+                        }
+                    }
+                }
+                Kind::Turntable(data) => {
+                    let Some(k) = self.stations.iter().position(|s| s.id() == b.id) else { continue };
+                    for exit in &data.exits {
+                        // The deck conveying toward the exit's station: a sink's bed lies beyond it that way.
+                        let frame = match &self.stations[k] {
+                            Station::Turntable(t) => t.frame(exit.angle),
+                            _ => continue,
+                        };
+                        let deck = self.stations[k].decks()[0];
+                        let to = (exit.target.as_str(), None, exit.gap);
+                        if let Some(e) = self.exit_to(deck, to, true, b.position.y + b.surface_height, Some(frame)) {
+                            self.stations[k].exits().insert(exit.port_id.clone(), e);
+                        }
+                    }
+                }
+                Kind::Transfer(data) => {
+                    let Some(k) = self.stations.iter().position(|s| s.id() == b.id) else { continue };
+                    for (port, link) in &data.exits {
+                        // B leaves the rollers' end; C1 and C2 leave the raised chains' ends.
+                        let (deck, frame, y) = match &self.stations[k] {
+                            Station::Transfer(t) if port == "B" => (t.rollers, None, b.position.y + b.surface_height),
+                            Station::Transfer(t) => {
+                                let frame = t.chain_frame(Transfer3D::heading_to(port), data.lift_stroke);
+                                (t.chains, Some(frame), b.position.y + b.surface_height + data.lift_stroke)
+                            }
+                            _ => continue,
+                        };
+                        let to = (link.target.as_str(), Some(link.port.clone()), link.gap);
+                        if let Some(e) = self.exit_to(deck, to, true, y, frame) {
+                            self.stations[k].exits().insert(port.clone(), e);
                         }
                     }
                 }
@@ -491,15 +803,24 @@ impl PhysicsFlow {
         }
     }
 
-    /// The exit from `deck` to (target, its port, the gap). A sink gets a receiving bed beyond the deck's end, at the
-    /// port's height `y` (world), on the `at_end` side, moving with the deck while it hands a pallet over.
-    fn exit_to(&mut self, deck: usize, (target, port, gap): (&str, Option<String>, f64), at_end: bool, y: f64) -> Option<Exit> {
+    /// The exit from `deck` to (target, its port, the gap). A sink gets a receiving bed beyond the deck's end (the deck as
+    /// it lies in `frame`, if given: a turntable's turned to that exit), at the port's height `y` (world), on the `at_end`
+    /// side, moving with the deck while it hands a pallet over.
+    fn exit_to(
+        &mut self,
+        deck: usize,
+        (target, port, gap): (&str, Option<String>, f64),
+        at_end: bool,
+        y: f64,
+        frame: Option<Frame>,
+    ) -> Option<Exit> {
         if let Some(next) = self.entry_deck_of(target, port.as_deref()) {
             return Some(Exit::Deck { deck: next, port, gap });
         }
         let sink = self.sinks.iter().position(|s| s.logic.id == target)?;
         let d = &self.decks[deck];
-        let frame = Frame { origin: [d.frame.origin[0], y, d.frame.origin[2]], ..d.frame };
+        let base = frame.unwrap_or(d.frame);
+        let frame = Frame { origin: [base.origin[0], y, base.origin[2]], ..base };
         let x = if at_end { d.spec.length + gap + SINK_BED_LENGTH / 2.0 } else { -gap - SINK_BED_LENGTH / 2.0 };
         let bed = Part {
             shape: Shape::Cuboid([SINK_BED_LENGTH / 2.0, BED_THICKNESS / 2.0, d.spec.usable_width / 2.0]),
@@ -520,7 +841,7 @@ impl PhysicsFlow {
         self.decks
             .iter()
             .position(|d| d.station.is_none() && d.spec.id == target)
-            .or_else(|| self.stations.iter().find(|s| s.id == target).and_then(|s| s.entry_deck(port)))
+            .or_else(|| self.stations.iter().find(|s| s.id() == target).and_then(|s| s.entry_deck(port)))
     }
 
     /// The deck (and its station) receiving what source `k` creates.
@@ -530,8 +851,10 @@ impl PhysicsFlow {
         Some((deck, self.decks[deck].station))
     }
 
-    fn carrier_deck(&self, carrier: &str) -> Option<usize> {
-        self.decks.iter().position(|d| d.carrier == carrier)
+    /// The deck a pallet lies on: the one listing it, else the first of its carrier's.
+    fn deck_of(&self, p: &WorldPallet) -> Option<usize> {
+        let id = p.pallet.id;
+        self.decks.iter().position(|d| d.pallets.contains(&id)).or_else(|| self.decks.iter().position(|d| d.carrier == p.carrier))
     }
 
     // ── Plant logic ──────────────────────────────────────────────────────────────────────────────────────────────────
@@ -539,7 +862,7 @@ impl PhysicsFlow {
     fn settle(&mut self, now: SimTime) {
         self.complete_crossings(now);
         for s in &mut self.stations {
-            s.step(now, &mut self.decks[s.deck], &self.pallets);
+            s.step(now, &mut self.decks, &self.pallets);
         }
         self.feed_sources(now);
         self.decide(now);
@@ -587,10 +910,10 @@ impl PhysicsFlow {
             }
             let length = s.along_length();
             let port = s.downstream_port.clone();
-            let accepts = station.is_none_or(|st| self.stations[st].can_receive(port.as_deref(), &self.decks[deck]));
+            let accepts = station.is_none_or(|st| self.stations[st].can_receive(port.as_deref(), &self.decks));
             if accepts && self.can_enter(deck, length + self.decks[deck].spec.min_gap) {
                 if let Some(st) = station {
-                    self.stations[st].receive(length, now, &mut self.decks[deck]);
+                    self.stations[st].receive(port.as_deref(), length, now, &mut self.decks);
                 }
                 self.spawn(k, deck, length, now);
                 self.sources[k].logic.placed(now);
@@ -675,8 +998,9 @@ impl PhysicsFlow {
             }
             Exit::Deck { deck: target, port, gap } => {
                 let Some(p) = self.pallets.get(&lead) else { return false };
-                let length = p.pallet.length;
-                let travel = self.decks[i].spec.length - self.decks[i].extent(p).rear + gap;
+                let e = self.decks[i].extent(p);
+                let length = e.front - e.rear;
+                let travel = self.decks[i].spec.length - e.rear + gap;
                 if !self.can_enter(target, 0.0) || !self.has_room_for(target, travel) {
                     return false;
                 }
@@ -685,10 +1009,11 @@ impl PhysicsFlow {
                     return false;
                 }
                 if let Some(st) = self.decks[target].station {
-                    if !self.stations[st].can_receive(port.as_deref(), &self.decks[target]) {
+                    if !self.stations[st].can_receive(port.as_deref(), &self.decks) {
+                        self.stations[st].prepare_for(port.as_deref(), now, &self.decks);
                         return false;
                     }
-                    self.stations[st].receive(length, now, &mut self.decks[target]);
+                    self.stations[st].receive(port.as_deref(), length, now, &mut self.decks);
                 }
                 self.decks[target].incoming = Some(lead);
                 self.decks[i].outgoing = Some(lead);
@@ -884,7 +1209,7 @@ impl PhysicsFlow {
         let fallen: Vec<(u64, String)> = self
             .pallets
             .values()
-            .filter(|p| self.carrier_deck(&p.carrier).is_some_and(|d| self.decks[d].extent(p).lift <= -FALL_DEPTH))
+            .filter(|p| self.deck_of(p).is_some_and(|d| self.decks[d].extent(p).lift <= -FALL_DEPTH))
             .map(|p| (p.pallet.id, p.carrier.clone()))
             .collect();
         for (id, carrier) in fallen {
@@ -919,7 +1244,7 @@ impl PhysicsFlow {
             d.accumulate(seconds);
         }
         for s in &mut self.stations {
-            s.accumulate(seconds, self.decks[s.deck].status);
+            s.accumulate(seconds, &self.decks);
         }
         for s in &mut self.sensors {
             s.logic.accumulate(seconds);

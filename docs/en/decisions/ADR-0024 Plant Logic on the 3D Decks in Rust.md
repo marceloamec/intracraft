@@ -49,7 +49,27 @@ date: 2026-11-02
 
 ## Not yet in 3D
 
-Turntables, the roller-to-chain transfer table and the gravity line have no 3D behaviour yet, in the reference either (the gravity line has one in the reference, still to port); the run warns `behaviorNotAvailable3D` and pallets stop in front of them. Impacts against stops and pallets are not logged yet.
+The gravity line has no 3D behaviour in Rust yet (the reference has one, still to port); the run warns
+`behaviorNotAvailable3D` and pallets stop in front of it. Impacts against stops and pallets are not logged yet.
+
+## Amendment 2026-11-02: turntables and the transfer table in 3D
+
+Beyond the reference, which had neither:
+
+1. **Turntables (S03, S04, T13 §1.6).** A kinematic platform turns about its centre, its angular velocity following the
+   2D angular profile step by step; its deck (chain strands, or rollers locked during the turn) turns with it and the
+   pallet is held by friction alone. The cycle, the positioning toward a waiting pallet and the exit rule are the 2D
+   turntable's.
+2. **The roller-to-chain transfer table (S05, T13 §2).** Rollers turning as a conveyor's; the chains in the middle of gaps
+   between them, on one kinematic body that rises `liftStroke` in `liftTime` (from `lowerClearance` below the rollers),
+   lifting the pallet by contact, carries it sideways and goes down in `lowerTime`. The cycle is the 2D table's.
+3. **Chain strands have rounded edges (5 mm).** A pallet arriving on raised transfer chains at 640 mm met the next
+   chain conveyor's strands at 640 mm and caught on their square ends; a real strand's end wraps round its sprocket.
+   Like the sink's bed (decision 5), this is geometry, not a change of masses, frictions or time step.
+
+REF-5 in 3D (`ref_5_the_whole_reference_layout_runs_in_3d_as_in_2d…`): over 600 s the sink receives 18 pallets as in
+2D, the chain turntable turns 38 times and the transfer table transfers 19 pallets as in 2D, and the cycles of the sink,
+both turntables and the transfer table lie within 1 % of the 2D ones (0.2 % to 0.6 %).
 
 ## Consequences
 

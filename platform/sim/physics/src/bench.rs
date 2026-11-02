@@ -64,10 +64,12 @@ pub enum Motion {
     Dynamic,
 }
 
-/// A shape in its part's frame: a box by its half sizes, or a cylinder lying along the part's z (a roller).
+/// A shape in its part's frame: a box by its half sizes, the same with its edges rounded to `radius` (a chain strand,
+/// whose ends wrap round their sprockets), or a cylinder lying along the part's z (a roller).
 #[derive(Clone, Copy, Debug, PartialEq)]
 pub enum Shape {
     Cuboid([f64; 3]),
+    Rounded { half: [f64; 3], radius: f64 },
     Cylinder { radius: f64, half_length: f64 },
 }
 
@@ -151,6 +153,11 @@ impl Bench {
             let builder = match p.shape {
                 Shape::Cuboid([hx, hy, hz]) => {
                     ColliderBuilder::cuboid(hx as Real, hy as Real, hz as Real).translation(Vector::new(ox, oy, oz))
+                }
+                // Its outer size is the box's: the rounding is taken from inside.
+                Shape::Rounded { half, radius } => {
+                    let [hx, hy, hz] = half.map(|h| (h - radius).max(1e-4) as Real);
+                    ColliderBuilder::round_cuboid(hx, hy, hz, radius as Real).translation(Vector::new(ox, oy, oz))
                 }
                 // Rapier's cylinders stand along +y: lay it along z.
                 Shape::Cylinder { radius, half_length } => ColliderBuilder::cylinder(half_length as Real, radius as Real)

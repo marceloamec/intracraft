@@ -12,6 +12,7 @@ use super::*;
 
 const SEED: u64 = 7;
 const FLOW_T2: &str = include_str!("../../../../../packages/scenarios/scenarios/layouts/flow-t2.intracraft.json");
+const REFERENCE: &str = include_str!("../../../../../packages/scenarios/scenarios/layouts/reference-all-five.intracraft.json");
 const REL_TOL: f64 = 0.01;
 /// 2D and 3D sensor edges must agree within ±50 ms (S06 P6, A11).
 const EDGE_TOL: f64 = 0.05;
@@ -203,8 +204,24 @@ mod stations {
     }
 
     #[test]
-    fn warns_that_turntables_have_no_3d_behaviour_yet() {
-        let parts = [("flow.source", &[("maxPallets", n(1.0))][..]), ("conveyor.roller", &[]), ("conveyor.roller_turntable", &[])];
+    fn ref_5_the_whole_reference_layout_runs_in_3d_as_in_2d_through_both_turntables_and_the_transfer_table() {
+        let project = intracraft_library::layout::Project::read(REFERENCE).unwrap();
+        let mut sim = PhysicsFlow::new(&project.layout, &library(), project.seed).unwrap();
+        sim.run_until(from_seconds(600.0));
+        let (d3, d2) = (sim.statistics(), run_2d(&project.layout, 600.0));
+        assert!(sim.issues.is_empty(), "{:?}", sim.issues);
+        assert_eq!(sim.fallen_pallets(), 0);
+        for (id, key) in [("sink1", "palletsReceived"), ("chain_turntable1", "turns"), ("transfer_rc1", "transfers")] {
+            assert_eq!(stat(&d3, id, key), stat(&d2, id, key), "{id}.{key}");
+        }
+        for id in ["sink1", "roller_turntable1", "chain_turntable1", "transfer_rc1"] {
+            within(stat(&d3, id, "meanCycleTime"), stat(&d2, id, "meanCycleTime"), REL_TOL);
+        }
+    }
+
+    #[test]
+    fn warns_that_the_gravity_line_has_no_3d_behaviour_yet() {
+        let parts = [("flow.source", &[("maxPallets", n(1.0))][..]), ("conveyor.roller", &[]), ("conveyor.gravity", &[])];
         let sim = run(&line(&parts), 1.0);
         assert!(sim.issues.iter().any(|i| i.rule == "behaviorNotAvailable3D"));
     }
