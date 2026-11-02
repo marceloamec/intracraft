@@ -78,11 +78,36 @@ fn main() -> ExitCode {
 
 /// Opens a project, or places a reference layout in the new one.
 fn open(session: &mut Session, library: &Library, file: &str) -> Result<(), String> {
+    let path = locate(file, &std::env::current_dir().unwrap_or_default())
+        .ok_or_else(|| format!("{file}: there is no such file here or in the folders above"))?;
     if file.ends_with(".intracraft.json") {
-        let text = std::fs::read_to_string(file).map_err(|e| format!("{file}: {e}"))?;
+        let text = std::fs::read_to_string(&path).map_err(|e| format!("{file}: {e}"))?;
         let project = Project::read(&text)?;
         intracraft_model::import_project(session, library, &project).map(|_| ())
     } else {
-        session.execute("open", &serde_json::json!({"path": file})).map(|_| ())
+        session.execute("open", &serde_json::json!({"path": path})).map(|_| ())
+    }
+}
+
+/// Where `file` is: as given, or, when `folder` has no such file, under the first folder above it that has (`cargo
+/// run` runs in `platform/`, while a layout's path is often given from the repository's root).
+fn locate(file: &str, folder: &std::path::Path) -> Option<std::path::PathBuf> {
+    let given = std::path::Path::new(file);
+    if given.is_absolute() {
+        return given.exists().then(|| given.to_path_buf());
+    }
+    folder.ancestors().map(|a| a.join(given)).find(|p| p.exists())
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn a_layout_named_from_the_repository_s_root_is_found_from_the_platform_folder() {
+        let platform = std::path::Path::new(env!("CARGO_MANIFEST_DIR")).join("../..");
+        let layout = "packages/scenarios/scenarios/layouts/flow-t1.intracraft.json";
+        assert!(locate(layout, &platform).is_some_and(|p| p.ends_with(layout)));
+        assert!(locate("no/such/layout.intracraft.json", &platform).is_none());
     }
 }

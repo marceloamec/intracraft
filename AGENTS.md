@@ -186,6 +186,7 @@ Creados en la Fase 0 (28-10-2026); todos funcionan.
 Plataforma Rust (en `platform/`):
 
 - `cargo build -p intracraft` y `cargo run -p intracraft`: compilar y abrir la aplicación de escritorio con los tres módulos.
+- Abrir la aplicación con doble clic: `scripts/intracraft.cmd` (vacía; arrastrar un `.intracraft.json` o un `.bimcraft` encima lo abre), `scripts/intracraft-demo-discrete.cmd` y `scripts/intracraft-demo-physics.cmd` (layout de referencia en marcha). Desde una terminal, siempre dentro de `platform/`: `cargo run --release -p intracraft -- RUTA [--module design|discrete|physics] [--view 3d] [--play]`; una ruta relativa se busca también en las carpetas superiores.
 - `cargo test --workspace`: todas las pruebas, las de BIMCraft y las nuestras.
 - `cargo clippy --workspace --all-targets -- -D warnings` y `cargo fmt --check`: linter y formato.
 - `cargo i18n check`: catálogo de traducciones de BIMCraft al día.
