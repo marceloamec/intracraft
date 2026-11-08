@@ -8,7 +8,7 @@ date: 2026-10-31
 
 # ADR-0022 Bevy Viewer for the Physics Simulation Module
 
-- **Status:** Accepted on 2026-10-31 by the owner, after spike R5b on the owner's laptop.
+- **Status:** Accepted on 2026-10-31 by the owner, after spike R5b on the owner's laptop. **Amended on 2026-11-09 by [[ADR-0026 Bevy and Avian for the Physics Simulation Module]]:** the viewer serves both simulation modules and runs its own simulation from the file; the physics engine is Avian, so it now depends on Bevy.
 - **Date:** 2026-10-31
 - **Closes:** spike R5b of [[A19 Rust Implementation Plan]]; confirms decision 2 of [[ADR-0021 Game Engine Choice for the Rust Platform]].
 

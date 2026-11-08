@@ -8,7 +8,7 @@ date: 2026-10-31
 
 # ADR-0021 Game Engine Choice for the Rust Platform
 
-- **Status:** Accepted on 2026-10-31: spike R5b ran on the owner's laptop and the owner chose Bevy for the 3D run's viewer ([[ADR-0022 Bevy Viewer for the Physics Simulation Module]]). Proposed earlier the same day at the owner's request. Depends on [[ADR-0020 Rust Platform on BIMCraft with Three Modules]].
+- **Status:** Accepted on 2026-10-31: spike R5b ran on the owner's laptop and the owner chose Bevy for the 3D run's viewer ([[ADR-0022 Bevy Viewer for the Physics Simulation Module]]). Proposed earlier the same day at the owner's request. Depends on [[ADR-0020 Rust Platform on BIMCraft with Three Modules]]. **Amended on 2026-11-09 by [[ADR-0026 Bevy and Avian for the Physics Simulation Module]]:** decision 3 is replaced (the physics moves to Avian, Bevy's physics) and decision 4 is replaced as to how the viewer is fed (it runs its own simulation from the file, not snapshots over the control port).
 - **Date:** 2026-10-31
 
 ## Context

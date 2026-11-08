@@ -8,7 +8,7 @@ date: 2026-11-01
 
 # ADR-0023 Rapier Passes the First Spike S1 Criteria
 
-- **Status:** Accepted on 2026-11-01. Confirms decision 3 of [[ADR-0020 Rust Platform on BIMCraft with Three Modules]] (Rapier as the engine of the Physics simulation module) for the criteria measured so far; the rest of spike S1 follows in phase R5 of [[A19 Rust Implementation Plan]].
+- **Status:** Accepted on 2026-11-01. Confirms decision 3 of [[ADR-0020 Rust Platform on BIMCraft with Three Modules]] (Rapier as the engine of the Physics simulation module) for the criteria measured so far; the rest of spike S1 follows in phase R5 of [[A19 Rust Implementation Plan]]. **Amended on 2026-11-09 by [[ADR-0026 Bevy and Avian for the Physics Simulation Module]]:** decision 1 is replaced. The owner chose Avian; Rapier is kept, frozen, as the reference, and its figures here are the expected values for Avian.
 - **Date:** 2026-11-01
 
 ## Context

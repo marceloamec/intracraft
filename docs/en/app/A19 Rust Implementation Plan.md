@@ -108,6 +108,13 @@ R5 and R5b can run in parallel with R1–R4; R8 in parallel with R3–R7. By mod
 
 - **Done 2026-11-02 ([[ADR-0025 Simulation Modules on BIMCraft's Ribbon and Detailed Families]]):** the three modules are tabs of BIMCraft's ribbon (Intralogistics, Discrete simulation, Physics simulation) through a generic `Extension` hook in BIMCraft; both runs are drawn over BIMCraft's floor plan and 3D view (objects tinted by state, pallets and loads moving); the library's families draw detailed parametric forms (rollers, chains, C-channel frames, legs with bracing, drives, guards, each station's parts) with BIMCraft's new form arrays (`repeat`, format 13).
 
+- **Decided 2026-11-09 ([[ADR-0026 Bevy and Avian for the Physics Simulation Module]]):** the 3D run of both simulation modules is drawn in a separate Bevy window (`apps/intracraft-viewer`, a "View in 3D" button). The physics moves from Rapier to Avian 0.8 behind a common `PhysicsBench` contract, and the plant logic is unchanged. Steps:
+  1. the decision;
+  2. the common bench, with Rapier behind it and no change in behaviour;
+  3. the Avian bench and the S1 gate (P1, P3, P7, P8 against Rapier's figures);
+  4. the plant tests of `flow` on Avian;
+  5. the viewer;
+  6. the button in the main window, and the flat boxes over BIMCraft's 3D view removed.
 - Port `sim-physics/src/world` ([[ADR-0016 Physics World Built from the Layout]]): world from the model, decks, stations, gravity line, raycast sensors, MTBH bodies ([[ADR-0015 MTBH Rigid Body from Pallet and Load Models]]), scenery ([[ADR-0017 Scenery Assets in the Layout and Live Spawn]]).
 - Same plant logic as 2D, only the motion differs (ADR-0016 §1).
 - The viewer chosen in R5b (BIMCraft's GPU view or the Bevy viewer) draws pallet bodies from snapshots each frame; the static scene is cached.
