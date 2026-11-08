@@ -8,11 +8,11 @@
 
 use std::collections::BTreeMap;
 
+use crate::bench::BodyId;
 use intracraft_des::flow::network::GravityData;
 use intracraft_des::time::{SimTime, US_PER_S};
-use rapier3d::prelude::RigidBodyHandle;
 
-use crate::bench::Bench;
+use crate::bench::PhysicsBench;
 use crate::flow::deck::Pallets;
 use crate::flow::pallet::Extent;
 use crate::frame::{Frame, scale};
@@ -63,9 +63,9 @@ pub struct GravityLine3D {
     pub frame: Frame,
     data: GravityData,
     /// The free rollers and where they lie along the line (m from the entry).
-    rollers: Vec<(RigidBodyHandle, f64)>,
+    rollers: Vec<(BodyId, f64)>,
     radius: f64,
-    separator: RigidBodyHandle,
+    separator: BodyId,
     separator_x: f64,
     accel: f64,
     state: BTreeMap<u64, State>,
@@ -77,14 +77,7 @@ pub struct GravityLine3D {
 }
 
 impl GravityLine3D {
-    pub fn new(
-        id: &str,
-        data: GravityData,
-        frame: Frame,
-        rollers: Vec<(RigidBodyHandle, f64)>,
-        radius: f64,
-        separator: RigidBodyHandle,
-    ) -> GravityLine3D {
+    pub fn new(id: &str, data: GravityData, frame: Frame, rollers: Vec<(BodyId, f64)>, radius: f64, separator: BodyId) -> GravityLine3D {
         GravityLine3D {
             id: id.to_string(),
             pallets: Vec::new(),
@@ -234,7 +227,7 @@ impl GravityLine3D {
 
     /// Free rollers follow their pallet; the separator plate moves toward its position. `feeding` gives the speed of the
     /// conveyor pushing each entering pallet in.
-    pub fn drive(&self, bench: &mut Bench, pallets: &Pallets, dt: f64, feeding: &BTreeMap<u64, f64>) {
+    pub fn drive(&self, bench: &mut dyn PhysicsBench, pallets: &Pallets, dt: f64, feeding: &BTreeMap<u64, f64>) {
         let targets: Vec<(Extent, f64)> = self
             .pallets
             .iter()

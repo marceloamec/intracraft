@@ -5,14 +5,14 @@
 
 use std::collections::BTreeMap;
 
+use crate::bench::BodyId;
 use intracraft_des::flow::network::{LiftPort, ProcessData};
 use intracraft_des::flow::processing_time;
 use intracraft_des::kinematics::{MoveProfile, profile_position_at, profile_time};
 use intracraft_des::rng::Pcg32;
 use intracraft_des::time::{SimTime, US_PER_S};
-use rapier3d::prelude::RigidBodyHandle;
 
-use crate::bench::{Bench, DT};
+use crate::bench::{DT, PhysicsBench};
 use crate::flow::deck::{Deck, Exit, Pallets, Status};
 
 /// A centred pallet slower than this has come to rest on the deck, m/s.
@@ -63,7 +63,7 @@ pub struct Station3D {
     pub height: f64,
     /// The connected exit ports and where they lead.
     pub exits: BTreeMap<String, Exit>,
-    platform: RigidBodyHandle,
+    platform: BodyId,
     base_y: f64,
     kind: Kind,
     entry: LiftPort,
@@ -75,15 +75,7 @@ pub struct Station3D {
 }
 
 impl Station3D {
-    pub fn new(
-        id: &str,
-        deck: usize,
-        platform: RigidBodyHandle,
-        base_y: f64,
-        kind: Kind,
-        entry: LiftPort,
-        exit_ports: Vec<LiftPort>,
-    ) -> Station3D {
+    pub fn new(id: &str, deck: usize, platform: BodyId, base_y: f64, kind: Kind, entry: LiftPort, exit_ports: Vec<LiftPort>) -> Station3D {
         Station3D {
             id: id.to_string(),
             deck,
@@ -185,13 +177,13 @@ impl Station3D {
     }
 
     /// Sets the platform's vertical speed so that it follows the profile over the next step (`t` s).
-    pub fn drive_vertical(&self, bench: &mut Bench, t: f64) {
+    pub fn drive_vertical(&self, bench: &mut dyn PhysicsBench, t: f64) {
         let vy = self.vertical.as_ref().map_or(0.0, |m| (height_on(m, t + DT) - self.height) / DT);
         bench.set_velocity(self.platform, [0.0, vy, 0.0], [0.0; 3]);
     }
 
     /// Reads the platform's height after a step (`t` s) and moves the deck's frame with it.
-    pub fn sync_height(&mut self, bench: &Bench, t: f64, deck: &mut Deck) {
+    pub fn sync_height(&mut self, bench: &dyn PhysicsBench, t: f64, deck: &mut Deck) {
         self.height = bench.position(self.platform)[1] - self.base_y;
         deck.frame.origin[1] = self.base_y + self.height;
         if self.vertical.as_ref().is_some_and(|m| t >= m.start + m.duration - 1e-9) {

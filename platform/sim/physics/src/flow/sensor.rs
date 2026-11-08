@@ -4,11 +4,11 @@
 
 use std::collections::HashSet;
 
+use crate::bench::BodyId;
 use intracraft_des::flow::parts::Photoeye;
 use intracraft_des::time::SimTime;
-use rapier3d::prelude::RigidBodyHandle;
 
-use crate::bench::Bench;
+use crate::bench::PhysicsBench;
 use crate::frame::{Frame, V3};
 
 /// An output change of a sensor and when it happened.
@@ -37,7 +37,7 @@ impl Sensor3D {
     }
 
     /// Casts the beam after a step; a change starts the delay from the step's midpoint `stamp`.
-    pub fn sense(&mut self, bench: &Bench, pallets: &HashSet<RigidBodyHandle>, stamp: SimTime) {
+    pub fn sense(&mut self, bench: &dyn PhysicsBench, pallets: &HashSet<BodyId>, stamp: SimTime) {
         // A beam longer than the range is already reported by the network's check; as in 2D it still detects.
         let blocked = bench.beam_blocked(self.from, self.span, pallets);
         if blocked == self.logic.raw {

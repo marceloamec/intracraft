@@ -9,12 +9,12 @@
 use std::collections::BTreeMap;
 use std::f64::consts::FRAC_PI_2;
 
+use crate::bench::BodyId;
 use intracraft_des::flow::network::{OperationMode, TransferData, TransferDirection};
 use intracraft_des::time::{SimTime, US_PER_S};
 use intracraft_library::ports::rotate_y;
-use rapier3d::prelude::RigidBodyHandle;
 
-use crate::bench::{Bench, DT};
+use crate::bench::{DT, PhysicsBench};
 use crate::flow::deck::{Deck, Exit, Pallets};
 use crate::frame::{Frame, V3};
 
@@ -77,7 +77,7 @@ pub struct Transfer3D {
     /// The table's middle on the rollers' conveying surface, and the instance's turn about +y.
     centre: V3,
     yaw: f64,
-    chain_body: RigidBodyHandle,
+    chain_body: BodyId,
     phase: Phase,
     after: After,
     chains_up: bool,
@@ -98,7 +98,7 @@ impl Transfer3D {
         clearance: f64,
         centre: V3,
         yaw: f64,
-        chain_body: RigidBodyHandle,
+        chain_body: BodyId,
     ) -> Transfer3D {
         Transfer3D {
             id: id.to_string(),
@@ -229,13 +229,13 @@ impl Transfer3D {
     }
 
     /// Sets the chains' vertical speed so that they follow their move over the next step (`t` s).
-    pub fn drive(&self, bench: &mut Bench, t: f64) {
+    pub fn drive(&self, bench: &mut dyn PhysicsBench, t: f64) {
         let vy = self.lift.map_or(0.0, |m| (level_on(&m, t + DT) - self.level) / DT);
         bench.set_velocity(self.chain_body, [0.0, vy, 0.0], [0.0; 3]);
     }
 
     /// Reads the chains' level after a step and moves their deck's frame with it.
-    pub fn sync(&mut self, bench: &Bench, decks: &mut [Deck]) {
+    pub fn sync(&mut self, bench: &dyn PhysicsBench, decks: &mut [Deck]) {
         self.level = bench.position(self.chain_body)[1] - self.centre[1];
         decks[self.chains].frame = self.chain_frame(self.chain_heading, self.level);
     }

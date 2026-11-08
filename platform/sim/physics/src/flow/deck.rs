@@ -5,10 +5,10 @@
 
 use std::collections::BTreeMap;
 
+use crate::bench::BodyId;
 use intracraft_des::time::SimTime;
-use rapier3d::prelude::RigidBodyHandle;
 
-use crate::bench::Bench;
+use crate::bench::PhysicsBench;
 use crate::flow::pallet::{Extent, WorldPallet};
 use crate::frame::{Frame, V3, scale};
 use crate::mechanics::roller_angular_speed;
@@ -31,7 +31,7 @@ pub struct DeckSpec {
 /// How the deck moves pallets: kinematic rollers turning at ω = v / r (S01 §4), or parts whose contact surface moves
 /// (chain strands, plan B of ADR-0002; a station's platform).
 pub enum Drive {
-    Rollers { bodies: Vec<RigidBodyHandle>, radius: f64 },
+    Rollers { bodies: Vec<BodyId>, radius: f64 },
     Surface(usize),
 }
 
@@ -151,7 +151,7 @@ impl Deck {
     }
 
     /// Turns its rollers or moves its surface at the current speed.
-    pub fn apply_drive(&self, bench: &mut Bench) {
+    pub fn apply_drive(&self, bench: &mut dyn PhysicsBench) {
         match &self.drive {
             Drive::Surface(s) => bench.set_surface_velocity(*s, self.surface_velocity()),
             Drive::Rollers { bodies, radius } => {

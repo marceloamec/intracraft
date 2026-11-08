@@ -20,6 +20,7 @@ pub mod turntable;
 
 use std::collections::{BTreeMap, HashSet};
 
+use crate::bench::BodyId;
 use intracraft_control::{Signals, evaluate_rules};
 use intracraft_des::flow::network::{Base, FlowIssue, FlowNode, GravityData, Kind, LiftPort, LineData, Side, TransferData, TurntableData};
 use intracraft_des::flow::parts::{Photoeye, Sink, Source};
@@ -32,9 +33,8 @@ use intracraft_library::definition::{Definition, Value};
 use intracraft_library::layout::{Layout, Rule};
 use intracraft_library::params::{Values, defaults, instance_values, num};
 use intracraft_library::snap::derive_connections;
-use rapier3d::prelude::RigidBodyHandle;
 
-use crate::bench::{Bench, DT, Motion, Part, Shape};
+use crate::bench::{DT, Motion, Part, PhysicsBench, RapierBench, Shape};
 use crate::frame::Frame;
 use deck::{Deck, DeckSpec, Drive, Exit, Pallets, Status};
 use gravity::{GravityLine3D, SEPARATOR_OPEN_Y, SEPARATOR_THICKNESS};
@@ -176,7 +176,7 @@ impl Station {
     }
 
     /// Sets the platform's or the chains' motion over the next step (`t` s).
-    fn drive(&self, bench: &mut Bench, t: f64) {
+    fn drive(&self, bench: &mut dyn PhysicsBench, t: f64) {
         match self {
             Station::Platform(s) => s.drive_vertical(bench, t),
             Station::Turntable(tt) => tt.drive(bench, t),
@@ -185,7 +185,7 @@ impl Station {
     }
 
     /// After a step (`t` s): the decks' frames follow the platform or the chains.
-    fn sync(&mut self, bench: &Bench, t: f64, decks: &mut [Deck]) {
+    fn sync(&mut self, bench: &dyn PhysicsBench, t: f64, decks: &mut [Deck]) {
         match self {
             Station::Platform(s) => {
                 let deck = s.deck;
@@ -254,7 +254,7 @@ pub struct PalletPose {
 }
 
 pub struct PhysicsFlow {
-    pub bench: Bench,
+    pub bench: Box<dyn PhysicsBench>,
     pub issues: Vec<FlowIssue>,
     decks: Vec<Deck>,
     stations: Vec<Station>,
@@ -263,7 +263,7 @@ pub struct PhysicsFlow {
     sinks: Vec<Sink3D>,
     sensors: Vec<Sensor3D>,
     pallets: Pallets,
-    bodies: HashSet<RigidBodyHandle>,
+    bodies: HashSet<BodyId>,
     rules: Vec<Rule>,
     signals: Signals,
     evaluated: Signals,
@@ -277,13 +277,19 @@ pub struct PhysicsFlow {
 }
 
 impl PhysicsFlow {
-    /// The world of a layout as a project holds it (its connections come from the geometry, as in the editor).
+    /// The world of a layout as a project holds it (its connections come from the geometry, as in the editor), on the
+    /// reference bench (Rapier).
     pub fn new(layout: &Layout, library: &Library, seed: u64) -> Result<PhysicsFlow, String> {
+        PhysicsFlow::on(Box::new(RapierBench::new()), layout, library, seed)
+    }
+
+    /// The same on an empty `bench` of any engine (ADR-0026).
+    pub fn on(bench: Box<dyn PhysicsBench>, layout: &Layout, library: &Library, seed: u64) -> Result<PhysicsFlow, String> {
         let mut connected = layout.clone();
         connected.connections = derive_connections(layout, library)?;
         let network = build_flow_network(&connected, library);
         let mut f = PhysicsFlow {
-            bench: Bench::new(),
+            bench,
             issues: network.issues,
             decks: Vec::new(),
             stations: Vec::new(),
@@ -397,7 +403,7 @@ impl PhysicsFlow {
             self.plan_group(g);
         }
         for d in &self.decks {
-            d.apply_drive(&mut self.bench);
+            d.apply_drive(self.bench.as_mut());
         }
         for s in &self.sinks {
             for &(deck, bed) in &s.beds {
@@ -407,7 +413,7 @@ impl PhysicsFlow {
             }
         }
         for s in &self.stations {
-            s.drive(&mut self.bench, t);
+            s.drive(self.bench.as_mut(), t);
         }
         // The speed each pallet entering a gravity line is pushed in at: its feeder's.
         let feeding: BTreeMap<u64, f64> = self
@@ -417,17 +423,17 @@ impl PhysicsFlow {
             .filter_map(|d| d.outgoing.map(|id| (id, d.speed)))
             .collect();
         for g in &self.gravity {
-            g.drive(&mut self.bench, &self.pallets, DT, &feeding);
+            g.drive(self.bench.as_mut(), &self.pallets, DT, &feeding);
         }
         self.bench.step();
         let after = self.now();
         for s in &mut self.stations {
-            s.sync(&self.bench, after as f64 / US_PER_S as f64, &mut self.decks);
+            s.sync(self.bench.as_ref(), after as f64 / US_PER_S as f64, &mut self.decks);
         }
         self.observe(after);
         let stamp = now + (after - now + 1) / 2;
         for s in &mut self.sensors {
-            s.sense(&self.bench, &self.bodies, stamp);
+            s.sense(self.bench.as_ref(), &self.bodies, stamp);
             if let Some(edge) = s.flush(after) {
                 self.edges.push(edge);
             }

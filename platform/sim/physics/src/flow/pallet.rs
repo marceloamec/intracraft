@@ -1,10 +1,10 @@
 //! Pallets of the 3D run (the reference's `pallet-body.ts`): the 2D pallet record plus its rigid body, pallet and load as
 //! one body (ADR-0015), and the pose and velocity read after each step.
 
+use crate::bench::BodyId;
 use intracraft_des::flow::network::Side;
 use intracraft_des::flow::sim::Pallet;
 use intracraft_library::reference::PalletType;
-use rapier3d::prelude::RigidBodyHandle;
 
 use crate::bench::{Part, Shape};
 use crate::frame::{Frame, V3, dot};
@@ -15,7 +15,7 @@ const LOAD_MATERIAL: &str = "cardboard";
 
 pub struct WorldPallet {
     pub pallet: Pallet,
-    pub body: RigidBodyHandle,
+    pub body: BodyId,
     /// The object carrying it: the one under its tail, as in 2D.
     pub carrier: String,
     /// Its underside's centre, and its own x (along its travel when it was made) and z axes in the world.

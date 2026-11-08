@@ -8,14 +8,14 @@
 use std::collections::BTreeMap;
 use std::f64::consts::{FRAC_PI_2, PI};
 
+use crate::bench::BodyId;
 use intracraft_des::flow::network::{ExitRule, TurntableData, TurntableExit};
 use intracraft_des::kinematics::{MoveProfile, profile_position_at, profile_time};
 use intracraft_des::rng::Pcg32;
 use intracraft_des::time::{SimTime, US_PER_S};
 use intracraft_library::ports::rotate_y;
-use rapier3d::prelude::RigidBodyHandle;
 
-use crate::bench::{Bench, DT};
+use crate::bench::{DT, PhysicsBench};
 use crate::flow::deck::{Deck, Exit, Pallets};
 use crate::frame::{Frame, V3};
 
@@ -66,7 +66,7 @@ pub struct Turntable3D {
     /// The platform's centre on the conveying surface, and the instance's turn about +y.
     centre: V3,
     yaw: f64,
-    platform: RigidBodyHandle,
+    platform: BodyId,
     phase: Phase,
     /// The direction the deck conveys towards (rad, the turntable's frame).
     heading: f64,
@@ -79,7 +79,7 @@ pub struct Turntable3D {
 }
 
 impl Turntable3D {
-    pub fn new(id: &str, deck: usize, data: TurntableData, centre: V3, yaw: f64, platform: RigidBodyHandle, rng: Pcg32) -> Turntable3D {
+    pub fn new(id: &str, deck: usize, data: TurntableData, centre: V3, yaw: f64, platform: BodyId, rng: Pcg32) -> Turntable3D {
         Turntable3D {
             id: id.to_string(),
             deck,
@@ -188,7 +188,7 @@ impl Turntable3D {
     }
 
     /// Sets the platform's turning speed so that it follows the angular profile over the next step (`t` s).
-    pub fn drive(&self, bench: &mut Bench, t: f64) {
+    pub fn drive(&self, bench: &mut dyn PhysicsBench, t: f64) {
         let omega = self.turn.map_or(0.0, |turn| (self.angle_on(&turn, t + DT) - self.angle_on(&turn, t)) / DT);
         bench.set_velocity(self.platform, [0.0; 3], [0.0, omega, 0.0]);
     }
