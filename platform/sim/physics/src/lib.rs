@@ -15,3 +15,13 @@ pub mod frame;
 pub mod mechanics;
 
 pub use rapier3d;
+
+/// What the test macros (`s1_tests!`, `flow_tests!`) reach through `$crate`, so that a crate running them needs nothing
+/// else.
+#[doc(hidden)]
+pub mod deps {
+    pub use intracraft_des;
+    pub use intracraft_library;
+}
+
+flow_tests!(crate::bench::RapierBench);

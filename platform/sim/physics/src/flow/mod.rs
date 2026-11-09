@@ -39,7 +39,8 @@ use crate::frame::Frame;
 use deck::{Deck, DeckSpec, Drive, Exit, Pallets, Status};
 use gravity::{GravityLine3D, SEPARATOR_OPEN_Y, SEPARATOR_THICKNESS};
 use pallet::{WorldPallet, pallet_parts};
-use sensor::{Sensor3D, SensorEdge};
+use sensor::Sensor3D;
+pub use sensor::SensorEdge;
 use station::Station3D;
 use transfer::Transfer3D;
 use turntable::Turntable3D;
@@ -1406,5 +1407,5 @@ fn chain_layout(width: f64, count: f64) -> Vec<f64> {
     (0..count).map(|i| -span / 2.0 + i as f64 * span / (count - 1) as f64).collect()
 }
 
-#[cfg(test)]
-mod tests;
+#[doc(hidden)]
+pub mod cases;

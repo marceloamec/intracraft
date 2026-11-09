@@ -149,6 +149,32 @@ Notes:
   the opposite of Rapier's convention. The contact hook gives a strip's velocity when it is the second collider and its
   opposite when it is the first.
 
+## The plant on Avian (2026-11-09)
+
+The plant tests of `flow` (the reference's `physics-flow.test.ts`) became a macro, `flow_tests!`. Rapier and Avian run
+the same tests with the same expected values.
+
+At first, 14 of the 24 passed on Avian. Two settings of Avian's contacts (`NarrowPhaseConfig`) were the cause, and both
+are now changed:
+
+| Setting             | Avian's default | Now  | Why                                                                                                                                                                                                                                                                                                                                                                                                             |
+| ------------------- | --------------- | ---- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `contact_tolerance` | 20 mm           | 1 mm | Contacts are kept up to this distance. The front edge of a sink's bed, 2 mm below the rollers (ADR-0024), became a contact with a slanted normal and stopped the pallet on it, as Rapier's bed at the rollers' level had done. Every run that ended in a sink failed.                                                                                                                                           |
+| `recycle_distance`  | 50 mm           | 0    | Contact points are kept from the step before while the bodies have moved less than this. The contact hook is then not asked again, so a chain that started under a pallet kept its speed of the third step (12.5 mm/s) until the pallet had crept 50 mm, about 3.5 s. T1 on chains took 15.8 s. Stations whose deck is a moving surface held their pallet the same way. Contacts are now worked out every step. |
+
+With the two settings changed, the results are:
+
+- **24 of 24 plant tests pass on Avian:**
+  - T1 on rollers and on chains (12.25 s ±1 %);
+  - T2 (about 667 pallets/h);
+  - hand-over, the open end (±5 mm), blocking and accumulation;
+  - the controller's rule at a photocell, the beam through the pallet's voids, determinism;
+  - the C elevator (30.03 s), the manual table, the process station (42.03 s), the gravity line;
+  - the whole reference layout, as in 2D.
+- **P6 passes on Avian.** Every photocell edge of the 3D run lies within 50 ms of the 2D edge; on Rapier the falling edge
+  is 79 ms late (ADR-0024). Avian runs it with `flow_tests!(AvianBench, p6)`; it stays ignored on Rapier.
+- **The S1 figures are unchanged** by the two settings, except the P3 rebound, which is now 0.85 mm (limit 10 mm).
+
 ## Alternatives considered
 
 | Option                               | Why not                                                                                                                       |

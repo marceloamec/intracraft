@@ -13,7 +13,7 @@ use std::time::Duration;
 use avian3d::dynamics::solver::SolverConfig;
 use avian3d::prelude::{
     ActiveCollisionHooks, AngularVelocity, CoefficientCombine, Collider, CollisionHooks, ContactPair, Friction, Gravity, LinearVelocity,
-    Mass, Physics, PhysicsPlugins, Position, Restitution, RigidBody, Rotation, SleepingDisabled, SweptCcd,
+    Mass, NarrowPhaseConfig, Physics, PhysicsPlugins, Position, Restitution, RigidBody, Rotation, SleepingDisabled, SweptCcd,
 };
 use bevy::app::{App, TaskPoolOptions, TaskPoolPlugin};
 use bevy::ecs::system::SystemParam;
@@ -30,6 +30,16 @@ use intracraft_physics::mechanics::{GRAVITY, roller_angular_speed};
 /// The least speed of impact (m/s) at which a contact bounces as its restitution says. Avian's default, 1 m/s, is above
 /// every conveyor speed, so a pallet never bounced off a stop (P5); ADR-0026 records the change.
 const RESTITUTION_THRESHOLD: f32 = 0.05;
+
+/// How close two surfaces must be for a contact to be kept, m. Avian's default, 20 mm, keeps the front edge of a sink's
+/// bed (2 mm below the rollers, ADR-0024) as a contact with a slanted normal, and a pallet stops on it; ADR-0026 records
+/// the change.
+const CONTACT_TOLERANCE: f32 = 0.001;
+
+/// Contact points are worked out afresh every step. Avian's default keeps them from the step before while the bodies
+/// have moved less than 50 mm, and with them the moving surface's speed of that step: a chain that starts under a pallet
+/// stayed at its speed of the third step until the pallet had crept 50 mm (ADR-0026).
+const RECYCLE_DISTANCE: f32 = 0.0;
 
 /// How long a fixed step is, to the nanosecond.
 fn step_duration() -> Duration {
@@ -115,6 +125,11 @@ impl AvianBench {
         .insert_resource(Time::<Fixed>::from_duration(step_duration()))
         .insert_resource(TimeUpdateStrategy::ManualDuration(step_duration()))
         .insert_resource(Gravity(Vector::NEG_Y * GRAVITY as f32))
+        .insert_resource(NarrowPhaseConfig {
+            contact_tolerance: CONTACT_TOLERANCE,
+            recycle_distance: RECYCLE_DISTANCE,
+            ..NarrowPhaseConfig::default()
+        })
         .insert_resource(SolverConfig { restitution_threshold: RESTITUTION_THRESHOLD, ..SolverConfig::default() })
         .init_resource::<Contacts>();
         app.finish();
@@ -397,6 +412,8 @@ fn part_id(e: Entity) -> PartId {
 fn entity(bits: u64) -> Option<Entity> {
     Entity::try_from_bits(bits)
 }
+
+intracraft_physics::flow_tests!(crate::AvianBench, p6);
 
 #[cfg(test)]
 mod tests {
