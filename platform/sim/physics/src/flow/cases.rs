@@ -214,6 +214,19 @@ macro_rules! flow_tests {
                 }
 
                 #[test]
+                fn reports_each_turntable_s_heading_in_its_own_frame() {
+                    let project = Project::read(REFERENCE).unwrap();
+                    let mut sim = make(&project.layout, project.seed);
+                    sim.run_until(from_seconds(5.0));
+                    let angles = sim.angles();
+                    assert_eq!(angles.keys().collect::<Vec<_>>(), ["chain_turntable1", "roller_turntable1"]);
+                    assert!(angles.values().all(|a| (0.0..std::f64::consts::TAU).contains(a)), "{angles:?}");
+                    let pallet = sim.pallets().into_iter().next().unwrap();
+                    let (x, z) = pallet.axes;
+                    assert!((x[0] * z[0] + x[1] * z[1] + x[2] * z[2]).abs() < 1e-6, "a pallet's axes are square: {x:?} {z:?}");
+                }
+
+                #[test]
                 fn reports_the_deck_height_while_lifting() {
                     let sim = run(&elevator_layout(), 20.0);
                     let height = sim.heights()["elevator1"];

@@ -252,6 +252,10 @@ pub struct PalletPose {
     /// The pallet along its own x, its height, across, and the height of the load on it, m.
     pub size: [f64; 3],
     pub load_height: f64,
+    /// Its own x (along its length) and z axes in the world: with `centre`, its whole pose, tilt included.
+    pub axes: ([f64; 3], [f64; 3]),
+    /// Its pallet type, as the library names it.
+    pub type_id: String,
 }
 
 pub struct PhysicsFlow {
@@ -456,6 +460,8 @@ impl PhysicsFlow {
                     yaw: p.yaw(),
                     size: [p.pallet.length, p.pallet.height, p.pallet.width],
                     load_height: p.pallet.load_height,
+                    axes: (p.x_axis, p.z_axis),
+                    type_id: p.pallet.type_id.clone(),
                 }
             })
             .collect()
@@ -489,6 +495,17 @@ impl PhysicsFlow {
     /// The deck height of every lift station, m above its base.
     pub fn heights(&self) -> BTreeMap<String, f64> {
         self.stations.iter().filter_map(|s| s.height().map(|h| (s.id().to_string(), h))).collect()
+    }
+
+    /// The deck heading of every turntable, rad in its own frame (0 along its own +x), following the platform as it turns.
+    pub fn angles(&self) -> BTreeMap<String, f64> {
+        self.stations
+            .iter()
+            .filter_map(|s| match s {
+                Station::Turntable(t) => self.decks.get(t.deck).map(|d| (t.id.clone(), t.heading_of(&d.frame))),
+                _ => None,
+            })
+            .collect()
     }
 
     pub fn signals(&self) -> &Signals {

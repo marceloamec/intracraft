@@ -1,0 +1,329 @@
+{
+  "schemaVersion": 1,
+  "name": "Example: mixed plant with three lines and three pallet types",
+  "seed": 17,
+  "layout": {
+    "instances": [
+      {
+        "id": "sourceA",
+        "definitionId": "flow.source",
+        "definitionVersion": "0.1.0",
+        "name": "Line A infeed",
+        "position": {
+          "x": -0.42,
+          "y": 0.0,
+          "z": 0.0
+        },
+        "yaw": 0.0,
+        "params": {
+          "interval": 20,
+          "palletType": "eur",
+          "loadKind": "block",
+          "loadHeight": 1.2,
+          "loadMass": 600
+        },
+        "attributes": {}
+      },
+      {
+        "id": "rollerA1",
+        "definitionId": "conveyor.roller",
+        "definitionVersion": "0.1.0",
+        "name": "A1",
+        "position": {
+          "x": 0.0,
+          "y": 0.0,
+          "z": 0.0
+        },
+        "yaw": 0.0,
+        "params": {},
+        "attributes": {}
+      },
+      {
+        "id": "turntableA",
+        "definitionId": "conveyor.roller_turntable",
+        "definitionVersion": "0.1.0",
+        "name": "A turntable",
+        "position": {
+          "x": 3.72,
+          "y": 0.0,
+          "z": 0.0
+        },
+        "yaw": 0.0,
+        "params": {
+          "exitRule": "alternate"
+        },
+        "attributes": {}
+      },
+      {
+        "id": "rollerA2",
+        "definitionId": "conveyor.roller",
+        "definitionVersion": "0.1.0",
+        "name": "A2",
+        "position": {
+          "x": 4.44,
+          "y": 0.0,
+          "z": 0.0
+        },
+        "yaw": 0.0,
+        "params": {},
+        "attributes": {}
+      },
+      {
+        "id": "transferA",
+        "definitionId": "conveyor.transfer_rc",
+        "definitionVersion": "0.1.0",
+        "name": "A transfer table",
+        "position": {
+          "x": 7.46,
+          "y": 0.0,
+          "z": 0.0
+        },
+        "yaw": 0.0,
+        "params": {},
+        "attributes": {}
+      },
+      {
+        "id": "chainA",
+        "definitionId": "conveyor.chain",
+        "definitionVersion": "0.1.0",
+        "name": "A chains",
+        "position": {
+          "x": 8.16,
+          "y": 0.0,
+          "z": 0.52
+        },
+        "yaw": 4.712389,
+        "params": {
+          "surfaceHeight": 0.64
+        },
+        "attributes": {}
+      },
+      {
+        "id": "sinkA1",
+        "definitionId": "flow.sink",
+        "definitionVersion": "0.1.0",
+        "name": "A out (chains)",
+        "position": {
+          "x": 8.16,
+          "y": 0.0,
+          "z": 3.54
+        },
+        "yaw": 4.712389,
+        "params": {
+          "surfaceHeight": 0.64
+        },
+        "attributes": {}
+      },
+      {
+        "id": "rollerA3",
+        "definitionId": "conveyor.roller",
+        "definitionVersion": "0.1.0",
+        "name": "A3",
+        "position": {
+          "x": 3.72,
+          "y": 0.0,
+          "z": 0.72
+        },
+        "yaw": 4.712389,
+        "params": {},
+        "attributes": {}
+      },
+      {
+        "id": "sinkA2",
+        "definitionId": "flow.sink",
+        "definitionVersion": "0.1.0",
+        "name": "A out (side)",
+        "position": {
+          "x": 3.72,
+          "y": 0.0,
+          "z": 3.74
+        },
+        "yaw": 4.712389,
+        "params": {},
+        "attributes": {}
+      },
+      {
+        "id": "sourceB",
+        "definitionId": "flow.source",
+        "definitionVersion": "0.1.0",
+        "name": "Line B infeed",
+        "position": {
+          "x": -0.42,
+          "y": 0.0,
+          "z": -6.0
+        },
+        "yaw": 0.0,
+        "params": {
+          "interval": 60,
+          "palletType": "iso1200x1000",
+          "loadKind": "asset",
+          "loadAsset": "asset.drums.drum_steel_a01",
+          "loadHeight": 0.9,
+          "loadMass": 800
+        },
+        "attributes": {}
+      },
+      {
+        "id": "rollerB1",
+        "definitionId": "conveyor.roller",
+        "definitionVersion": "0.1.0",
+        "name": "B1",
+        "position": {
+          "x": 0.0,
+          "y": 0.0,
+          "z": -6.0
+        },
+        "yaw": 0.0,
+        "params": {},
+        "attributes": {}
+      },
+      {
+        "id": "processB",
+        "definitionId": "flow.process_station",
+        "definitionVersion": "0.1.0",
+        "name": "B process",
+        "position": {
+          "x": 3.02,
+          "y": 0.0,
+          "z": -6.0
+        },
+        "yaw": 0.0,
+        "params": {
+          "processingTime": 40
+        },
+        "attributes": {}
+      },
+      {
+        "id": "rollerB2",
+        "definitionId": "conveyor.roller",
+        "definitionVersion": "0.1.0",
+        "name": "B2",
+        "position": {
+          "x": 4.64,
+          "y": 0.0,
+          "z": -6.0
+        },
+        "yaw": 0.0,
+        "params": {},
+        "attributes": {}
+      },
+      {
+        "id": "liftB",
+        "definitionId": "conveyor.lift_table_manual",
+        "definitionVersion": "0.1.0",
+        "name": "B output table",
+        "position": {
+          "x": 9.26,
+          "y": 0.0,
+          "z": -6.0
+        },
+        "yaw": 3.141593,
+        "params": {
+          "flowDirection": "out"
+        },
+        "attributes": {}
+      },
+      {
+        "id": "sinkB",
+        "definitionId": "flow.sink",
+        "definitionVersion": "0.1.0",
+        "name": "B operator",
+        "position": {
+          "x": 9.28,
+          "y": 0.0,
+          "z": -6.0
+        },
+        "yaw": 0.0,
+        "params": {
+          "surfaceHeight": 0.1,
+          "removalMode": "afterTime",
+          "removalTime": 45
+        },
+        "attributes": {}
+      },
+      {
+        "id": "sourceC",
+        "definitionId": "flow.source",
+        "definitionVersion": "0.1.0",
+        "name": "Line C infeed",
+        "position": {
+          "x": -0.42,
+          "y": 0.0,
+          "z": -10.0
+        },
+        "yaw": 0.0,
+        "params": {
+          "interval": 40,
+          "palletType": "eur",
+          "loadKind": "asset",
+          "loadAsset": "asset.boxes.box_cardboard_a01",
+          "loadHeight": 1.0,
+          "loadMass": 450
+        },
+        "attributes": {}
+      },
+      {
+        "id": "rollerC1",
+        "definitionId": "conveyor.roller",
+        "definitionVersion": "0.1.0",
+        "name": "C1",
+        "position": {
+          "x": 0.0,
+          "y": 0.0,
+          "z": -10.0
+        },
+        "yaw": 0.0,
+        "params": {},
+        "attributes": {}
+      },
+      {
+        "id": "scissorC",
+        "definitionId": "conveyor.scissor_lift",
+        "definitionVersion": "0.1.0",
+        "name": "C scissor lift",
+        "position": {
+          "x": 3.02,
+          "y": 0.0,
+          "z": -10.0
+        },
+        "yaw": 0.0,
+        "params": {},
+        "attributes": {}
+      },
+      {
+        "id": "rollerC2",
+        "definitionId": "conveyor.roller",
+        "definitionVersion": "0.1.0",
+        "name": "C2",
+        "position": {
+          "x": 4.64,
+          "y": 0.0,
+          "z": -10.0
+        },
+        "yaw": 0.0,
+        "params": {
+          "surfaceHeight": 1.2
+        },
+        "attributes": {}
+      },
+      {
+        "id": "sinkC",
+        "definitionId": "flow.sink",
+        "definitionVersion": "0.1.0",
+        "name": "C out",
+        "position": {
+          "x": 7.66,
+          "y": 0.0,
+          "z": -10.0
+        },
+        "yaw": 0.0,
+        "params": {
+          "surfaceHeight": 1.2
+        },
+        "attributes": {}
+      }
+    ],
+    "connections": [],
+    "rules": []
+  }
+}

@@ -1,0 +1,89 @@
+{
+  "schemaVersion": 1,
+  "name": "Example: chain line with a chain turntable (GMA pallets of drums)",
+  "seed": 11,
+  "layout": {
+    "instances": [
+      {
+        "id": "source1",
+        "definitionId": "flow.source",
+        "definitionVersion": "0.1.0",
+        "name": "Infeed",
+        "position": {
+          "x": -0.42,
+          "y": 0.0,
+          "z": 0.0
+        },
+        "yaw": 0.0,
+        "params": {
+          "interval": 30,
+          "palletType": "gma",
+          "orientation": "short",
+          "loadKind": "asset",
+          "loadAsset": "asset.drums.drum_steel_a01",
+          "loadHeight": 0.9,
+          "loadMass": 800
+        },
+        "attributes": {}
+      },
+      {
+        "id": "chain1",
+        "definitionId": "conveyor.chain",
+        "definitionVersion": "0.1.0",
+        "name": "Chain infeed",
+        "position": {
+          "x": 0.0,
+          "y": 0.0,
+          "z": 0.0
+        },
+        "yaw": 0.0,
+        "params": {},
+        "attributes": {}
+      },
+      {
+        "id": "chain_turntable1",
+        "definitionId": "conveyor.chain_turntable",
+        "definitionVersion": "0.1.0",
+        "name": "Chain turntable",
+        "position": {
+          "x": 3.72,
+          "y": 0.0,
+          "z": 0.0
+        },
+        "yaw": 0.0,
+        "params": {},
+        "attributes": {}
+      },
+      {
+        "id": "chain2",
+        "definitionId": "conveyor.chain",
+        "definitionVersion": "0.1.0",
+        "name": "Chain outfeed",
+        "position": {
+          "x": 3.72,
+          "y": 0.0,
+          "z": -0.72
+        },
+        "yaw": 1.570796,
+        "params": {},
+        "attributes": {}
+      },
+      {
+        "id": "sink1",
+        "definitionId": "flow.sink",
+        "definitionVersion": "0.1.0",
+        "name": "Outfeed",
+        "position": {
+          "x": 3.72,
+          "y": 0.0,
+          "z": -3.74
+        },
+        "yaw": 1.570796,
+        "params": {},
+        "attributes": {}
+      }
+    ],
+    "connections": [],
+    "rules": []
+  }
+}

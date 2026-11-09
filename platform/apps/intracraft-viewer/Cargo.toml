@@ -1,0 +1,21 @@
+[package]
+name = "intracraft-viewer"
+description = "IntraCraft's 3D window (ADR-0026): a layout's discrete or physics run drawn with Bevy, with the own pallet models"
+version = "0.1.0"
+edition.workspace = true
+license.workspace = true
+rust-version = "1.95"
+publish = false
+
+[lints]
+workspace = true
+
+[dependencies]
+bevy = { workspace = true, features = ["default_app", "std", "bevy_winit", "x11", "multi_threaded", "default_font", "3d_bevy_render", "scene", "tonemapping_luts", "png"] }
+bevy_egui = { workspace = true }
+intracraft-assets = { path = "../../sim/assets" }
+intracraft-avian = { path = "../../sim/avian" }
+intracraft-des = { path = "../../sim/des" }
+intracraft-library = { path = "../../sim/library" }
+intracraft-physics = { path = "../../sim/physics" }
+intracraft-scene = { path = "../../sim/scene" }

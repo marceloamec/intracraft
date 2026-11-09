@@ -1,0 +1,107 @@
+{
+  "schemaVersion": 1,
+  "name": "Example: elevator to a 4 m mezzanine and a gravity buffer for an operator",
+  "seed": 13,
+  "layout": {
+    "instances": [
+      {
+        "id": "source1",
+        "definitionId": "flow.source",
+        "definitionVersion": "0.1.0",
+        "name": "Floor infeed",
+        "position": {
+          "x": -3.44,
+          "y": 0.0,
+          "z": 0.0
+        },
+        "yaw": 0.0,
+        "params": {
+          "interval": 45,
+          "palletType": "eur",
+          "loadKind": "block",
+          "loadHeight": 1.2,
+          "loadMass": 600
+        },
+        "attributes": {}
+      },
+      {
+        "id": "roller1",
+        "definitionId": "conveyor.roller",
+        "definitionVersion": "0.1.0",
+        "name": "Floor conveyor",
+        "position": {
+          "x": -3.02,
+          "y": 0.0,
+          "z": 0.0
+        },
+        "yaw": 0.0,
+        "params": {},
+        "attributes": {}
+      },
+      {
+        "id": "elevator1",
+        "definitionId": "conveyor.elevator",
+        "definitionVersion": "0.1.0",
+        "name": "Elevator",
+        "position": {
+          "x": 0.0,
+          "y": 0.0,
+          "z": 0.0
+        },
+        "yaw": 0.0,
+        "params": {},
+        "attributes": {}
+      },
+      {
+        "id": "roller2",
+        "definitionId": "conveyor.roller",
+        "definitionVersion": "0.1.0",
+        "name": "Mezzanine conveyor",
+        "position": {
+          "x": -0.02,
+          "y": 4.0,
+          "z": 0.0
+        },
+        "yaw": 3.141593,
+        "params": {},
+        "attributes": {}
+      },
+      {
+        "id": "gravity1",
+        "definitionId": "conveyor.gravity",
+        "definitionVersion": "0.1.0",
+        "name": "Gravity buffer",
+        "position": {
+          "x": -3.04,
+          "y": 4.0,
+          "z": 0.0
+        },
+        "yaw": 3.141593,
+        "params": {
+          "exitHeight": 0.36
+        },
+        "attributes": {}
+      },
+      {
+        "id": "sink1",
+        "definitionId": "flow.sink",
+        "definitionVersion": "0.1.0",
+        "name": "Operator",
+        "position": {
+          "x": -9.06,
+          "y": 4.0,
+          "z": 0.0
+        },
+        "yaw": 3.141593,
+        "params": {
+          "surfaceHeight": 0.36,
+          "removalMode": "afterTime",
+          "removalTime": 50
+        },
+        "attributes": {}
+      }
+    ],
+    "connections": [],
+    "rules": []
+  }
+}

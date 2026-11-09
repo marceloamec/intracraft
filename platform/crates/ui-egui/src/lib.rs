@@ -125,6 +125,11 @@ pub trait Extension {
     fn panel_title(&self, app: &BimApp) -> Option<String>;
     /// Draws that panel, under its title.
     fn panel(&mut self, ui: &mut Ui, app: &mut BimApp);
+    /// Whether BIMCraft's own ribbon tab `name` (its English name, as "Plumbing") is left out of the ribbon: an application
+    /// drops the disciplines it has no use for. None by default.
+    fn hides_tab(&self, _name: &str) -> bool {
+        false
+    }
 }
 
 /// BIMCraft alone: no tabs of anyone else's, nothing over its views.
@@ -2880,6 +2885,9 @@ impl BimApp {
                                 (Tab::Manage, msg!("Manage")),
                                 (Tab::Modify, "Modify"),
                             ] {
+                                if extension.hides_tab(label) {
+                                    continue;
+                                }
                                 let r = tab_button(ui, label, self.tab == tab && self.extension_tab.is_none(), false);
                                 if changed && self.tab == tab {
                                     r.scroll_to_me(None);

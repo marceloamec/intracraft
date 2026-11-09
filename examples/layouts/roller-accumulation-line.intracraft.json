@@ -1,0 +1,141 @@
+{
+  "schemaVersion": 1,
+  "name": "Example: roller line with zone control at a photocell",
+  "seed": 3,
+  "layout": {
+    "instances": [
+      {
+        "id": "source1",
+        "definitionId": "flow.source",
+        "definitionVersion": "0.1.0",
+        "name": "Infeed",
+        "position": {
+          "x": -0.42,
+          "y": 0.0,
+          "z": 0.0
+        },
+        "yaw": 0.0,
+        "params": {
+          "interval": 9,
+          "palletType": "eur",
+          "loadKind": "block",
+          "loadHeight": 1.2,
+          "loadMass": 600
+        },
+        "attributes": {}
+      },
+      {
+        "id": "roller1",
+        "definitionId": "conveyor.roller",
+        "definitionVersion": "0.1.0",
+        "name": "Section 1",
+        "position": {
+          "x": 0.0,
+          "y": 0.0,
+          "z": 0.0
+        },
+        "yaw": 0.0,
+        "params": {},
+        "attributes": {}
+      },
+      {
+        "id": "roller2",
+        "definitionId": "conveyor.roller",
+        "definitionVersion": "0.1.0",
+        "name": "Section 2",
+        "position": {
+          "x": 3.02,
+          "y": 0.0,
+          "z": 0.0
+        },
+        "yaw": 0.0,
+        "params": {},
+        "attributes": {}
+      },
+      {
+        "id": "roller3",
+        "definitionId": "conveyor.roller",
+        "definitionVersion": "0.1.0",
+        "name": "Section 3",
+        "position": {
+          "x": 6.04,
+          "y": 0.0,
+          "z": 0.0
+        },
+        "yaw": 0.0,
+        "params": {},
+        "attributes": {}
+      },
+      {
+        "id": "photoeye1",
+        "definitionId": "sensor.photoeye",
+        "definitionVersion": "0.1.0",
+        "name": "End of section 3",
+        "position": {
+          "x": 0.0,
+          "y": 0.0,
+          "z": 0.0
+        },
+        "yaw": 0.0,
+        "params": {
+          "host": "roller3",
+          "sensorS": 2.6,
+          "reflectorS": 2.6,
+          "sensorHeight": 0.4,
+          "reflectorHeight": 0.4
+        },
+        "attributes": {}
+      },
+      {
+        "id": "sink1",
+        "definitionId": "flow.sink",
+        "definitionVersion": "0.1.0",
+        "name": "Slow outfeed",
+        "position": {
+          "x": 9.06,
+          "y": 0.0,
+          "z": 0.0
+        },
+        "yaw": 0.0,
+        "params": {
+          "removalMode": "afterTime",
+          "removalTime": 14
+        },
+        "attributes": {}
+      }
+    ],
+    "connections": [],
+    "rules": [
+      {
+        "id": "hold",
+        "when": [
+          {
+            "signal": "photoeye1.detected",
+            "is": true
+          }
+        ],
+        "then": [
+          {
+            "signal": "roller2.run",
+            "value": false
+          }
+        ]
+      },
+      {
+        "id": "release",
+        "when": [
+          {
+            "signal": "photoeye1.detected",
+            "is": false
+          }
+        ],
+        "then": [
+          {
+            "signal": "roller2.run",
+            "value": true
+          }
+        ]
+      }
+    ]
+  }
+}

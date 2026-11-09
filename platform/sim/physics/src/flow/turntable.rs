@@ -99,6 +99,11 @@ impl Turntable3D {
         }
     }
 
+    /// The heading a deck frame of this turntable conveys toward, rad in its own frame.
+    pub fn heading_of(&self, frame: &Frame) -> f64 {
+        normalize(frame.yaw - self.yaw)
+    }
+
     /// The deck's frame when it conveys toward `heading`: its x = 0 edge opposite that way, on the conveying surface.
     pub fn frame(&self, heading: f64) -> Frame {
         let yaw = self.yaw + heading;

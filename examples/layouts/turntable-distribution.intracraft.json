@@ -1,0 +1,146 @@
+{
+  "schemaVersion": 1,
+  "name": "Example: a roller turntable feeding three lines in turn",
+  "seed": 7,
+  "layout": {
+    "instances": [
+      {
+        "id": "source1",
+        "definitionId": "flow.source",
+        "definitionVersion": "0.1.0",
+        "name": "Infeed",
+        "position": {
+          "x": -0.42,
+          "y": 0.0,
+          "z": 0.0
+        },
+        "yaw": 0.0,
+        "params": {
+          "interval": 14,
+          "palletType": "eur",
+          "loadKind": "asset",
+          "loadAsset": "asset.boxes.box_cardboard_a01",
+          "loadHeight": 1.0,
+          "loadMass": 450
+        },
+        "attributes": {}
+      },
+      {
+        "id": "roller1",
+        "definitionId": "conveyor.roller",
+        "definitionVersion": "0.1.0",
+        "name": "Infeed conveyor",
+        "position": {
+          "x": 0.0,
+          "y": 0.0,
+          "z": 0.0
+        },
+        "yaw": 0.0,
+        "params": {},
+        "attributes": {}
+      },
+      {
+        "id": "roller_turntable1",
+        "definitionId": "conveyor.roller_turntable",
+        "definitionVersion": "0.1.0",
+        "name": "Distribution turntable",
+        "position": {
+          "x": 3.72,
+          "y": 0.0,
+          "z": 0.0
+        },
+        "yaw": 0.0,
+        "params": {
+          "exitRule": "alternate"
+        },
+        "attributes": {}
+      },
+      {
+        "id": "roller2",
+        "definitionId": "conveyor.roller",
+        "definitionVersion": "0.1.0",
+        "name": "Line ahead",
+        "position": {
+          "x": 4.44,
+          "y": 0.0,
+          "z": 0.0
+        },
+        "yaw": 0.0,
+        "params": {},
+        "attributes": {}
+      },
+      {
+        "id": "sink1",
+        "definitionId": "flow.sink",
+        "definitionVersion": "0.1.0",
+        "name": "Ahead",
+        "position": {
+          "x": 7.46,
+          "y": 0.0,
+          "z": 0.0
+        },
+        "yaw": 0.0,
+        "params": {},
+        "attributes": {}
+      },
+      {
+        "id": "roller3",
+        "definitionId": "conveyor.roller",
+        "definitionVersion": "0.1.0",
+        "name": "Line left",
+        "position": {
+          "x": 3.72,
+          "y": 0.0,
+          "z": -0.72
+        },
+        "yaw": 1.570796,
+        "params": {},
+        "attributes": {}
+      },
+      {
+        "id": "sink2",
+        "definitionId": "flow.sink",
+        "definitionVersion": "0.1.0",
+        "name": "Left",
+        "position": {
+          "x": 3.72,
+          "y": 0.0,
+          "z": -3.74
+        },
+        "yaw": 1.570796,
+        "params": {},
+        "attributes": {}
+      },
+      {
+        "id": "roller4",
+        "definitionId": "conveyor.roller",
+        "definitionVersion": "0.1.0",
+        "name": "Line right",
+        "position": {
+          "x": 3.72,
+          "y": 0.0,
+          "z": 0.72
+        },
+        "yaw": 4.712389,
+        "params": {},
+        "attributes": {}
+      },
+      {
+        "id": "sink3",
+        "definitionId": "flow.sink",
+        "definitionVersion": "0.1.0",
+        "name": "Right",
+        "position": {
+          "x": 3.72,
+          "y": 0.0,
+          "z": 3.74
+        },
+        "yaw": 4.712389,
+        "params": {},
+        "attributes": {}
+      }
+    ],
+    "connections": [],
+    "rules": []
+  }
+}

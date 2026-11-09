@@ -1,0 +1,92 @@
+{
+  "schemaVersion": 1,
+  "name": "Example: rollers to chains through a transfer table",
+  "seed": 5,
+  "layout": {
+    "instances": [
+      {
+        "id": "source1",
+        "definitionId": "flow.source",
+        "definitionVersion": "0.1.0",
+        "name": "Infeed",
+        "position": {
+          "x": -0.42,
+          "y": 0.0,
+          "z": 0.0
+        },
+        "yaw": 0.0,
+        "params": {
+          "interval": 25,
+          "palletType": "iso1200x1000",
+          "loadKind": "asset",
+          "loadAsset": "asset.containers.crate_blue_a01",
+          "loadHeight": 1.0,
+          "loadMass": 400
+        },
+        "attributes": {}
+      },
+      {
+        "id": "roller1",
+        "definitionId": "conveyor.roller",
+        "definitionVersion": "0.1.0",
+        "name": "Roller infeed",
+        "position": {
+          "x": 0.0,
+          "y": 0.0,
+          "z": 0.0
+        },
+        "yaw": 0.0,
+        "params": {},
+        "attributes": {}
+      },
+      {
+        "id": "transfer_rc1",
+        "definitionId": "conveyor.transfer_rc",
+        "definitionVersion": "0.1.0",
+        "name": "Transfer table",
+        "position": {
+          "x": 3.02,
+          "y": 0.0,
+          "z": 0.0
+        },
+        "yaw": 0.0,
+        "params": {},
+        "attributes": {}
+      },
+      {
+        "id": "chain1",
+        "definitionId": "conveyor.chain",
+        "definitionVersion": "0.1.0",
+        "name": "Chain outfeed",
+        "position": {
+          "x": 3.72,
+          "y": 0.0,
+          "z": 0.52
+        },
+        "yaw": 4.712389,
+        "params": {
+          "surfaceHeight": 0.64
+        },
+        "attributes": {}
+      },
+      {
+        "id": "sink1",
+        "definitionId": "flow.sink",
+        "definitionVersion": "0.1.0",
+        "name": "Outfeed",
+        "position": {
+          "x": 3.72,
+          "y": 0.0,
+          "z": 3.54
+        },
+        "yaw": 4.712389,
+        "params": {
+          "surfaceHeight": 0.64
+        },
+        "attributes": {}
+      }
+    ],
+    "connections": [],
+    "rules": []
+  }
+}
