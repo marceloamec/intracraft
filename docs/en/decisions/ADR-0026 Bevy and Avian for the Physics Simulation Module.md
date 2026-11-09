@@ -116,6 +116,39 @@ The rebound is now measured from the furthest point reached **so far**, as the f
 [[ADR-0023 Rapier Passes the First Spike S1 Criteria]] already was (0.18 mm). The limit (< 10 mm) is unchanged. Every
 other S1 figure on Rapier is unchanged by the move to the common bench.
 
+## S1 on Avian (2026-11-09)
+
+The setup:
+
+- `intracraft-avian` (`AvianBench`) runs `avian3d` 0.8.0 (`parry-f64`, `enhanced-determinism`) in a Bevy 0.20.1 app
+  without a window.
+- Each step is one update of 1/120 s, on one thread.
+- The same scenes and tests as Rapier (`s1_tests!`) run on the owner's laptop, as a release build.
+
+| Criterion                                     | Rapier 0.36 (reference) | Avian 0.8             | Required        | Avian    |
+| --------------------------------------------- | ----------------------- | --------------------- | --------------- | -------- |
+| P1 steady speed on rollers                    | 0.2509 m/s              | 0.2499 m/s            | 0.25 m/s ± 3 %  | Pass     |
+| P8 steady speed on chains, float              | 0.2500 m/s, 0.05 mm     | 0.2500 m/s, 0.01 mm   | ± 3 %, < 1 mm   | Pass     |
+| P3 front against the stop, rebound            | 0.01 mm, 0.18 mm        | 0.06 mm, 0.06 mm      | ± 5 mm, < 10 mm | Pass     |
+| P7 the same run twice                         | identical               | identical             | identical       | Pass     |
+| Friction μ = 0.5 stops a pallet at 1 m/s      | 0.1009 m                | 0.1012 m (μ·g 0.1019) | ± 5 %           | Pass     |
+| P2 traction, wood on steel-zinc (μ·g 3.43)    | 3.427 m/s²              | 3.436 m/s²            | ± 10 %          | Pass     |
+| P2 traction, plastic on steel-zinc (μ·g 2.45) | 2.477 m/s²              | 2.453 m/s²            | ± 10 %          | Pass     |
+| P2 traction, wood on rubber (μ·g 5.89)        | 3.800 m/s² (open)       | 5.889 m/s²            | ± 10 %          | **Pass** |
+| P5 restitution, steel-painted / PU / rubber   | 0.102 / 0.207 / 0.365   | 0.104 / 0.208 / 0.364 | ± 10 %          | Pass     |
+| P11 time a step, 30 rollers and a pallet      | 0.020 ms                | 0.064 ms              | ≤ 4.17 ms       | Pass     |
+
+Notes:
+
+- **One solver setting changed** (decision 4 of the owner: solver settings only, never masses or frictions).
+  - Avian's `SolverConfig::restitution_threshold` is 1 m/s by default: a contact closing more slowly does not bounce.
+  - At conveyor speeds (0.25 m/s), every stop then gave the same 0.041, whatever its material.
+  - It is set to **0.05 m/s**. No other figure moved.
+- **Avian closes P2 on rubber**, the criterion Rapier left open in ADR-0023.
+- **Moving surface.** Avian's `ContactManifold::tangent_velocity` is the second surface's velocity less the first's,
+  the opposite of Rapier's convention. The contact hook gives a strip's velocity when it is the second collider and its
+  opposite when it is the first.
+
 ## Alternatives considered
 
 | Option                               | Why not                                                                                                                       |

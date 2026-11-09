@@ -43,6 +43,11 @@ cfb = "0.15"
 memchr = "2"
 # Text notes' fonts: IBM Plex's outlines, its weights too, read from the files the packages carry.
 ttf-parser = { version = "0.25", features = ["gvar-alloc"] }
+# IntraCraft (ADR-0026): Bevy draws the 3D run in its own window, Avian is the physics of the Physics simulation module.
+# Pinned; upgraded together at most twice a year. Each crate turns on the parts of Bevy it uses.
+bevy = { version = "=0.20.1", default-features = false }
+avian3d = { version = "=0.8.0", default-features = false, features = ["3d", "parry-f64", "enhanced-determinism"] }
+bevy_egui = { version = "=0.43.0", default-features = false, features = ["render", "default_fonts"] }
 
 [workspace.lints.rust]
 unsafe_code = "forbid"
@@ -81,4 +86,14 @@ opt-level = 3
 opt-level = 3
 
 [profile.dev.package.intracraft-physics]
+opt-level = 3
+
+# Avian (ADR-0026), the same: its tests and the examples' runs step thousands of times.
+[profile.dev.package.avian3d]
+opt-level = 3
+
+[profile.dev.package.parry3d-f64]
+opt-level = 3
+
+[profile.dev.package.intracraft-avian]
 opt-level = 3
