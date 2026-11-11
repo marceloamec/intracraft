@@ -2,7 +2,7 @@
 title: Open Questions
 lang: en
 tags: [questions, reference]
-updated: 2026-10-30
+updated: 2026-10-31
 ---
 
 🌐 **EN** · [[Preguntas abiertas|ES]] · [[Offene Fragen|DE]] · [[Home (EN)|Index]]
@@ -149,3 +149,9 @@ Each question states **what must be decided**, **why it matters** (which result 
 | m   | Roller and chain conveyors | receive rule                      | receive while not blocked       | Option "receive only when empty"                                | Yes             |
 
 - **Assumed:** today's values stay until the owner ticks the rows to apply. The roller↔chain transfer (S05) is handled separately: its rewritten specification is waiting for confirmation.
+
+### Q20. Pivot to a simulation module on BIMCraft (Rust)
+- **Decide:** whether IntraCraft becomes a simulation module of a fork of BIMCraft, rewritten in Rust ([[ADR-0018 Pivot to a Simulation Module on a Rust BIM Platform]]).
+- **Why:** it changes the language, the physics engine (Rapier instead of Jolt), the editor and the order of work ([[A18 Rust Implementation Plan]]); specifications, theory and tests are kept.
+- **Specific questions:** see ADR-0018 §6 (fork or upstream contribution, name, physics engine, budget in scope, inheritance by default, when to freeze the TypeScript editor).
+- **Assumed:** nothing changes in the TypeScript code until the owner confirms.

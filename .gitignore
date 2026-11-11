@@ -10,3 +10,6 @@ docs/.obsidian/cache
 library-assets/
 # Private knowledge base: confidential source guides and the notes derived from them (Obsidian vault)
 knowledge/
+# Spike R5b (Rust): build output and the downloaded catalogue model
+spikes/r5b-viewer/target/
+spikes/r5b-viewer/package/*.glb
