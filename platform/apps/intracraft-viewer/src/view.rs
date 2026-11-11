@@ -4,9 +4,11 @@
 
 use std::collections::HashMap;
 
+use bevy::asset::RenderAssetUsages;
 use bevy::light::CascadeShadowConfigBuilder;
+use bevy::mesh::{Indices, PrimitiveTopology};
 use bevy::prelude::*;
-use intracraft_assets::{LOAD_FILE_HEIGHT, LoadKind, load_file, pallet_file};
+use intracraft_assets::{LoadKind, pallet_file};
 use intracraft_library::Library;
 use intracraft_library::definition::Value;
 use intracraft_library::layout::Layout;
@@ -27,11 +29,13 @@ pub struct Latest(pub Picture);
 #[derive(Resource)]
 pub struct ShowStatus(pub bool);
 
-/// The models of the pallets and loads, by file; and the load each pallet type carries (from the sources).
+/// The models of the pallets, by file (the own glTF assets); the load each source puts on its pallets; and the loads
+/// built so far, by kind, pallet type and height, as meshes in their materials.
 #[derive(Resource)]
 pub struct PalletLook {
     models: HashMap<String, Handle<WorldAsset>>,
     loads: HashMap<String, Option<LoadKind>>,
+    load_meshes: HashMap<String, Vec<(Handle<Mesh>, Handle<StandardMaterial>)>>,
     status: HashMap<&'static str, Handle<StandardMaterial>>,
 }
 
@@ -150,9 +154,6 @@ pub fn load_looks(
             models.insert(name, handle);
         };
         file(pallet_file(&t.id));
-        for kind in LoadKind::ALL {
-            file(load_file(&t.id, kind));
-        }
     }
     let status = STATES
         .iter()
@@ -161,7 +162,7 @@ pub fn load_looks(
             (*name, materials.add(m))
         })
         .collect();
-    commands.insert_resource(PalletLook { models, loads: loads_by_type(&layout.layout, library), status });
+    commands.insert_resource(PalletLook { models, loads: loads_by_source(&layout.layout, library), load_meshes: HashMap::new(), status });
 }
 
 /// The layout and library the window shows.
@@ -171,19 +172,20 @@ pub struct LayoutRes {
     pub library: Library,
 }
 
-/// The load each pallet type carries: its first source's choice.
-pub fn loads_by_type(layout: &Layout, library: &Library) -> HashMap<String, Option<LoadKind>> {
+/// The load each source puts on its pallets.
+pub fn loads_by_source(layout: &Layout, library: &Library) -> HashMap<String, Option<LoadKind>> {
     let mut out = HashMap::new();
-    for i in layout.instances.iter().filter(|i| i.definition_id == "flow.source") {
+    // A storage aisle's initial stock carries a block load, as a source's default.
+    for i in layout.instances.iter().filter(|i| i.definition_id == "flow.source" || i.definition_id == "storage.aisle") {
         let Some(d) = library.get(&i.definition_id) else { continue };
         let v = instance_values(d, &i.params);
         let text = |k: &str| v.get(k).and_then(Value::text).unwrap_or_default().to_string();
-        out.entry(text("palletType")).or_insert_with(|| LoadKind::of_source(&text("loadKind"), &text("loadAsset")));
+        out.insert(i.id.clone(), LoadKind::of_source(&text("loadKind"), &text("loadAsset")));
     }
     out
 }
 
-/// Turns turntable platforms and lifts decks to the run's angles and heights.
+/// Turns turntable platforms, lifts decks and moves the parts of stacker cranes to the run's angles, heights and shifts.
 pub fn move_platforms(latest: Res<Latest>, mut movers: Query<(&Moving, &mut Transform)>) {
     for (m, mut t) in &mut movers {
         *t = match m.mover {
@@ -196,6 +198,10 @@ pub fn move_platforms(latest: Res<Latest>, mut movers: Query<(&Moving, &mut Tran
             Mover::Lift { rest } => {
                 let height = latest.0.heights.get(&m.id).copied().unwrap_or(rest);
                 Transform::from_translation(Vec3::Y * (height - rest) as f32)
+            }
+            Mover::Shift => {
+                let [x, y, z] = latest.0.shifts.get(&m.id).copied().unwrap_or_default();
+                Transform::from_xyz(x as f32, y as f32, z as f32)
             }
             Mover::None => Transform::default(),
         };
@@ -227,30 +233,39 @@ pub fn paint_states(
 pub fn place_pallets(
     mut commands: Commands,
     latest: Res<Latest>,
-    look: Option<Res<PalletLook>>,
+    look: Option<ResMut<PalletLook>>,
+    layout: Res<LayoutRes>,
+    mut meshes: ResMut<Assets<Mesh>>,
+    mut materials: ResMut<Assets<StandardMaterial>>,
     mut on_show: ResMut<OnShow>,
     mut placed: Query<&mut Transform, With<PalletTag>>,
 ) {
-    let Some(look) = look else { return };
-    let mut seen = Vec::with_capacity(latest.0.pallets.len());
+    let Some(mut look) = look else { return };
+    let mut seen = std::collections::HashSet::with_capacity(latest.0.pallets.len());
     for p in &latest.0.pallets {
-        seen.push(p.id);
-        let pose = Transform::from_translation(p.centre.as_vec3()).with_rotation(p.rotation.as_quat());
+        seen.insert(p.id);
+        let [x, y, z] = p.centre.map(|v| v as f32);
+        let [qx, qy, qz, qw] = p.rotation.map(|v| v as f32);
+        let pose = Transform::from_xyz(x, y, z).with_rotation(Quat::from_xyzw(qx, qy, qz, qw));
         if let Some(t) = on_show.0.get(&p.id).and_then(|&e| placed.get_mut(e).ok()) {
             *t.into_inner() = pose;
             continue;
         }
         let pallet = look.models.get(&pallet_file(&p.type_id)).or_else(|| look.models.get(&pallet_file("eur"))).cloned();
-        let load = look.loads.get(&p.type_id).copied().flatten().filter(|_| p.load_height > 0.0);
-        let load = load.and_then(|k| look.models.get(&load_file(&p.type_id, k))).cloned();
+        let kind = look.loads.get(&p.source).copied().flatten().filter(|_| p.load_height > 0.0);
+        let kind = kind.map(|k| if p.wrapped { k.wrapped() } else { k });
+        let footprint = layout.library.reference.pallet_type(&p.type_id).map(|t| (t.length, t.width));
+        let load = match (kind, footprint) {
+            (Some(kind), Some(size)) => load_parts(&mut look, kind, &p.type_id, size, p.load_height, &mut meshes, &mut materials),
+            _ => Vec::new(),
+        };
         let mut e = commands.spawn((PalletTag, pose, Visibility::default()));
         e.with_children(|c| {
             if let Some(model) = pallet {
                 c.spawn(WorldAssetRoot(model));
             }
-            if let Some(model) = load {
-                let stretch = (p.load_height / LOAD_FILE_HEIGHT) as f32;
-                c.spawn((WorldAssetRoot(model), Transform::from_xyz(0.0, p.height as f32, 0.0).with_scale(Vec3::new(1.0, stretch, 1.0))));
+            for (mesh, material) in load {
+                c.spawn((Mesh3d(mesh), MeshMaterial3d(material), Transform::from_xyz(0.0, p.height as f32, 0.0)));
             }
         });
         on_show.0.insert(p.id, e.id());
@@ -262,6 +277,46 @@ pub fn place_pallets(
         }
         keep
     });
+}
+
+/// A load of `kind` on a pallet `size` (its type's length and width) and `height` high, as meshes in their materials:
+/// built once from the own models (`intracraft_assets::load`), at its height, then shared.
+fn load_parts(
+    look: &mut PalletLook,
+    kind: LoadKind,
+    pallet_type: &str,
+    (length, width): (f64, f64),
+    height: f64,
+    meshes: &mut Assets<Mesh>,
+    materials: &mut Assets<StandardMaterial>,
+) -> Vec<(Handle<Mesh>, Handle<StandardMaterial>)> {
+    let key = format!("{}-{pallet_type}-{height:.3}", kind.name());
+    look.load_meshes
+        .entry(key)
+        .or_insert_with(|| {
+            let model = intracraft_assets::load(kind, length, width, height);
+            intracraft_assets::glb::primitives(&model)
+                .into_iter()
+                .map(|(m, p)| {
+                    let mesh = Mesh::new(PrimitiveTopology::TriangleList, RenderAssetUsages::default())
+                        .with_inserted_attribute(Mesh::ATTRIBUTE_POSITION, p.positions)
+                        .with_inserted_attribute(Mesh::ATTRIBUTE_NORMAL, p.normals)
+                        .with_inserted_indices(Indices::U32(p.indices));
+                    let [r, g, b, a] = m.color();
+                    let material = StandardMaterial {
+                        base_color: Color::linear_rgba(r, g, b, a),
+                        metallic: m.metallic(),
+                        perceptual_roughness: m.roughness(),
+                        alpha_mode: if m.blends() { AlphaMode::Blend } else { AlphaMode::Opaque },
+                        double_sided: m.blends(),
+                        cull_mode: if m.blends() { None } else { Some(bevy::render::render_resource::Face::Back) },
+                        ..default()
+                    };
+                    (meshes.add(mesh), materials.add(material))
+                })
+                .collect()
+        })
+        .clone()
 }
 
 fn part_bundle(

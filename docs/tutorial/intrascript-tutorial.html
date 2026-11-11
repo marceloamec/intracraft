@@ -1,0 +1,673 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Guía de IntraScript</title>
+<style>
+  :root {
+    --bg: #f7f7f5; --panel: #ffffff; --ink: #1d2025; --muted: #5d646e; --line: #d9dce1;
+    --accent: #6a3fb0; --accent-soft: #efe9f8; --code-bg: #f1f2f4; --ok: #2d7a46; --warn: #a86a12; --bad: #b43a32;
+    --kw: #8c2fa8; --ev: #0b7d88; --obj: #8a5a00; --fn: #1b5fc1; --num: #2e7d3a; --str: #a33d2a; --com: #6b7682;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root:not([data-theme="light"]) {
+      --bg: #17191d; --panel: #1f2227; --ink: #e6e8eb; --muted: #9aa3ad; --line: #353a42;
+      --accent: #b392ea; --accent-soft: #2b2538; --code-bg: #14161a; --ok: #6cc38a; --warn: #e2b064; --bad: #ef7b72;
+      --kw: #d187e6; --ev: #5cc7d3; --obj: #e5c07b; --fn: #7fb6f2; --num: #9bd28b; --str: #f0a489; --com: #7f8a96;
+    }
+  }
+  :root[data-theme="dark"] {
+    --bg: #17191d; --panel: #1f2227; --ink: #e6e8eb; --muted: #9aa3ad; --line: #353a42;
+    --accent: #b392ea; --accent-soft: #2b2538; --code-bg: #14161a; --ok: #6cc38a; --warn: #e2b064; --bad: #ef7b72;
+    --kw: #d187e6; --ev: #5cc7d3; --obj: #e5c07b; --fn: #7fb6f2; --num: #9bd28b; --str: #f0a489; --com: #7f8a96;
+  }
+  * { box-sizing: border-box; }
+  html { scroll-behavior: smooth; }
+  body { margin: 0; background: var(--bg); color: var(--ink); font: 16px/1.6 system-ui, "Segoe UI", Roboto, sans-serif; }
+  .layout { display: grid; grid-template-columns: 260px minmax(0, 1fr); max-width: 1180px; margin: 0 auto; }
+  nav.toc { position: sticky; top: 0; align-self: start; height: 100vh; overflow-y: auto; padding: 24px 16px; border-right: 1px solid var(--line); background: var(--panel); }
+  nav.toc h2 { font-size: 15px; margin: 0 0 8px; color: var(--muted); text-transform: uppercase; letter-spacing: .06em; }
+  nav.toc ol { list-style: none; margin: 0 0 16px; padding: 0; }
+  nav.toc li a { display: block; padding: 4px 8px; border-radius: 6px; color: var(--ink); text-decoration: none; font-size: 14px; }
+  nav.toc li a:hover { background: var(--accent-soft); }
+  main { padding: 32px 40px 80px; min-width: 0; }
+  h1 { font-size: 34px; line-height: 1.2; margin: 0 0 8px; }
+  h2 { font-size: 26px; margin: 48px 0 12px; padding-top: 12px; border-top: 1px solid var(--line); }
+  h3 { font-size: 19px; margin: 28px 0 8px; color: var(--accent); }
+  p, li { max-width: 72ch; }
+  .lead { font-size: 18px; color: var(--muted); }
+  a { color: var(--accent); }
+  code { font: 14px/1.4 ui-monospace, "Cascadia Code", Consolas, monospace; background: var(--code-bg); padding: 1px 5px; border-radius: 4px; }
+  pre { background: var(--code-bg); padding: 16px 18px; border-radius: 10px; overflow-x: auto; border: 1px solid var(--line); }
+  pre code { background: none; padding: 0; font-size: 14px; }
+  pre.prog { border-left: 4px solid var(--accent); }
+  pre.out { border-left: 4px solid var(--ok); }
+  pre.err { border-left: 4px solid var(--bad); }
+  pre.shell { border-left: 4px solid var(--com); }
+  figure { margin: 18px 0; }
+  figcaption { font-size: 14px; color: var(--muted); margin-top: 6px; }
+  table { width: 100%; border-collapse: collapse; margin: 14px 0 22px; font-size: 15px; display: block; overflow-x: auto; }
+  th, td { text-align: left; padding: 8px 10px; border-bottom: 1px solid var(--line); vertical-align: top; }
+  th { color: var(--muted); font-weight: 600; font-size: 13px; text-transform: uppercase; letter-spacing: .04em; }
+  .note { border-left: 4px solid var(--accent); background: var(--accent-soft); padding: 12px 16px; border-radius: 8px; margin: 18px 0; max-width: 72ch; }
+  .tip { border-left-color: var(--ok); background: transparent; border: 1px solid var(--line); border-left: 4px solid var(--ok); }
+  .warn { border-left-color: var(--warn); background: transparent; border: 1px solid var(--line); border-left: 4px solid var(--warn); }
+  .steps { counter-reset: step; list-style: none; padding-left: 0; }
+  .steps > li { counter-increment: step; position: relative; padding-left: 44px; margin-bottom: 14px; }
+  .steps > li::before { content: counter(step); position: absolute; left: 0; top: 0; width: 30px; height: 30px; border-radius: 50%; background: var(--accent); color: #fff; text-align: center; line-height: 30px; font-weight: 700; }
+  .cards { display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 14px; margin: 18px 0; }
+  .card { background: var(--panel); border: 1px solid var(--line); border-radius: 12px; padding: 16px; }
+  .card h4 { margin: 0 0 6px; font-size: 16px; }
+  .card p { margin: 0; font-size: 15px; color: var(--muted); }
+  .k-kw { color: var(--kw); } .k-ev { color: var(--ev); } .k-obj { color: var(--obj); } .k-fn { color: var(--fn); }
+  .tag { display: inline-block; font-size: 12px; padding: 1px 8px; border-radius: 999px; border: 1px solid var(--line); color: var(--muted); margin-right: 4px; }
+  .ok-tag { color: var(--ok); border-color: var(--ok); }
+  footer { color: var(--muted); font-size: 14px; margin-top: 56px; border-top: 1px solid var(--line); padding-top: 16px; }
+  @media (max-width: 860px) {
+    .layout { grid-template-columns: 1fr; }
+    nav.toc { position: static; height: auto; border-right: none; border-bottom: 1px solid var(--line); }
+    main { padding: 24px 16px 64px; }
+    h1 { font-size: 28px; }
+    h2 { font-size: 23px; }
+  }
+</style>
+</head>
+<body>
+<div class="layout">
+
+<nav class="toc" aria-label="Índice">
+  <h2>IntraScript</h2>
+  <ol>
+    <li><a href="#que-es">1. ¿Qué es IntraScript?</a></li>
+    <li><a href="#primeros-pasos">2. Primeros pasos</a></li>
+    <li><a href="#sintaxis">3. Sintaxis</a></li>
+    <li><a href="#valores">4. Valores y variables</a></li>
+    <li><a href="#unidades">5. Unidades</a></li>
+    <li><a href="#eventos">6. Eventos</a></li>
+    <li><a href="#esperas">7. Esperas</a></li>
+    <li><a href="#objetos">8. Objetos del layout</a></li>
+    <li><a href="#palets">9. Palets</a></li>
+    <li><a href="#funciones">10. Funciones y bloques</a></li>
+    <li><a href="#incorporadas">11. Funciones incorporadas</a></li>
+    <li><a href="#errores">12. Errores</a></li>
+    <li><a href="#linea-de-comandos">13. Línea de comandos</a></li>
+    <li><a href="#ejemplos">14. Ejemplos completos</a></li>
+    <li><a href="#buenas-practicas">15. Buenas prácticas</a></li>
+    <li><a href="#preguntas">16. Preguntas frecuentes</a></li>
+    <li><a href="#referencias">17. Referencias</a></li>
+  </ol>
+</nav>
+
+<main>
+
+<h1>Guía de IntraScript</h1>
+<p class="lead">IntraScript es el lenguaje de programación de IntraCraft para simulación. Con él se programa lo que los parámetros y las reglas «Si/Entonces» no pueden expresar: encaminar palets, retener un transportador un tiempo, llevar cuentas, emitir informes.</p>
+<p>Esta guía enseña a usarlo paso a paso, con ejemplos que se han ejecutado en el layout de demostración <code>demo-turntable-split</code>. Todo lo demás (cada función del editor, los miembros de cada tipo de objeto, todos los errores, secciones y direcciones) está en el <a href="intrascript-manual.html">manual de IntraScript</a>.</p>
+
+<div class="cards">
+  <div class="card"><h4>Sintaxis de Python</h4><p>Se escribe como Python: indentación, <code>def</code>, <code>if</code>, <code>for</code>. Cualquier editor de Python lo colorea.</p></div>
+  <div class="card"><h4>Eventos</h4><p>El código corre cuando algo pasa: un palet entra en un transportador, una fotocélula se activa, transcurre una hora.</p></div>
+  <div class="card"><h4>Esperas</h4><p><code>wait(2 * s)</code> pausa una secuencia sin parar la planta.</p></div>
+  <div class="card"><h4>Unidades</h4><p><code>150 * mm</code> y <code>0.25 * m / s</code>. Mezclar longitud y tiempo es un error, no un número equivocado.</p></div>
+</div>
+
+<h2 id="que-es">1. ¿Qué es IntraScript?</h2>
+<p>Un programa de IntraScript vive en un <strong>bloque de código</strong>: un objeto que se coloca en el plano, junto a los equipos a los que controla. Un bloque contiene:</p>
+<ul>
+  <li><strong>Variables</strong> del bloque, que conservan su valor durante toda la simulación (un contador, una lista de pendientes).</li>
+  <li><strong>Funciones</strong>, unas normales y otras convertidas en <strong>manejadores de evento</strong> con una decoración: <code>@on_enter(Line_A)</code> significa «cuando un palet entre en Line_A, ejecuta esta función».</li>
+</ul>
+<p>El código se comprueba contra el layout antes de simular. Si un nombre está mal escrito, la simulación no arranca y se dice en qué línea.</p>
+
+<table>
+  <thead><tr><th>Concepto</th><th>Qué es</th><th>Ejemplo</th></tr></thead>
+  <tbody>
+    <tr><td>Bloque de código</td><td>El objeto del plano que guarda el programa</td><td>«Code block 100042»</td></tr>
+    <tr><td>Evento</td><td>Lo que dispara una función</td><td><code>@on_enter(Line_A)</code></td></tr>
+    <tr><td>Espera</td><td>Pausar la función, no la planta</td><td><code>wait(2 * s)</code></td></tr>
+    <tr><td>Objeto</td><td>Un equipo del layout, por su nombre</td><td><code>Line_A.run = False</code></td></tr>
+    <tr><td>Palet</td><td>Cada palet, con un id y atributos propios</td><td><code>pallet.destination = "B"</code></td></tr>
+  </tbody>
+</table>
+
+<h2 id="primeros-pasos">2. Primeros pasos</h2>
+<h3>Colocar un bloque de código</h3>
+<ol class="steps">
+  <li>Abre el layout <code>demo-turntable-split.intracraft.json</code> en IntraCraft.</li>
+  <li>En la pestaña <strong>Intralogistics</strong>, en el panel <strong>Logic</strong>, pulsa <strong>Code block</strong>. Aparece una pieza violeta con las llaves <code>{ }</code> en el plano.</li>
+  <li>Muévela junto al divisor de la mesa giratoria. Su posición no afecta al código.</li>
+  <li>Selecciónala: en la tabla de atributos aparece el botón <strong>Edit code…</strong>.</li>
+</ol>
+
+<h3>Escribir y guardar</h3>
+<p>El editor de código colorea el texto (palabras clave, eventos en color azulado, objetos del layout en dorado, unidades en naranja), numera las líneas y comprueba el código mientras escribes. Los errores aparecen subrayados en rojo y listados debajo; las advertencias, en ámbar.</p>
+<p>A la derecha, <strong>Names you can use</strong> lista los eventos, los objetos del layout con sus miembros, las funciones incorporadas y las unidades. Un clic copia el nombre al portapapeles.</p>
+<p>Pulsa <strong>Ctrl+S</strong> (o <strong>Save</strong>) para guardar. Cada guardado es un paso de deshacer, como cualquier otro cambio del modelo. Un código con errores también se puede guardar, pero la simulación no arrancará hasta corregirlo.</p>
+
+<figure>
+<pre class="prog"><code>"""Mi primer programa: avisa cuando empieza la simulación."""
+from intrascript import *
+
+
+@on_start
+def arranque():
+    print("La simulación empieza")</code></pre>
+<figcaption>El programa más pequeño que tiene sentido. El <code>from intrascript import *</code> solo sirve a los editores de Python: IntraCraft lo ignora.</figcaption>
+</figure>
+
+<h3>Ejecutar</h3>
+<p>Ve a la pestaña <strong>Discrete simulation</strong> y pulsa <strong>Run</strong>. Debajo del panel de control aparece:</p>
+<ul>
+  <li><strong>Console</strong>: lo que imprime el código, con la hora y el bloque (las últimas 200 líneas).</li>
+  <li><strong>Variables of…</strong>: el valor actual de las variables de cada bloque.</li>
+  <li>Un error de ejecución, si lo hay, con el bloque, la línea y la hora.</li>
+</ul>
+<pre class="out"><code>0:00:00.000  Code: La simulación empieza
+Code: 1 activations, 12 steps, 0 waiting</code></pre>
+<p>La línea de estadísticas del final cuenta las activaciones del bloque (cuántas veces se ha ejecutado una función), los pasos y las que están esperando.</p>
+
+<h2 id="sintaxis">3. Sintaxis</h2>
+<h3>Lo que es igual que en Python</h3>
+<ul>
+  <li><strong>La indentación forma los bloques</strong>: cuatro espacios por nivel. Los tabuladores no se admiten; el editor los convierte.</li>
+  <li><strong>Una línea, una instrucción</strong>. Con <code>;</code> se separan dos en la misma línea; con <code>\</code> al final se continúa en la siguiente.</li>
+  <li><strong>Comentarios</strong> con <code>#</code>.</li>
+  <li><strong>Mayúsculas</strong>: <code>Roller3</code> y <code>roller3</code> son nombres distintos.</li>
+  <li><strong>Contar desde 0</strong>: el primer elemento de una lista es <code>lista[0]</code>, el último <code>lista[-1]</code>.</li>
+  <li><code>=</code> asigna, <code>==</code> compara, <code>!=</code> es «distinto». <code>True</code>, <code>False</code> y <code>None</code> se escriben con mayúscula.</li>
+</ul>
+
+<h3>Literales</h3>
+<table>
+  <thead><tr><th>Tipo</th><th>Ejemplos</th><th>Nota</th></tr></thead>
+  <tbody>
+    <tr><td>Entero</td><td><code>12</code>, <code>-3</code>, <code>1_000</code></td><td>El guion bajo agrupa cifras</td></tr>
+    <tr><td>Decimal</td><td><code>0.25</code>, <code>1.5e3</code></td><td>Punto, nunca coma</td></tr>
+    <tr><td>Cantidad</td><td><code>150 * mm</code>, <code>2 * s</code></td><td>Número por unidad (sección 5)</td></tr>
+    <tr><td>Texto</td><td><code>"Línea A"</code>, <code>'B'</code></td><td>Escapes <code>\n</code>, <code>\t</code>, <code>\"</code></td></tr>
+    <tr><td>Texto con formato</td><td><code>f"{n} palets"</code></td><td>Lo que va entre llaves se evalúa</td></tr>
+    <tr><td>Lista y tupla</td><td><code>[1, 2]</code>, <code>(1, "A")</code></td><td>La lista se puede cambiar; la tupla no</td></tr>
+    <tr><td>Diccionario</td><td><code>{"A": 0, "B": 0}</code></td><td>Claves en el orden en que se añadieron</td></tr>
+  </tbody>
+</table>
+
+<h3>Lo que no existe en IntraScript</h3>
+<p>Para mantener la simulación determinista y segura, algunas funciones de Python no están: clases, <code>lambda</code>, <code>try</code>/<code>except</code>, generadores (<code>yield</code>), <code>async</code>, <code>with</code>, <code>del</code>, conjuntos (<code>set</code>), <code>*args</code> y <code>**kwargs</code>, y <code>import</code> de cualquier módulo que no sea <code>intrascript</code>, <code>math</code> o <code>random</code>. Si escribes una de ellas, el mensaje dice qué usar en su lugar; por ejemplo, <code>error("…")</code> en vez de <code>raise</code>.</p>
+
+<h2 id="valores">4. Valores y variables</h2>
+<h3>Tipos</h3>
+<table>
+  <thead><tr><th>Tipo</th><th>Contiene</th><th>Ejemplo</th></tr></thead>
+  <tbody>
+    <tr><td><code>int</code></td><td>Números enteros</td><td><code>12</code></td></tr>
+    <tr><td><code>float</code></td><td>Números decimales</td><td><code>0.5</code></td></tr>
+    <tr><td>Cantidad</td><td>Número con dimensión (longitud, tiempo…)</td><td><code>150 * mm</code></td></tr>
+    <tr><td><code>bool</code></td><td>Sí o no</td><td><code>True</code></td></tr>
+    <tr><td><code>str</code></td><td>Texto</td><td><code>"B"</code></td></tr>
+    <tr><td><code>list</code>, <code>tuple</code>, <code>dict</code></td><td>Colecciones</td><td><code>[Line_A, Line_B]</code></td></tr>
+    <tr><td>Objeto</td><td>Un equipo del layout</td><td><code>Line_A</code></td></tr>
+    <tr><td>Palet</td><td>Un palet de la simulación</td><td><code>pallet</code> en un evento</td></tr>
+  </tbody>
+</table>
+<p>No hace falta declarar tipos. Las anotaciones (<code>x: int = 3</code>) se admiten, pero solo documentan.</p>
+
+<h3>Variables de bloque y variables locales</h3>
+<p>Una variable escrita al principio del bloque vive durante toda la simulación y se reinicia al empezar otra. Una variable dentro de una función vive solo mientras dura esa llamada.</p>
+<pre class="prog"><code>counted = 0          # variable de bloque: dura toda la simulación
+
+@on_enter(Outfeed_B)
+def llegada(pallet):
+    global counted   # sin esto, «counted» sería una variable nueva de la función
+    counted += 1</code></pre>
+<div class="note warn"><strong>La trampa más común:</strong> si una función asigna un nombre que también es variable del bloque, Python crea una variable nueva. Por eso hay que escribir <code>global</code>. El editor avisa con <code>localShadowsGlobal</code>; si no se corrige, la simulación se para diciendo que falta <code>global</code>.</div>
+
+<h2 id="unidades">5. Unidades</h2>
+<p>Las cantidades llevan su unidad. Por dentro se guardan en unidades del SI, pero se muestran en mm, s, m/s, grados… como las ve un ingeniero de planta.</p>
+<pre class="prog"><code>@on_start
+def unidades():
+    gap = 150 * mm              # 0.15 m
+    velocidad = 0.25 * m / s
+    tiempo = gap / velocidad    # 0.6 s
+    print(tiempo)               # 0.6 s
+    print(gap / mm)             # 150.0 (un número sin unidad)</code></pre>
+
+<table>
+  <thead><tr><th>Dimensión</th><th>Unidades</th></tr></thead>
+  <tbody>
+    <tr><td>Longitud</td><td><code>mm</code>, <code>cm</code>, <code>m</code>, <code>km</code></td></tr>
+    <tr><td>Tiempo</td><td><code>ms</code>, <code>s</code>, <code>minute</code>, <code>h</code>, <code>day</code></td></tr>
+    <tr><td>Masa</td><td><code>g</code>, <code>kg</code>, <code>tonne</code></td></tr>
+    <tr><td>Ángulo</td><td><code>deg</code>, <code>rad</code>, <code>rpm</code> (velocidad angular)</td></tr>
+    <tr><td>Otros</td><td><code>percent</code> (0.01)</td></tr>
+  </tbody>
+</table>
+
+<h3>Reglas</h3>
+<ul>
+  <li><code>+</code>, <code>-</code> y las comparaciones necesitan la <strong>misma</strong> dimensión. <code>1 * m + 20 * mm</code> vale 1.02 m.</li>
+  <li><code>*</code> y <code>/</code> combinan dimensiones: longitud / velocidad da tiempo; longitud / longitud da un número sin unidad.</li>
+  <li>Un número sin unidad no se suma a una cantidad: escribe <code>gap + 2 * mm</code>.</li>
+  <li><code>round</code>, <code>int</code> y <code>float</code> no admiten cantidades: divide primero por la unidad, <code>round(gap / mm)</code>.</li>
+  <li>Los parámetros del layout llegan con su unidad: <code>Line_A.length</code> es una longitud, <code>Line_A.nominal_speed</code> una velocidad.</li>
+</ul>
+<div class="note tip">Al imprimir, una cantidad muestra su número en la unidad habitual: <code>print(Line_A.length)</code> escribe <code>3000 mm</code>. Con formato, <code>f"{Line_A.length:.1f}"</code> escribe <code>3000.0 mm</code>.</div>
+
+<h2 id="eventos">6. Eventos</h2>
+<p>Un evento es lo que dispara una función. Se escribe como decorador, la línea que empieza por <code>@</code> encima de <code>def</code>.</p>
+<table>
+  <thead><tr><th>Decorador</th><th>Cuándo se ejecuta</th><th><code>pallet</code></th></tr></thead>
+  <tbody>
+    <tr><td><code>@on_start</code></td><td>Al empezar la simulación, tras dar valor a las variables</td><td>—</td></tr>
+    <tr><td><code>@on_finish</code></td><td>Al terminar la simulación. No puede esperar</td><td>—</td></tr>
+    <tr><td><code>@on_create(Infeed)</code></td><td>Cuando el origen crea un palet</td><td>El palet nuevo</td></tr>
+    <tr><td><code>@on_enter(Line_A)</code></td><td>Cuando un palet pasa a pertenecer al objeto</td><td>El palet</td></tr>
+    <tr><td><code>@on_leave(Line_A)</code></td><td>Cuando el palet deja de pertenecer al objeto</td><td>El palet</td></tr>
+    <tr><td><code>@on_rise(Photoeye2.detected)</code></td><td>Cuando la señal pasa a <code>True</code></td><td>—</td></tr>
+    <tr><td><code>@on_fall(Photoeye2.detected)</code></td><td>Cuando la señal pasa a <code>False</code></td><td>—</td></tr>
+    <tr><td><code>@on_change(Line_A.run)</code></td><td>Cuando la señal cambia, en cualquier sentido</td><td>—</td></tr>
+    <tr><td><code>@every(1 * h)</code></td><td>Cada hora simulada; <code>start=0 * s</code> cambia la primera vez</td><td>—</td></tr>
+    <tr><td><code>@at(2 * h)</code></td><td>Una vez, a las dos horas</td><td>—</td></tr>
+    <tr><td><code>@choose_exit(Turntable)</code></td><td>Cuando un palet centrado en la mesa necesita salida. No puede esperar</td><td>El palet</td></tr>
+  </tbody>
+</table>
+<p>Una función puede tener varios decoradores, y un decorador puede nombrar varios objetos: <code>@on_enter(Line_A, Line_B)</code>. Cada manejador toma los parámetros que quiera, <code>pallet</code> y <code>sender</code>, por esos nombres. Otro parámetro necesita un valor por defecto.</p>
+
+<h3>Orden cuando ocurren varias cosas a la vez</h3>
+<p>Con <code>priority=</code> se decide qué manejador va primero en el mismo instante: el de mayor prioridad, primero. Con igual prioridad, van en el orden del layout y luego en el orden en que están escritos. Un manejador se ejecuta entero antes de que empiece otro, salvo cuando espera.</p>
+
+<h2 id="esperas">7. Esperas</h2>
+<p>La espera pausa la función que la contiene. El resto de la planta sigue funcionando, y otros manejadores también.</p>
+<table>
+  <thead><tr><th>Llamada</th><th>Efecto</th></tr></thead>
+  <tbody>
+    <tr><td><code>wait(2 * s)</code></td><td>Pausa 2 s de tiempo simulado</td></tr>
+    <tr><td><code>wait(0 * s)</code></td><td>Deja pasar a lo que ya está previsto en este instante</td></tr>
+    <tr><td><code>wait_until(Line_A.occupied)</code></td><td>Espera hasta que la condición sea cierta. Devuelve <code>True</code></td></tr>
+    <tr><td><code>wait_until(cond, timeout=30 * s)</code></td><td>Igual, pero devuelve <code>False</code> si pasan 30 s antes</td></tr>
+  </tbody>
+</table>
+<pre class="prog"><code>@on_start
+def vigilar():
+    if not wait_until(Outfeed_B.count > 0, timeout=10 * minute):
+        warn("Ningún palet ha llegado a B en 10 minutos")</code></pre>
+<div class="note">La condición de <code>wait_until</code> se vuelve a mirar después de cada evento de la simulación, no una sola vez. Así que <strong>espera a condiciones, no sondees</strong>: escribe <code>wait_until(Line_A.occupied)</code> y no un bucle con <code>wait(0.1 * s)</code>.</div>
+<p>No se puede esperar en una decisión de salida (<code>@choose_exit</code>) ni en <code>@on_finish</code>: se responde en el acto.</p>
+
+<h2 id="objetos">8. Objetos del layout</h2>
+<h3>Los nombres en el código</h3>
+<p>Cada equipo del layout es un nombre en el código. Si su nombre en el layout es un identificador válido, ese es el nombre (<code>Line_A</code> si se llama «Line A» y se cambian los espacios por guiones bajos). Si no tiene nombre, se usa su familia y su número: «Roller conveyor 100023» pasa a <code>Roller_conveyor_100023</code>.</p>
+<div class="note tip">La lista <strong>Names you can use</strong> del editor muestra el nombre exacto de cada equipo. Ahí está la forma correcta de escribirlo; no hace falta adivinarla.</div>
+
+<h3>Miembros</h3>
+<p>Cada objeto tiene los miembros de su definición en la biblioteca. Los parámetros se leen en su unidad y con nombres en minúscula y guion bajo (<code>nominalSpeed</code> pasa a <code>nominal_speed</code>).</p>
+<table>
+  <thead><tr><th>Miembro</th><th>Objetos</th><th>Acceso</th><th>Valor</th></tr></thead>
+  <tbody>
+    <tr><td><code>name</code>, <code>id</code>, <code>kind</code></td><td>Todos</td><td>leer</td><td>Texto: nombre, id, tipo de componente</td></tr>
+    <tr><td><code>length</code>, <code>nominal_speed</code>…</td><td>Todos</td><td>leer</td><td>Parámetro con su unidad</td></tr>
+    <tr><td><code>run</code></td><td>Transportadores</td><td>leer y escribir</td><td>Señal: <code>False</code> para el transportador (frena), <code>True</code> para ponerlo en marcha</td></tr>
+    <tr><td><code>running</code>, <code>occupied</code></td><td>Transportadores</td><td>leer</td><td>Señales de estado</td></tr>
+    <tr><td><code>enable</code></td><td>Orígenes</td><td>leer y escribir</td><td><code>False</code> para que el origen deje de crear palets</td></tr>
+    <tr><td><code>detected</code></td><td>Fotocélulas</td><td>leer</td><td>Señal: el haz está interrumpido</td></tr>
+    <tr><td><code>count</code>, <code>occupied</code></td><td>Objetos que llevan palets</td><td>leer</td><td>Cuántos palets hay y si hay alguno</td></tr>
+    <tr><td><code>pallets</code></td><td>Objetos que llevan palets</td><td>leer</td><td>Lista de sus palets, el más adelantado primero</td></tr>
+    <tr><td><code>exits</code></td><td>Mesas giratorias</td><td>leer</td><td>Lista de objetos conectados a sus salidas</td></tr>
+    <tr><td><code>next</code></td><td>Objetos del flujo</td><td>leer</td><td>Objeto al que lleva su salida, o <code>None</code></td></tr>
+    <tr><td><code>stats</code></td><td>Objetos del flujo y bloques</td><td>leer</td><td>Diccionario de estadísticas: <code>Outfeed_A.stats["pallets_received"]</code></td></tr>
+  </tbody>
+</table>
+<div class="note warn">Los parámetros no se pueden cambiar durante la simulación (<code>notWritable</code>): son datos de diseño. Las señales de salida (como <code>detected</code>) las pone el propio equipo; el código solo las lee.</div>
+
+<h2 id="palets">9. Palets</h2>
+<p>Un palet es lo que crea un origen: un palet, un palet con carga o solo una carga. Dentro de un evento de palet, <code>pallet</code> es ese palet.</p>
+<table>
+  <thead><tr><th>Miembro</th><th>Valor</th></tr></thead>
+  <tbody>
+    <tr><td><code>id</code></td><td>Número único en la simulación, en orden de creación</td></tr>
+    <tr><td><code>type</code></td><td>Tipo de palet (EUR, IND…)</td></tr>
+    <tr><td><code>length</code>, <code>width</code>, <code>height</code></td><td>Longitudes del palet</td></tr>
+    <tr><td><code>load_mass</code></td><td>Masa de la carga</td></tr>
+    <tr><td><code>created_at</code>, <code>age</code></td><td>Momento de creación y tiempo transcurrido</td></tr>
+    <tr><td><code>location</code></td><td>Objeto que lo lleva ahora, o <code>None</code></td></tr>
+    <tr><td><code>speed</code></td><td>Velocidad actual</td></tr>
+    <tr><td><code>attributes</code></td><td>Copia de los atributos que el código le ha dado</td></tr>
+  </tbody>
+</table>
+<h3>Atributos propios</h3>
+<p>Cualquier otro nombre es un atributo que el código puede dar al palet. Se escribe y se lee como un miembro, y dura mientras el palet esté en la simulación:</p>
+<pre class="prog"><code>@on_create(Infeed)
+def etiquetar(pallet):
+    pallet.destination = "B" if random.chance(0.3) else "A"
+    pallet.creado = now()</code></pre>
+<p>Leer un atributo que el palet no tiene detiene la simulación con un mensaje que lo dice. Para comprobarlo sin riesgo: <code>pallet.attributes.get("destination", "A")</code>.</p>
+
+<h2 id="funciones">10. Funciones y bloques</h2>
+<pre class="prog"><code>def siguiente(destino):
+    """Anota un palet para el destino y devuelve la salida."""
+    enviados[destino] += 1
+    return Line_B if destino == "B" else Line_A</code></pre>
+<ul>
+  <li>Las funciones se definen al principio del bloque, no dentro de otra función.</li>
+  <li>Un valor por defecto es un valor fijo: un número, un texto, una cantidad como <code>2 * s</code>, <code>True</code>, <code>False</code> o <code>None</code>.</li>
+  <li>Se pueden llamar por nombre, con argumentos en orden o con nombre: <code>espera(Line_A, pausa=5 * s)</code>.</li>
+  <li>Una función que espera hace esperar también a quien la llama.</li>
+  <li>Las llamadas pueden anidarse hasta 200 niveles; más se detiene con <code>depthLimit</code>.</li>
+</ul>
+<h3>Entre bloques</h3>
+<p>Un bloque puede usar las funciones y variables de otro, escribiendo el nombre del bloque (su nombre en el layout). Por ejemplo, un bloque llamado <code>Rutas</code> puede tener <code>def siguiente(destino)</code>, y otro bloque puede escribir <code>Rutas.siguiente("B")</code> o leer <code>Rutas.enviados</code>. El editor conoce las funciones y variables de cada bloque y avisa si se escribe mal el nombre.</p>
+
+<h2 id="incorporadas">11. Funciones incorporadas</h2>
+<h3>Básicas</h3>
+<table>
+  <thead><tr><th>Función</th><th>Qué hace</th></tr></thead>
+  <tbody>
+    <tr><td><code>print(a, b, …)</code></td><td>Escribe en la consola, con la hora y el bloque</td></tr>
+    <tr><td><code>warn(a, …)</code></td><td>Igual, como aviso</td></tr>
+    <tr><td><code>error(a, …)</code></td><td>Detiene la simulación con ese mensaje</td></tr>
+    <tr><td><code>now()</code></td><td>Tiempo de simulación actual</td></tr>
+    <tr><td><code>len</code>, <code>range</code>, <code>abs</code>, <code>min</code>, <code>max</code>, <code>sum</code></td><td>Como en Python. <code>min</code> y <code>max</code> admiten <code>key=</code>. <code>sum</code> de cantidades conserva la unidad</td></tr>
+    <tr><td><code>round(x)</code>, <code>round(x, 2)</code></td><td>Redondeo; la mitad va al par más cercano, como en Python</td></tr>
+    <tr><td><code>int</code>, <code>float</code>, <code>str</code>, <code>bool</code>, <code>repr</code></td><td>Conversiones</td></tr>
+    <tr><td><code>list</code>, <code>tuple</code>, <code>dict</code></td><td>Crean colecciones</td></tr>
+    <tr><td><code>sorted(x, key=f, reverse=False)</code>, <code>reversed(x)</code></td><td>Ordenar e invertir</td></tr>
+    <tr><td><code>enumerate(x)</code>, <code>zip(a, b)</code>, <code>any(x)</code>, <code>all(x)</code></td><td>Como en Python</td></tr>
+  </tbody>
+</table>
+<h3>Métodos</h3>
+<p>Listas: <code>append</code>, <code>extend</code>, <code>insert</code>, <code>pop</code>, <code>remove</code>, <code>index</code>, <code>count</code>, <code>clear</code>, <code>sort</code>, <code>reverse</code>, <code>copy</code>. Diccionarios: <code>get</code>, <code>keys</code>, <code>values</code>, <code>items</code>, <code>pop</code>, <code>setdefault</code>, <code>update</code>, <code>clear</code>, <code>copy</code>. Textos: <code>upper</code>, <code>lower</code>, <code>strip</code>, <code>split</code>, <code>join</code>, <code>replace</code>, <code>startswith</code>, <code>endswith</code>, <code>find</code>, <code>count</code>, <code>zfill</code>, entre otros.</p>
+<h3>Matemáticas, azar y simulación</h3>
+<table>
+  <thead><tr><th>Módulo</th><th>Funciones</th></tr></thead>
+  <tbody>
+    <tr><td><code>math</code></td><td><code>sqrt</code> (conserva las dimensiones pares), <code>sin</code>, <code>cos</code>, <code>tan</code>, <code>atan2</code>, <code>floor</code>, <code>ceil</code>, <code>hypot</code>, <code>isclose</code>, <code>exp</code>, <code>log</code>; constantes <code>math.pi</code>, <code>math.e</code>, <code>math.inf</code></td></tr>
+    <tr><td><code>random</code></td><td><code>random()</code>, <code>uniform(a, b)</code>, <code>normal(media, desv)</code>, <code>exponential(media)</code> (la media, no la tasa), <code>triangular(mín, máx, moda)</code>, <code>randint(a, b)</code>, <code>chance(p)</code>, <code>choice(lista)</code></td></tr>
+    <tr><td><code>simulation</code></td><td><code>mode</code> (<code>"2D"</code>), <code>seed</code>, <code>stop(motivo)</code>: termina la simulación en este instante</td></tr>
+  </tbody>
+</table>
+<div class="note tip">Los números aleatorios vienen de la semilla del proyecto y cada bloque tiene su propia secuencia. Con la misma semilla, la simulación sale igual siempre; cambiar un bloque no altera los números de otro.</div>
+
+<h2 id="errores">12. Errores</h2>
+<h3>Antes de simular: la comprobación</h3>
+<p>Mientras escribes, y antes de cada simulación, el código se revisa contra el layout. Un error impide arrancar la simulación; una advertencia no. Cada mensaje dice el bloque, la línea y la columna.</p>
+<table>
+  <thead><tr><th>Código</th><th>Gravedad</th><th>Ejemplo</th></tr></thead>
+  <tbody>
+    <tr><td><code>syntax</code></td><td>error</td><td>Falta un <code>:</code>, indentación incorrecta, <code>150mm</code> sin <code>*</code></td></tr>
+    <tr><td><code>unknownName</code></td><td>error</td><td><code>Roler3</code>: «did you mean Roller3?»</td></tr>
+    <tr><td><code>unknownMember</code></td><td>error</td><td><code>Roller3.rnu</code>, <code>math.sqroot</code></td></tr>
+    <tr><td><code>notWritable</code></td><td>error</td><td><code>Roller3.length = 4 * m</code></td></tr>
+    <tr><td><code>unknownEvent</code></td><td>error</td><td><code>@on_enter(Photoeye2)</code>: una fotocélula no tiene entrada de palets</td></tr>
+    <tr><td><code>waitInDecision</code></td><td>error</td><td>Un <code>wait</code> dentro de <code>@choose_exit</code></td></tr>
+    <tr><td><code>localShadowsGlobal</code></td><td>advertencia</td><td>Asignar una variable de bloque dentro de una función sin <code>global</code></td></tr>
+    <tr><td><code>unusedVariable</code></td><td>advertencia</td><td>Una variable local que nunca se lee (los nombres que empiezan por <code>_</code> se ignoran)</td></tr>
+    <tr><td><code>unreachableCode</code></td><td>advertencia</td><td>Líneas después de un <code>return</code></td></tr>
+  </tbody>
+</table>
+<p>Ejemplo de un error que la comprobación encuentra:</p>
+<pre class="err"><code>line 7, column 12: error [unknownName] the layout has no object `Infeed_1`
+line 12, column 14: error [unknownName] the layout has no object `Turntable`</code></pre>
+
+<h3>Durante la simulación</h3>
+<p>Un error de ejecución detiene la simulación y muestra el bloque, la línea, la hora y el motivo:</p>
+<pre class="err"><code>Code, line 15: pallet 1 has no attribute `destination`; give it one first: pallet.destination = … [unknownAttribute] (at 0:00:12.980)</code></pre>
+<table>
+  <thead><tr><th>Código</th><th>Causa habitual</th></tr></thead>
+  <tbody>
+    <tr><td><code>unitMismatch</code></td><td>Sumar una longitud y un tiempo, o comparar magnitudes distintas</td></tr>
+    <tr><td><code>divisionByZero</code></td><td>Dividir entre cero</td></tr>
+    <tr><td><code>indexOutOfRange</code></td><td>Un índice fuera de la lista</td></tr>
+    <tr><td><code>keyNotFound</code></td><td>Una clave que no existe en un diccionario (usa <code>get</code>)</td></tr>
+    <tr><td><code>unknownAttribute</code></td><td>Un atributo de palet que no se le ha dado</td></tr>
+    <tr><td><code>noneReference</code></td><td>Leer algo de <code>None</code>, o de un palet que ya ha salido</td></tr>
+    <tr><td><code>unboundLocal</code></td><td>Una variable leída antes de tener valor; casi siempre falta <code>global</code></td></tr>
+    <tr><td><code>stepLimit</code></td><td>Un bucle que nunca espera (<code>while True:</code> sin <code>wait</code>)</td></tr>
+    <tr><td><code>cascadeLimit</code></td><td>Demasiados manejadores en el mismo instante: código y señales que se disparan entre sí</td></tr>
+  </tbody>
+</table>
+<div class="note warn">Los mensajes del motor aparecen en inglés por ahora. Los códigos (<code>unknownName</code>, <code>stepLimit</code>…) son estables y sirven para buscar la causa en la nota A17.</div>
+
+<h2 id="linea-de-comandos">13. Línea de comandos</h2>
+<p>El mismo código se puede comprobar y ejecutar sin abrir la ventana, desde la carpeta <code>platform</code> del repositorio:</p>
+<pre class="shell"><code>cargo run -p intracraft-cli -- code check ../packages/scenarios/scenarios/layouts/demo-turntable-split.intracraft.json mi_codigo.py
+cargo run -p intracraft-cli -- code run   ../packages/scenarios/scenarios/layouts/demo-turntable-split.intracraft.json mi_codigo.py --seconds 10800</code></pre>
+<ul>
+  <li><code>check</code> lista los problemas del código; sale con código 1 si hay errores.</li>
+  <li><code>run</code> simula el número de segundos indicado (3600 por defecto), escribe la consola y las estadísticas de cada bloque.</li>
+  <li>El archivo de código se añade al layout como un bloque llamado <code>Code</code>. Así un agente o un script puede probar un programa sin tocar el modelo.</li>
+</ul>
+
+<h2 id="ejemplos">14. Ejemplos completos</h2>
+<p>Cada ejemplo es un programa completo. Se han ejecutado con <code>demo-turntable-split</code>, y los nombres que usan son los del layout de demostración: <code>Infeed</code>, <code>Turntable</code>, <code>Line_A</code>, <code>Line_B</code>, <code>Outfeed_A</code>, <code>Outfeed_B</code>.</p>
+
+<h3>Ejemplo 1: el primer programa</h3>
+<p>Ya visto en la sección 2. Sirve para comprobar que el bloque está bien colocado y que la consola muestra lo que se escribe.</p>
+<pre class="prog"><code>"""Mi primer programa: avisa cuando empieza la simulación."""
+from intrascript import *
+
+
+@on_start
+def arranque():
+    print("La simulación empieza")
+</code></pre>
+
+<h3>Ejemplo 2: contar palets</h3>
+<p>Una variable de bloque cuenta las llegadas. Cada diez llegadas, la consola avisa. Es el patrón básico: un evento y una variable global.</p>
+<pre class="prog"><code>"""Cuenta los palets que llegan a Outfeed_B y avisa cada 10."""
+from intrascript import *
+
+llegados = 0
+
+
+@on_enter(Outfeed_B)
+def llegada(pallet):
+    global llegados
+    llegados += 1
+    if llegados % 10 == 0:
+        print("Llevan", llegados, "palets en B")
+</code></pre>
+<p>Resultado de dos horas simuladas: avisos en 10, 20, 30… palets, a intervalos de unos seis minutos, según el ritmo del origen.</p>
+
+<h3>Ejemplo 3: encaminar por destino</h3>
+<p>Cada palet recibe un destino al nacer, y la mesa giratoria lo envía a la línea correspondiente. El 30 % de los palets van a B. Combina <code>@on_create</code>, un atributo del palet y <code>@choose_exit</code>.</p>
+<pre class="prog"><code>"""El 30 % de los palets van a la línea B; el resto, a la A."""
+from intrascript import *
+
+
+@on_create(Infeed)
+def etiquetar(pallet):
+    pallet.destination = "B" if random.chance(0.3) else "A"
+
+
+@choose_exit(Turntable)
+def elegir_salida(pallet):
+    if pallet.destination == "B":
+        return Line_B
+    return Line_A
+</code></pre>
+<figure>
+<pre class="out"><code>Code: 925 activations, 8003 steps, 0 waiting</code></pre>
+<figcaption>Las activaciones suman los palets creados y los que pidieron salida. Sin consola porque no imprime nada.</figcaption>
+</figure>
+
+<h3>Ejemplo 4: retener un transportador</h3>
+<p>Al entrar un palet en la línea A, el transportador se detiene dos segundos y vuelve a arrancar. Es la espera de la sección 7 aplicada a un equipo real. Compara el tiempo de tránsito con el del layout sin código para ver el efecto.</p>
+<pre class="prog"><code>"""Cada palet detiene la línea A durante 2 s al entrar."""
+from intrascript import *
+
+
+@on_enter(Line_A)
+def retener(pallet):
+    Line_A.run = False
+    wait(2 * s)
+    Line_A.run = True
+</code></pre>
+
+<h3>Ejemplo 5: informe cada hora</h3>
+<p>Un evento periódico lee las estadísticas de dos salidas y las imprime con formato.</p>
+<pre class="prog"><code>"""Cada hora simulada, cuántos palets han llegado a cada salida."""
+from intrascript import *
+
+
+@every(1 * h)
+def informe():
+    a = Outfeed_A.stats["pallets_received"]
+    b = Outfeed_B.stats["pallets_received"]
+    print(f"{a:.0f} en A, {b:.0f} en B")
+</code></pre>
+<figure>
+<pre class="out"><code>1:00:00.000  Code: 99 en A, 99 en B
+2:00:00.000  Code: 199 en A, 199 en B</code></pre>
+<figcaption>Salida de dos horas simuladas. Los números reales dependen de la semilla del proyecto.</figcaption>
+</figure>
+
+<h3>Ejemplo 6: vigilar que algo ocurra</h3>
+<p>Al empezar, comprueba que llega un palet a B en los primeros diez minutos. Si no, avisa. Usa <code>wait_until</code> con plazo.</p>
+<pre class="prog"><code>"""Avisa si en los primeros 10 minutos no llega ningún palet a B."""
+from intrascript import *
+
+
+@on_start
+def vigilar():
+    if not wait_until(Outfeed_B.count &gt; 0, timeout=10 * minute):
+        warn("Ningún palet ha llegado a B en 10 minutos")
+</code></pre>
+
+<h3>Ejemplo 7: limitar la entrada a una zona</h3>
+<p>Si la zona formada por el rodillo de entrada y la línea A tiene cuatro palets, el origen deja de crear hasta que haya hueco. Una función auxiliar evita repetir la suma. Es el mismo control que haría un PLC con un enclavamiento.</p>
+<pre class="prog"><code>"""No dejar entrar más de 4 palets en la zona de la línea A."""
+from intrascript import *
+
+MAXIMO = 4
+ZONA = [Infeed_roller, Line_A]
+
+
+def en_zona():
+    return sum([z.count for z in ZONA])
+
+
+@on_create(Infeed)
+def dejar_pasar(pallet):
+    if en_zona() &gt;= MAXIMO:
+        Infeed.enable = False
+        wait_until(en_zona() &lt; MAXIMO)
+        Infeed.enable = True
+</code></pre>
+<div class="note warn">Aquí la espera está dentro de <code>@on_create</code>: el origen se detiene mientras el manejador espera. Es el comportamiento correcto para este control; si necesitas otra regla, la guía no cubre esa variante todavía.</div>
+
+<h3>Ejemplo 8: tiempo de proceso aleatorio</h3>
+<p>Cada palet que entra en la línea B tarda entre 20 y 40 segundos en procesarse, con una distribución uniforme. La consola muestra el tiempo elegido con un decimal.</p>
+<pre class="prog"><code>"""Cada palet tarda entre 20 y 40 s en la línea B."""
+from intrascript import *
+
+
+@on_enter(Line_B)
+def tiempo_de_proceso(pallet):
+    espera = random.uniform(20 * s, 40 * s)
+    wait(espera)
+    print("palet", pallet.id, "listo tras", f"{espera:.1f}")
+</code></pre>
+
+<h3>Ejemplo 9: funciones y destinos</h3>
+<p>Una función anota los envíos por destino y devuelve la salida. La mesa la llama desde <code>@choose_exit</code>. Al terminar, <code>@on_finish</code> imprime el reparto.</p>
+<pre class="prog"><code>"""Anota los envíos por destino y devuelve la salida correspondiente."""
+from intrascript import *
+
+enviados = {"A": 0, "B": 0}
+
+
+def siguiente(destino):
+    """Anota un palet para el destino y devuelve la salida."""
+    enviados[destino] += 1
+    return Line_B if destino == "B" else Line_A
+
+
+@on_create(Infeed)
+def etiquetar(pallet):
+    pallet.destination = "B" if random.chance(0.3) else "A"
+
+
+@choose_exit(Turntable)
+def elegir_salida(pallet):
+    return siguiente(pallet.destination)
+
+
+@on_finish
+def resumen():
+    print("Envíos:", enviados)
+</code></pre>
+<figure>
+<pre class="out"><code>Code: 925 activations, 13695 steps, 0 waiting
+2:00:00.000  Code: Envíos: {'A': 331, 'B': 131}</code></pre>
+<figcaption>131 de 462 palets van a B: un 28 %, cerca del 30 % pedido. Es una muestra; con más tiempo se acerca más.</figcaption>
+</figure>
+
+<h3>Ejemplo 10: tiempo de tránsito de cada palet</h3>
+<p>Al nacer, cada palet guarda su hora de creación como atributo. Al llegar a B se calcula cuánto tardó. Al terminar, se imprime la media. Muestra la combinación de atributos, eventos y <code>@on_finish</code>.</p>
+<pre class="prog"><code>"""Mide cuánto tarda cada palet en llegar a la salida B."""
+from intrascript import *
+
+tiempos = []
+
+
+@on_create(Infeed)
+def nacer(pallet):
+    pallet.creado = now()
+
+
+@on_enter(Outfeed_B)
+def llegar(pallet):
+    tiempos.append(now() - pallet.creado)
+
+
+@on_finish
+def resumen():
+    if tiempos:
+        media = sum(tiempos) / len(tiempos)
+        print(f"{len(tiempos)} palets, media {media:.1f}")
+</code></pre>
+<figure>
+<pre class="out"><code>2:00:00.000  Code: 199 palets, media 41.3 s</code></pre>
+<figcaption>Resultado de dos horas. Un palet que sale del layout durante la simulación sigue legible en su evento de llegada.</figcaption>
+</figure>
+
+<h2 id="buenas-practicas">15. Buenas prácticas</h2>
+<ul>
+  <li><strong>Un bloque, una preocupación</strong>: uno para el encaminamiento, otro para los informes. Los bloques se hablan a través de funciones, no de variables compartidas.</li>
+  <li><strong>Manejadores cortos</strong>: un evento dice <em>cuándo</em>; una función dice <em>cómo</em>. Si un manejador pasa de unas 20 líneas, reparte la lógica en funciones.</li>
+  <li><strong>Funciones que se llaman desde otro bloque</strong>: escribe una línea de docstring encima.</li>
+  <li><strong>Unidades en los valores, no en los nombres</strong>: <code>gap = 150 * mm</code>, nunca <code>gap_mm = 150</code>.</li>
+  <li><strong>Espera a condiciones, no sondees</strong>: <code>wait_until(…)</code> en vez de un bucle con <code>wait</code>.</li>
+  <li><strong>Manda sobre los equipos</strong> (<code>run</code>, <code>enable</code>, salidas) en vez de mover palets a la fuerza: así el resultado es comparable con la instalación real.</li>
+  <li><strong>Prueba con la línea de comandos</strong> antes de dar por bueno un programa: <code>code run</code> con un tiempo corto es un buen primer contraste.</li>
+</ul>
+
+<h2 id="preguntas">16. Preguntas frecuentes</h2>
+<h3>¿Por qué no arranca la simulación?</h3>
+<p>Porque hay un error de comprobación en un bloque activo. El panel de Discrete simulation y la lista de problemas del editor dicen cuál. Si el bloque no hace falta ahora, desmárcalo como <code>enabled = False</code>: no se comprueba ni se ejecuta.</p>
+<h3>¿Un palet puede salir del layout desde el código?</h3>
+<p>Mover, crear o eliminar palets desde el código todavía no está en la versión 1.0. Por ahora, el código manda sobre los equipos (señales, salidas) y lee lo que ocurre.</p>
+<h3>¿Funciona en la vista 3D?</h3>
+<p>No todavía. El código corre en el módulo de simulación discreta; el módulo de física ejecuta el layout sin él.</p>
+<h3>¿Por qué la simulación da resultados distintos al cambiar un bloque?</h3>
+<p>Todos los bloques comparten la semilla, pero cada uno tiene su propia secuencia de números aleatorios. Si cambias un bloque, sus números cambian; los de los demás no.</p>
+<h3>¿Puedo usar una librería de Python, como numpy?</h3>
+<p>No. IntraScript no importa módulos externos: solo <code>intrascript</code>, <code>math</code> y <code>random</code>, ya integrados. Esto mantiene la simulación segura y repetible.</p>
+<h3>¿Y el editor de Python de mi equipo?</h3>
+<p>Copia <code>platform/sim/script/python/intrascript.py</code> junto a tu código. Con <code>from intrascript import *</code>, el editor completa los nombres y muestra la ayuda de cada evento y función. Ese archivo no simula nada: el programa se ejecuta en IntraCraft.</p>
+
+<h2 id="referencias">17. Referencias</h2>
+<ul>
+  <li><strong><a href="intrascript-manual.html">Manual de IntraScript</a></strong>: la referencia completa en español.</li>
+  <li><strong>A17 IntraScript Language</strong> (<code>docs/en/app/A17 IntraScript Language.md</code>): la referencia completa, con la gramática y todos los límites.</li>
+  <li><strong>A20 IntraScript Tutorial</strong> (<code>docs/en/app/A20 IntraScript Tutorial.md</code>): el tutorial de una hora en formato de nota.</li>
+  <li><strong>S21 Code Block</strong> (<code>docs/en/specs/S21 Code Block.md</code>): el objeto que contiene el código.</li>
+  <li><strong>ADR-0018</strong> y <strong>ADR-0027</strong>: por qué el lenguaje es como es.</li>
+</ul>
+
+<footer>Guía de IntraScript · versión del lenguaje 1 · Los ejemplos se han comprobado con <code>intracraft-cli code</code> sobre <code>demo-turntable-split</code>.</footer>
+
+</main>
+</div>
+</body>
+</html>

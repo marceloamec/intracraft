@@ -1,0 +1,68 @@
+{
+  "id": "info.code",
+  "version": "0.1.0",
+  "category": "control",
+  "name": {
+    "en": "Code block",
+    "es": "Bloque de código",
+    "de": "Codeblock"
+  },
+  "description": {
+    "en": "IntraScript code placed on the plan (S21): variables, functions and event handlers in Python syntax, run with the simulation.",
+    "es": "Código IntraScript colocado en el plano (S21): variables, funciones y manejadores de eventos con sintaxis de Python, ejecutados con la simulación.",
+    "de": "IntraScript-Code im Grundriss (S21): Variablen, Funktionen und Ereignisbehandlungen in Python-Syntax, die mit der Simulation laufen."
+  },
+  "parameters": [
+    {
+      "key": "source",
+      "type": "text",
+      "default": "\"\"\"What this block does, in one sentence.\"\"\"\nfrom intrascript import *\n\n# Variables of this block keep their value for the whole run.\ncounted = 0\n\n\n@on_start\ndef begin():\n    print(\"The run starts\")\n",
+      "group": "code",
+      "affects": "both",
+      "label": {
+        "en": "Code",
+        "es": "Código",
+        "de": "Code"
+      },
+      "description": {
+        "en": "The block's IntraScript code (A17); edited in the code editor",
+        "es": "El código IntraScript del bloque (A17); se edita en el editor de código",
+        "de": "Der IntraScript-Code des Blocks (A17); im Code-Editor bearbeitet"
+      }
+    },
+    {
+      "key": "enabled",
+      "type": "boolean",
+      "default": true,
+      "group": "code",
+      "affects": "both",
+      "label": {
+        "en": "Enabled",
+        "es": "Activo",
+        "de": "Aktiv"
+      },
+      "description": {
+        "en": "A disabled block is neither checked before a run nor run",
+        "es": "Un bloque inactivo no se comprueba antes de la simulación ni se ejecuta",
+        "de": "Ein inaktiver Block wird vor dem Lauf weder geprüft noch ausgeführt"
+      }
+    }
+  ],
+  "ports": [],
+  "signals": {
+    "inputs": [],
+    "outputs": []
+  },
+  "statistics": [
+    "activations",
+    "steps",
+    "waiting"
+  ],
+  "geometry": "geom.code_block",
+  "behaviors": {
+    "des": "des.script",
+    "physics": "phys.script"
+  },
+  "validationRules": [],
+  "presets": []
+}

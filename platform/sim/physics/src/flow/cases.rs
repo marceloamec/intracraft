@@ -119,6 +119,20 @@ macro_rules! flow_tests {
                 }
 
                 #[test]
+                fn a_conveyor_that_runs_off_its_open_end_tips_its_pallet_over_the_end() {
+                    let source = [("maxPallets", n(1.0))];
+                    let sim = run(&line(&[("flow.source", &source), ("conveyor.roller", &[("openEnd", t("runOff"))])]), 25.0);
+                    assert!(sim.issues.is_empty(), "{:?}", sim.issues);
+                    assert_eq!(sim.fallen_pallets(), 1);
+                    let pallets = sim.pallets();
+                    let p = pallets.iter().find(|p| p.carrier.is_empty()).unwrap_or_else(|| panic!("{pallets:?}"));
+                    // It went over the end (the conveyor runs from 0.42 m to 3.42 m) and tipped nose down.
+                    assert!(p.centre[0] > 3.42, "{p:?}");
+                    assert!(p.axes.0[1].abs() > 0.5, "{p:?}");
+                    assert_eq!(sim.statistics()["roller1"]["palletsProcessed"], 1.0);
+                }
+
+                #[test]
                 fn a_blocked_conveyor_receives_nothing_two_pallets_per_3_m_conveyor() {
                     let sim =
                         run(&line(&[("flow.source", &[("interval", n(5.0))]), ("conveyor.roller", &[]), ("conveyor.roller", &[])]), 90.0);
@@ -263,6 +277,48 @@ macro_rules! flow_tests {
                     within(stat(&stats, "process_station1", "meanCycleTime"), 42.03, REL_TOL);
                     assert_eq!(stat(&stats, "process_station1", "palletsProcessed"), 1.0);
                     assert_eq!(stat(&stats, "sink1", "palletsReceived"), 1.0);
+                }
+
+                #[test]
+                fn w5_a_stretch_wrapper_turns_the_pallet_10_times_and_gives_it_out_centred_in_line_and_wrapped() {
+                    let parts = [
+                        ("flow.source", &[("maxPallets", n(1.0))][..]),
+                        ("conveyor.roller", &[]),
+                        ("flow.stretch_wrapper", &[]),
+                        ("conveyor.roller", &[]),
+                        ("flow.sink", &[]),
+                    ];
+                    let layout = line(&parts);
+                    let wrapper = layout.instances.iter().find(|i| i.id == "stretch_wrapper1").unwrap();
+                    // The table's centre: 0.9 m into the wrapper, on its axis.
+                    let centre = (wrapper.position.x + 0.9, wrapper.position.z);
+                    let mut sim = make(&layout, SEED);
+                    let mut t = 0.0;
+                    while sim.status().get("stretch_wrapper1").copied() != Some("processing") && t < 60.0 {
+                        t += 0.1;
+                        sim.run_until(from_seconds(t));
+                    }
+                    assert!(t < 60.0, "the wrapper never started");
+                    // 3 s attach, then 20 s into the turning the table has turned and the pallet with it.
+                    sim.run_until(from_seconds(t + 23.0));
+                    assert!(sim.angles()["stretch_wrapper1"] > 0.1);
+                    // During the cut, after the 10 turns: the pallet is back in line on the table's centre.
+                    sim.run_until(from_seconds(t + 57.0));
+                    assert_eq!(sim.angles()["stretch_wrapper1"], 0.0);
+                    let p = sim.pallets().into_iter().find(|p| p.carrier == "stretch_wrapper1").unwrap();
+                    let off = (p.centre[0] - centre.0).hypot(p.centre[2] - centre.1);
+                    assert!(off < 0.01, "the pallet is {off} m off the table's centre");
+                    assert!(p.yaw.sin().abs() < 1f64.to_radians().sin(), "the pallet is turned {} rad", p.yaw);
+                    assert!(!p.wrapped);
+                    sim.run_until(from_seconds(t + 62.0));
+                    assert!(sim.pallets().iter().any(|p| p.wrapped));
+                    sim.run_until(from_seconds(150.0));
+                    let stats = sim.statistics();
+                    let flat = run_2d(&layout, 150.0);
+                    assert_eq!(stat(&stats, "sink1", "palletsReceived"), 1.0);
+                    assert_eq!(stat(&stats, "stretch_wrapper1", "meanTurns"), 10.0);
+                    within(stat(&stats, "stretch_wrapper1", "meanProcessingTime"), 59.0, REL_TOL);
+                    within(stat(&stats, "stretch_wrapper1", "meanCycleTime"), stat(&flat, "stretch_wrapper1", "meanCycleTime"), REL_TOL);
                 }
 
                 #[test]

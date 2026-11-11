@@ -44,16 +44,16 @@ Phase 2 also delivers the command and query layer (every UI action is a command)
 
 ## IntraScript (ADR-0018)
 
-The owner brought user code forward on 2026-10-31: [[A17 IntraScript Language]] and the information objects [[S18 Variable]] to [[S22 Area]].
+The owner brought user code forward on 2026-10-31 ([[A17 IntraScript Language]], information objects [[S18 Variable]] to [[S22 Area]]) and had it built on 2026-11-09 in Python's syntax ([[A20 IntraScript Tutorial]]).
 
-| Step | Goal               | Deliverables                                                                                  | Exit criterion                                   | Size | Status (2026-10-31)                  |
-| ---- | ------------------ | --------------------------------------------------------------------------------------------- | ------------------------------------------------ | ---- | ------------------------------------ |
-| 1    | Specification      | A17, S18–S22, [[ADR-0018 IntraScript Scripting Language]]                                     | Owner confirms (Q20 in [[Open Questions]])       | S    | 🟡 Written, waiting for confirmation |
-| 2    | Language core      | `packages/script`: lexer, parser, type and unit checker, interpreter with waiting activations | Examples of A17 run; exact unit and wait results | M    | ⚪                                   |
-| 3    | Model and commands | `content`, `parentId`, `info.*` definitions, `script.*`, `data.*`, `layout.setParent`         | Undo, log and validations for all of them        | M    | ⚪                                   |
-| 4    | 2D execution       | Events, waits, members from definitions, pallet actions, exit decisions                       | Scenarios IS-1 to IS-3, determinism              | L    | ⚪                                   |
-| 5    | Editor             | Plan icons, code panel, table grid, console                                                   | A model with code built and run from the editor  | M    | ⚪                                   |
-| 6    | 3D execution       | Code on the controller cycle, teleport moves                                                  | IS-1 to IS-3 agree with 2D within ±50 ms         | M    | ⚪                                   |
+| Step | Goal          | Deliverables                                                                                                                  | Exit criterion                                   | Size | Status (2026-11-09)                                      |
+| ---- | ------------- | ----------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------ | ---- | -------------------------------------------------------- |
+| 1    | Specification | A17, S18–S22, [[ADR-0018 IntraScript Scripting Language]], [[ADR-0027 IntraScript in Python Syntax with Its Own Interpreter]] | Owner's go-ahead (Q20)                           | S    | ✅ Python syntax (ADR-0027)                              |
+| 2    | Language core | `intracraft-script`: lexer, parser, checker, runtime with waiting activations, units                                          | Examples of A17 run; exact unit and wait results | M    | ✅ 2026-11-09                                            |
+| 3    | Model         | `info.code` definition, `source` attribute through `modify`, simulation tree group                                            | Undo and long programs                           | M    | ✅ code block; variable, table, list and area objects ⚪ |
+| 4    | 2D execution  | Events, waits, members from definitions, exit decisions, pallet attributes                                                    | Scenarios IS-1 to IS-3, determinism              | L    | ✅ IS-1 to IS-3 pass; direct pallet moves ⚪             |
+| 5    | Editor        | Plan form, code editor, console and variables beside the run, `intracraft-cli code`                                           | A model with code built and run from the editor  | M    | ✅                                                       |
+| 6    | 3D execution  | Code on the controller cycle, teleport moves                                                                                  | IS-1 to IS-3 agree with 2D within ±50 ms         | M    | ⚪                                                       |
 
 ## After the MVP (suggested order)
 

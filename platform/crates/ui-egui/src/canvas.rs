@@ -1233,8 +1233,9 @@ impl BimApp {
             match drag {
                 Drag::Move(from) => {
                     let by = self.dragged(&model, &view, from, view.mm(q));
-                    if by.length() > 0.0 {
-                        self.run("move", json!({"ids": self.selection, "by": point(by)}));
+                    if by.length() > 0.0 && self.run("move", json!({"ids": self.selection, "by": point(by)})).is_some() {
+                        let word = self.snapped(&model, round(view.mm(q) - from)).1;
+                        self.tell_snapped(word);
                     }
                 }
                 Drag::Box(from) => self.pick_up(d.in_box(from, q, q.0 < from.0), click_modifiers(ui)),
@@ -1263,6 +1264,19 @@ impl BimApp {
             let segment = model.dimension_segment_at(dim, view.mm(q));
             self.dimension_text_dialog = Some(crate::dimtypes::DimensionTextDialog::new(&model, id, segment));
             return;
+        }
+        // A double click on a component, which BIMCraft does nothing of its own with: the application may open it.
+        if response.double_clicked()
+            && !writing
+            && let Some(id) = hovered.filter(|id| matches!(model.elements.get(*id), Some(Element::Component(_))))
+        {
+            self.double_clicked = Some(id);
+        }
+        // A right click on an element outside the selection picks it first: the menu is of what is under the cursor.
+        if response.secondary_clicked()
+            && let Some(id) = hovered.filter(|id| !self.selection.contains(id))
+        {
+            self.selection = vec![id];
         }
         if let Some(at) = self.clicked_at(&response).filter(|_| !dragged && !writing) {
             let q = (at.x - rect.min.x, at.y - rect.min.y);
@@ -1560,14 +1574,30 @@ impl BimApp {
 
     /// How far dragging the selection from `from` to `to` moves it: a lone door or window slides to the middle of its
     /// stretch of wall when it comes within `SNAP` px of it.
+    /// An application's correction comes first ([`BimApp::move_snap`]): it snaps what it knows and leaves the rest.
     fn dragged(&self, m: &Model, v: &View, from: P2, to: P2) -> P2 {
-        let by = round(to - from);
+        let by = self.snapped(m, round(to - from)).0;
         let &[id] = self.selection.as_slice() else { return by };
         let Some(Element::Door(o) | Element::Window(o)) = m.elements.get(id) else { return by };
         let Some(w) = m.wall(o.host).filter(|w| w.arc == 0.0) else { return by };
         let u = (w.end - w.start).unit();
         let moved = bimcraft_core::model::Opening { offset: o.offset + by.dot(u), ..o.clone() };
         m.centred(&moved, SNAP / v.scale).map_or(by, |middle| by + u * (middle - moved.offset))
+    }
+
+    /// The selection's move by `by` as the application corrects it, and its word on it; as it is when it has none.
+    pub(crate) fn snapped(&self, m: &Model, by: P2) -> (P2, Option<String>) {
+        match &self.move_snap {
+            Some(snap) => snap(m, &self.selection, by),
+            None => (by, None),
+        }
+    }
+
+    /// Says what a move lined up, when the application said anything of it.
+    fn tell_snapped(&mut self, word: Option<String>) {
+        if let Some(text) = word {
+            self.status = crate::Status { text, error: false };
+        }
     }
 
     fn click(&mut self, m: &Model, (level, key): (Id, Id), v: &View, at: (f32, f32), hovered: Option<Id>, mods: Modifiers) {
@@ -2433,8 +2463,14 @@ impl BimApp {
             self.tool = again;
             return;
         }
-        let params = json!({"ids": self.selection, "by": point(to - from)});
-        match self.run(if copy { "copy" } else { "move" }, params) {
+        // A move is the application's to correct (a copy leaves its original where it was, to snap onto).
+        let (by, word) = if copy { (to - from, None) } else { self.snapped(&self.session.model.clone(), to - from) };
+        let params = json!({"ids": self.selection, "by": point(by)});
+        let done = self.run(if copy { "copy" } else { "move" }, params);
+        if done.is_some() {
+            self.tell_snapped(word);
+        }
+        match done {
             None => self.tool = again,
             Some(_) if copy && self.multiple => self.tool = again,
             Some(made) => {
@@ -3383,7 +3419,8 @@ impl BimApp {
             return;
         }
         if let Tool::Move(Some(base)) | Tool::Copy(Some(base)) = &self.tool {
-            let delta = sc.screen(next) - sc.screen(*base);
+            let to = if matches!(self.tool, Tool::Move(_)) { *base + self.snapped(sc.m, next - *base).0 } else { next };
+            let delta = sc.screen(to) - sc.screen(*base);
             ghost(&|pt| pt + delta);
         }
         // A line's walls are built as it goes: only the next one is to come.

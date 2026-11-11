@@ -33,6 +33,8 @@ pub(crate) enum Action {
     Delete,
     /// The linked CAD drawings selected, read again from their files.
     ReloadCad,
+    /// An application's own item: its place in [`BimApp::extension_actions`](crate::BimApp::extension_actions).
+    Extension(usize),
 }
 
 impl Action {
@@ -54,6 +56,7 @@ impl Action {
             Action::Ungroup => msg!("Ungroup"),
             Action::Delete => "Delete",
             Action::ReloadCad => msg!("Reload CAD"),
+            Action::Extension(_) => "",
         }
     }
 
@@ -89,14 +92,18 @@ impl Item {
 
 /// The menu of `groups` on `response`'s right click; the item clicked goes to `chosen`. Free of the
 /// app, so a view drawing in a closure that holds it can still offer the menu.
-pub(crate) fn menu(response: &Response, groups: &[Vec<Item>], chosen: &mut Option<Action>) {
+pub(crate) fn menu(response: &Response, groups: &[Vec<Item>], extra: &[crate::ExtensionAction], chosen: &mut Option<Action>) {
     response.context_menu(|ui| {
         for (i, group) in groups.iter().filter(|g| !g.is_empty()).enumerate() {
             if i > 0 {
                 ui.separator();
             }
             for item in group {
-                let mut button = Button::new(t(item.action.label()));
+                let label = match item.action {
+                    Action::Extension(i) => extra.get(i).map_or("", |a| a.label.as_str()),
+                    other => t(other.label()),
+                };
+                let mut button = Button::new(label);
                 if let Some(keys) = item.action.shortcut() {
                     button = button.shortcut_text(keys);
                 }
@@ -119,6 +126,10 @@ impl BimApp {
             first.insert(0, Item::new(Action::Finish, true));
         }
         let mut groups = vec![first];
+        // An application's items, first after cancelling: what its objects can do.
+        if !self.extension_actions.is_empty() {
+            groups.push(self.extension_actions.iter().enumerate().map(|(i, a)| Item::new(Action::Extension(i), a.enabled)).collect());
+        }
         if some {
             groups.push(vec![
                 Item::new(Action::EditType, self.type_subject().is_some()),
@@ -169,6 +180,7 @@ impl BimApp {
             Action::CreateGroup => self.create_group(),
             Action::Ungroup => self.ungroup(),
             Action::Delete => self.delete(),
+            Action::Extension(i) => self.extension_chosen = self.extension_actions.get(i).map(|a| a.id.clone()),
             Action::ReloadCad => {
                 for cad in self.linked_cads() {
                     self.run("reload_cad", serde_json::json!({"cad": cad}));
@@ -198,7 +210,7 @@ impl BimApp {
     pub(crate) fn context_menu(&mut self, response: &Response) {
         let groups = self.context_items();
         let mut chosen = None;
-        menu(response, &groups, &mut chosen);
+        menu(response, &groups, &self.extension_actions, &mut chosen);
         if let Some(action) = chosen {
             self.act(action);
         }

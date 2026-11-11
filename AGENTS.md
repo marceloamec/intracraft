@@ -14,7 +14,11 @@ El MVP incluye cinco transportadores: mesa de rodillos, mesa de cadenas, girator
 
 Ampliación del 30-10-2026 (`docs/en/decisions/ADR-0012 Scope Extension Lifts Elevator and Gravity Line.md`): mesa elevadora manual para transpaleta, mesa de tijera, elevador de dos niveles (rodillos o cadenas) y línea de rodillos por gravedad con separador (especificaciones S12–S15).
 
-Ampliación del 31-10-2026 (`docs/en/decisions/ADR-0018 IntraScript Scripting Language.md`, propuesta): lenguaje de programación propio **IntraScript** (`docs/en/app/A17 IntraScript Language.md`) y objetos de información en el plano 2D: variable, tabla, lista, bloque de código y zona (especificaciones S18–S22). No se escribe código del lenguaje hasta que la responsable confirme esas notas.
+Ampliación del 31-10-2026, construida el 09-11-2026 (`docs/en/decisions/ADR-0018 IntraScript Scripting Language.md` y `ADR-0027 IntraScript in Python Syntax with Its Own Interpreter.md`): lenguaje de programación propio **IntraScript**, con la sintaxis de Python, eventos como decoradores (`@on_enter(Roller3)`), esperas (`wait(2 * s)`) y unidades (`150 * mm`), ejecutado por un intérprete propio en Rust (`platform/sim/script`, sin dependencias, aislado y determinista). El código vive en el **bloque de código** (`info.code`, S21), colocado en el plano y editado en su propio editor. Referencia: `docs/en/app/A17 IntraScript Language.md`; tutorial: `A20 IntraScript Tutorial.md`. Funciona en el módulo de simulación discreta; en el físico, todavía no. Los objetos variable, tabla, lista y zona (S18–S20, S22) están especificados y sin construir.
+
+Ampliación del 10-11-2026, construida el 11-11-2026 (`docs/en/decisions/ADR-0033 Scope Extension High-Bay Warehouse and Stacker Cranes.md`, especificación S26, asistente A22): **almacén de gran altura (HBW)** para pallets. Cada **pasillo de almacén** (`storage.aisle`) son dos filas de estantería (simple o doble profundidad) y un **transelevador** que recoge y entrega pallets con horquillas solo sobre transportadores de cadenas, en una a tres alturas. El **asistente** «Warehouse» del módulo Diseño (y `intracraft-cli warehouse`) coloca N pasillos con sus cadenas a partir del largo, el alto y el número de pasillos. Funciona en los tres módulos; ejemplos en `examples/layouts/hbw-*.intracraft.json`.
+
+Ampliación del 10-11-2026, construida el 11-11-2026 (`docs/en/decisions/ADR-0032 Scope Extension Stretch Wrapper.md`, especificación S25): **enfardadora de mesa giratoria** (`flow.stretch_wrapper`), en línea entre dos transportadores de rodillos. Es una estación de proceso cuyo tiempo sale del programa de enfardado (vueltas según la altura de la carga, velocidad de giro, ancho y solape del film) y cuya mesa redonda gira con el pallet; el pallet sale con la marca «enfardado». Funciona en los tres módulos. El film se dibuja, no se simula, y la carga sigue siendo un cuerpo rígido hasta que existan las cargas sueltas (ADR-0031).
 
 **Plataforma Rust (31-10-2026, `docs/en/decisions/ADR-0020 Rust Platform on BIMCraft with Three Modules.md`):** el producto se construye en Rust dentro de **BIMCraft** (aplicación BIM de código abierto, en `platform/`), con **tres módulos** sobre el mismo proyecto: **Diseño** (editor BIM: objetos de la librería como familias, tabla de atributos con heredado ✔/✖, árbol de simulación, tablas, presupuestos, plantas y 3D), **Simulación discreta** (el modo 2D) y **Simulación física** (el modo 3D). El código TypeScript (`packages/`, `apps/`) queda **congelado como referencia**: no recibe funciones nuevas y sus pruebas y escenarios son los valores esperados de la versión Rust. Plan por fases: `docs/en/app/A19 Rust Implementation Plan.md`.
 
@@ -41,6 +45,7 @@ intracraft/
 │  │  ├─ specs/           (S: una especificación por objeto de la librería)
 │  │  └─ decisions/       (ADR: registro de decisiones técnicas)
 ├─ scripts/               (utilidades del repositorio, p. ej. alinear tablas Markdown)
+├─ brand/                 (marca: logo A «rail» elegido, colores, guía; export/ se genera con `cargo run -p intracraft -- --write-brand`)
 ├─ packages/
 │  ├─ core-model/         (layout, puertos, conexiones, unidades, validación)
 │  ├─ library/            (definiciones JSON y comportamientos registrados)
@@ -56,10 +61,11 @@ intracraft/
 │  └─ cli/                (ejecución de escenarios sin interfaz)
 ├─ platform/             (BIMCraft como git subtree: espacio de trabajo Cargo; ADR-0020)
 │  ├─ crates/             (BIMCraft: core, ui-egui, i18n, update, rvt, dwg; cambios listados en INTRACRAFT-CHANGES.md)
-│  ├─ sim/                (crates de IntraCraft: library, model, des, control, physics, scenarios, ui)
-│  ├─ apps/               (bimcraft y bimcraft-cli de BIMCraft; intracraft e intracraft-cli, los nuestros)
+│  ├─ sim/                (crates de IntraCraft: library, model, des, control, physics, avian, assets, scene, script, scenarios, ui)
+│  ├─ apps/               (bimcraft y bimcraft-cli de BIMCraft; intracraft, intracraft-cli e intracraft-viewer, los nuestros)
 │  └─ vendor/             (código de todas las librerías de Rust: se compila sin red)
 ├─ spikes/               (pruebas técnicas desechables; r5b-viewer: visores 3D en Rust, ADR-0021)
+├─ examples/            (instalaciones de ejemplo: examples/layouts/*.intracraft.json)
 └─ test_data/             (resultados guardados y datos de prueba)
 ```
 
@@ -69,7 +75,7 @@ Si la estructura real difiere, actualizar este archivo en el mismo cambio.
 
 **Producto (desde el 31-10-2026): Rust en `platform/`.**
 
-- Rust estable (edición 2024), espacio de trabajo Cargo de BIMCraft; interfaz egui/eframe 0.36 con wgpu; física con Avian 0.8 (`avian3d`, la física de Bevy, con velocidad de superficie para las cadenas) detrás del contrato común `PhysicsBench`; Rapier (`rapier3d`) se conserva congelado como referencia y sus resultados son los esperados para Avian. La simulación 3D de los dos módulos se ve en una ventana Bevy 0.20 aparte (`apps/intracraft-viewer`). Ver `docs/en/decisions/ADR-0026 Bevy and Avian for the Physics Simulation Module.md`.
+- Rust estable (edición 2024), espacio de trabajo Cargo de BIMCraft; interfaz egui/eframe 0.36 con wgpu; física con Avian 0.8 (`avian3d`, la física de Bevy, con velocidad de superficie para las cadenas) detrás del contrato común `PhysicsBench`; Rapier (`rapier3d`) se conserva congelado como referencia y sus resultados son los esperados para Avian. La simulación 3D de los dos módulos se ve junto a la planta dentro de la ventana principal (**2D + 3D**, `apps/intracraft/src/view3d.rs`, wgpu propio) o en una ventana Bevy 0.20 aparte con sombras (**View in 3D**, `apps/intracraft-viewer`); la escena sale de `sim/scene` y los modelos propios de pallets y cargas de `sim/assets`. Las pestañas MEP de BIMCraft (Plumbing, Electrical, Lightning Protection, Data) están ocultas en IntraCraft. En el módulo Diseño los objetos se mueven con snap entre puertos en la planta y en la 3D integrada; el clic derecho abre su menú de acciones y el doble clic su hoja de propiedades (flotante o acoplada, por secciones, con un control por tipo de valor). Ver `docs/en/decisions/ADR-0026 Bevy and Avian for the Physics Simulation Module.md` y `ADR-0028 Object Editing Snap Action Menu and Property Sheet.md`.
 - Todas las librerías están copiadas en `platform/vendor/` y se compila sin red. Una dependencia nueva se añade con `cargo vendor --versioned-dirs vendor` y se sube en el mismo commit (preguntar antes si es pesada).
 - Reglas de BIMCraft que también son nuestras (ver `platform/CLAUDE.md`): nunca romper (sin `unwrap`, `expect`, `panic!` ni `unsafe` fuera de las pruebas; las entradas son hostiles), **todo cambio es un comando** que pasa por `Session::execute` (deshacer y vuelta atrás si falla), la validación vive en un solo sitio (`Model::check` y las comprobaciones registradas), el núcleo no depende de la interfaz y la interfaz solo cambia el modelo con comandos, archivos leídos con tolerancia y comandos con rigor (`FORMAT` y migraciones).
 - Los crates propios van en `platform/sim/`, no en `platform/crates/` (así no se tocan las comprobaciones propias de BIMCraft). Cada archivo de BIMCraft que se cambie se anota en `platform/INTRACRAFT-CHANGES.md`.
@@ -92,7 +98,7 @@ Si la estructura real difiere, actualizar este archivo en el mismo cambio.
 - **Tiempo:** enteros en microsegundos. La cola de eventos se ordena por (tiempo, prioridad, secuencia).
 - **Aleatoriedad:** siempre con el generador con semilla del proyecto. Nunca `Math.random()` dentro de los motores.
 - **Determinismo:** mismo layout y misma semilla deben producir el mismo resultado. Si una prueba de determinismo falla, es un error de prioridad máxima.
-- **Archivos de proyecto:** JSON (`.intracraft.json`) con `schemaVersion` y migraciones explícitas. Los resultados de simulación no se guardan dentro del proyecto.
+- **Archivos de proyecto:** en la plataforma Rust, `.intracraft` (un proyecto de BIMCraft con el nombre de IntraCraft; también se abren `.bimcraft` e IFC; ADR-0030). En la referencia TypeScript, JSON (`.intracraft.json`) con `schemaVersion` y migraciones explícitas. Los resultados de simulación no se guardan dentro del proyecto.
 
 ## Preparado para agentes de IA (desde el principio)
 
@@ -186,9 +192,15 @@ Creados en la Fase 0 (28-10-2026); todos funcionan.
 Plataforma Rust (en `platform/`):
 
 - `cargo build -p intracraft` y `cargo run -p intracraft`: compilar y abrir la aplicación de escritorio con los tres módulos.
-- Abrir la aplicación con doble clic: `scripts/intracraft.cmd` (vacía; arrastrar un `.intracraft.json` o un `.bimcraft` encima lo abre), `scripts/intracraft-demo-discrete.cmd` y `scripts/intracraft-demo-physics.cmd` (layout de referencia en marcha). Desde una terminal, siempre dentro de `platform/`: `cargo run --release -p intracraft -- RUTA [--module design|discrete|physics] [--view 3d] [--play]`; una ruta relativa se busca también en las carpetas superiores.
+- Abrir la aplicación con doble clic: `scripts/intracraft.cmd` (vacía; arrastrar un `.intracraft.json` o un `.bimcraft` encima lo abre), `scripts/intracraft-demo-discrete.cmd` y `scripts/intracraft-demo-physics.cmd` (planta mixta de ejemplo en marcha, 2D + 3D), `scripts/intracraft-viewer-demo.cmd` (ventana 3D Bevy) y `scripts/intracraft-pallet-drop.cmd` (pallets que caen por un final abierto) y `scripts/intracraft-demo-warehouse.cmd` (almacén de gran altura en marcha). Desde una terminal, siempre dentro de `platform/`: `cargo run --release -p intracraft -- RUTA [--module design|discrete|physics] [--view 3d] [--play] [--split]`; una ruta relativa se busca también en las carpetas superiores. El botón «View in 3D» necesita `intracraft-viewer` compilado junto a la aplicación (`cargo build --release -p intracraft -p intracraft-viewer`).
+- Ventana 3D sola: `cargo run --release -p intracraft-viewer -- RUTA [--module discrete|physics] [--play] [--speed N]`; `--frames N --screenshot ARCHIVO.png` guarda una imagen de su propia ventana y la cierra (también en `intracraft`, para comprobar vistas sin capturar la pantalla).
+- `cargo run -p intracraft-assets`: vuelve a escribir los modelos glTF propios de pallets y cargas (una prueba avisa si están desactualizados).
+- Instalaciones de ejemplo: `examples/layouts/*.intracraft.json` (una prueba las ejecuta en 2D y en física con Avian).
 - `cargo test --workspace`: todas las pruebas, las de BIMCraft y las nuestras.
 - `cargo clippy --workspace --all-targets -- -D warnings` y `cargo fmt --check`: linter y formato.
+- `cargo run -p intracraft-cli -- warehouse [--length M] [--height M] [--aisles N] [--deep 1|2] [--station ALTURA:in|out|both]… [--set CLAVE=VALOR]… [--ends] --out ARCHIVO.intracraft.json`: generar un almacén de gran altura (A22); `cargo run -p intracraft-cli -- run LAYOUT.intracraft.json [--seconds N]`: simular un layout en el motor discreto e imprimir avisos y estadísticas.
+- `cargo run -p intracraft-cli -- code check|run LAYOUT.intracraft.json [CODIGO.py] [--seconds N]`: comprobar código IntraScript contra un layout o ejecutarlo con él en el motor discreto (imprime la consola del código).
+- `cargo test -p intracraft-script`: pruebas del lenguaje (incluye que los ejemplos de A17 y A20 sean válidos).
 - `cargo i18n check`: catálogo de traducciones de BIMCraft al día.
 - `cargo vendor --versioned-dirs vendor`: tras añadir o actualizar una dependencia; se sube con `git add -f platform/vendor` (algunas librerías traen archivos que un `.gitignore` dejaría fuera y sus sumas de comprobación los incluyen).
 
@@ -206,7 +218,7 @@ Referencia TypeScript:
 
 ## Qué no hacer
 
-- No ampliar el alcance del MVP: curvas, elevadores de tres o más niveles, cajas, cubetas, fallos, energía y OPC UA están fuera hasta nuevo aviso (la ampliación del 30-10-2026 está en ADR-0012; el lenguaje IntraScript, en ADR-0018).
+- No ampliar el alcance del MVP: curvas, elevadores de tres o más niveles, cajas, cubetas, fallos, energía y OPC UA están fuera hasta nuevo aviso (la ampliación del 30-10-2026 está en ADR-0012; el lenguaje IntraScript, en ADR-0018 y ADR-0027; el almacén de gran altura, en ADR-0033).
 - No tocar `test_data/` ni los resultados esperados para que una prueba pase.
 - No añadir funciones nuevas a la referencia TypeScript (`packages/`, `apps/`): solo correcciones que expliquen una diferencia con la versión Rust.
 - No cambiar archivos de BIMCraft (`platform/crates`, `platform/apps/bimcraft*`) sin anotarlo en `platform/INTRACRAFT-CHANGES.md`.

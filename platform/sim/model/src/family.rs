@@ -76,6 +76,11 @@ fn formula(definition: &Definition, key: &str) -> Option<&'static str> {
         "rollerCount" => Some("rounddown(length / rollerPitch)"),
         "sweptRadius" => Some("0.5 * sqrt(platformLength ^ 2 + platformWidth ^ 2) + sweepClearance"),
         "entryHeight" => Some("exitHeight + slope * length"),
+        // A storage aisle (S26 §2).
+        "rackLength" => Some("bays * bayPitch"),
+        "rackHeight" => Some("firstLevelHeight + levels * levelPitch"),
+        "moduleWidth" => Some("aisleWidth + 2 * deep * positionDepth"),
+        "positions" => Some("bays * levels * 2 * deep"),
         _ => None,
     }
 }

@@ -13,3 +13,4 @@ workspace = true
 [dependencies]
 intracraft-library = { path = "../library" }
 intracraft-control = { path = "../control" }
+intracraft-script = { path = "../script" }

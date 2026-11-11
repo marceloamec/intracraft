@@ -39,6 +39,8 @@ pub struct Attribute {
     pub advanced: bool,
     /// The values a choice may take.
     pub options: Vec<String>,
+    /// `key=value` or `key!=value`: the attribute only matters then (see [`applies`]).
+    pub depends_on: Option<String>,
 }
 
 impl Attribute {
@@ -93,9 +95,31 @@ pub fn attributes(model: &Model, library: &Library, id: Id) -> Result<Vec<Attrib
                 group: p.group.clone(),
                 advanced: p.advanced,
                 options: p.options.clone().unwrap_or_default(),
+                depends_on: p.depends_on.clone(),
             }
         })
         .collect())
+}
+
+/// Whether attribute `a` matters with the values of `all` (its object's table): its `depends_on` holds, or it has none.
+/// A condition on an attribute the table lacks holds, so nothing is hidden by a slip of the library's.
+pub fn applies(a: &Attribute, all: &[Attribute]) -> bool {
+    let Some(rule) = a.depends_on.as_deref() else { return true };
+    let (key, wanted, equal) = match rule.split_once("!=") {
+        Some((k, v)) => (k, v, false),
+        None => match rule.split_once('=') {
+            Some((k, v)) => (k, v, true),
+            None => return true,
+        },
+    };
+    let Some(other) = all.iter().find(|o| o.key == key.trim()) else { return true };
+    let is = match &other.value {
+        Some(Value::Text(t)) => t == wanted.trim(),
+        Some(Value::Bool(b)) => b.to_string() == wanted.trim(),
+        Some(Value::Number(x)) => wanted.trim().parse::<f64>().is_ok_and(|w| (w - x).abs() < 1e-9),
+        None => false,
+    };
+    is == equal
 }
 
 /// How a value reads in a table: the library's display unit where it has one (mm, °), else SI.
@@ -179,6 +203,7 @@ mod tests {
             group: "g".into(),
             advanced: false,
             options: vec![],
+            depends_on: None,
         }
     }
 
@@ -189,6 +214,27 @@ mod tests {
         assert_eq!(shown(&attr(Value::Number(std::f64::consts::FRAC_PI_2), Some("rad"), Some("°"))), "90 °");
         assert_eq!(shown(&attr(Value::Bool(true), None, None)), "yes");
         assert_eq!(shown(&attr(Value::Number(3.0), None, None)), "3");
+    }
+
+    #[test]
+    fn an_attribute_applies_only_while_its_condition_holds() {
+        let named = |key: &str, value: Value, rule: Option<&str>| Attribute {
+            key: key.into(),
+            depends_on: rule.map(Into::into),
+            ..attr(value, None, None)
+        };
+        let mode = named("accumulationMode", Value::Text("zoned".into()), None);
+        let zones = named("zoneLength", Value::Number(1.2), Some("accumulationMode=zoned"));
+        let slip = named("slipFactor", Value::Number(0.3), Some("accumulationMode=slip"));
+        let reflector = named("reflectorGap", Value::Number(1.0), Some("type!=diffuse"));
+        let all = [mode.clone(), zones.clone(), slip.clone(), reflector.clone()];
+        assert!(applies(&mode, &all));
+        assert!(applies(&zones, &all));
+        assert!(!applies(&slip, &all));
+        // A condition on an attribute the table lacks holds.
+        assert!(applies(&reflector, &all));
+        let diffuse = [named("type", Value::Text("diffuse".into()), None), reflector.clone()];
+        assert!(!applies(&reflector, &diffuse));
     }
 
     #[test]

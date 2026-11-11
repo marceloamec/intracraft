@@ -3927,11 +3927,16 @@ dependencies = [
  "eframe",
  "egui",
  "egui_kittest",
+ "intracraft-assets",
+ "intracraft-avian",
  "intracraft-des",
  "intracraft-library",
  "intracraft-model",
  "intracraft-physics",
+ "intracraft-scene",
+ "intracraft-script",
  "serde_json",
+ "tiny-skia",
 ]
 
 [[package]]
@@ -3956,8 +3961,10 @@ dependencies = [
 name = "intracraft-cli"
 version = "0.1.0"
 dependencies = [
+ "intracraft-des",
  "intracraft-library",
  "intracraft-scenarios",
+ "intracraft-script",
 ]
 
 [[package]]
@@ -3973,6 +3980,7 @@ version = "0.1.0"
 dependencies = [
  "intracraft-control",
  "intracraft-library",
+ "intracraft-script",
 ]
 
 [[package]]
@@ -4016,8 +4024,13 @@ dependencies = [
 name = "intracraft-scene"
 version = "0.1.0"
 dependencies = [
+ "intracraft-des",
  "intracraft-library",
 ]
+
+[[package]]
+name = "intracraft-script"
+version = "0.1.0"
 
 [[package]]
 name = "intracraft-viewer"

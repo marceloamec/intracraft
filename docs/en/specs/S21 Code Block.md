@@ -3,98 +3,135 @@ title: S21 Code Block
 lang: en
 tags: [spec, information, scripting, control]
 library-id: info.code
-status: proposed — waiting for the owner's confirmation
-updated: 2026-10-31
+status: built — IntraScript 1.0 in the Design and Discrete simulation modules
+updated: 2026-11-09
 ---
 
 # S21 Code Block (`info.code`)
 
-A **piece of IntraScript code** on the 2D plan ([[A17 IntraScript Language]]). It holds block variables, methods and event handlers (`on …`). Placing it inside an area lets its code use the area's objects by their short names ([[S22 Area]]). Decision: [[ADR-0018 IntraScript Scripting Language]].
+A **piece of IntraScript code** placed on the plan ([[A17 IntraScript Language]]), as the method objects of plant
+simulators: its block variables, functions and event handlers (`@on_enter(Roller3)`, `@every(1 * h)`…), written in
+Python's syntax and run with the simulation. Decisions: [[ADR-0018 IntraScript Scripting Language]],
+[[ADR-0027 IntraScript in Python Syntax with Its Own Interpreter]]. A first hour with it: [[A20 IntraScript Tutorial]].
 
 ## 1. Parameters
 
-| Key          | Unit | Default | Range       | Description                                                            |
-| ------------ | ---- | ------- | ----------- | ---------------------------------------------------------------------- |
-| `enabled`    | —    | true    | true, false | A disabled block is not checked before a run and none of its code runs |
-| `showOnPlan` | —    | true    | true, false | Show the name and the number of check errors next to the icon in 2D    |
+| Key       | Kind   | Default        | Description                                                                  |
+| --------- | ------ | -------------- | ---------------------------------------------------------------------------- |
+| `source`  | text   | A starter (§2) | The block's code; edited in the code editor (§4), at most 200 000 characters |
+| `enabled` | yes/no | yes            | A disabled block is neither checked before a run nor run                     |
 
-## 2. Project file
+The definition is Rust-only (`platform/sim/library/definitions/code-block.json`, category `control`, behaviours
+`des.script` and `phys.script`, no ports, statistics `activations`, `steps`, `waiting`). The TypeScript reference is frozen
+and never had code blocks.
 
-```json
-"content": {
-  "kind": "code",
-  "languageVersion": 1,
-  "source": "on Photoeye1.detected rises\n  Counted += 1\nend\n"
-}
+## 2. The starter
+
+A new block holds a short example that runs as it is:
+
+```python
+"""What this block does, in one sentence."""
+from intrascript import *
+
+# Variables of this block keep their value for the whole run.
+counted = 0
+
+
+@on_start
+def begin():
+    print("The run starts")
 ```
-
-`languageVersion` lets later versions of IntraScript upgrade old code with an explicit migration, like `schemaVersion` for the project file ([[A04 Data Model and Project File]]). At most 200 000 characters per block.
 
 ## 3. On the plan
 
-A small icon with the symbol **{ }** and the name. When the block has check errors the icon turns red and shows their number; warnings show an amber dot. Not drawn in 3D.
+A thin purple tablet, 600 × 600 mm, with raised braces `{ }`: seen and picked beside the objects its code drives. It
+carries no pallets and has no ports; the 2D network leaves it out and the 3D run never sees it. The simulation tree lists
+code blocks in their own group, **Code blocks**. In code the block is called by its code name (A17 §12.1): a block placed in the Design module is `Code block 100042` in the layout (its name is its family and id until it is given a `Name`) and `Code_block_100042` in code.
 
-## 4. Editing
+## 4. Editing (Design module)
 
-- The editor opens the code in a code panel with colours for keywords, names, units and comments, the check errors and warnings underlined at their line, completion of names and members, and the `///` help of methods when hovering.
-- Every change is checked against the current layout (names, members, types and units). Code with errors **can be saved**: work in progress is never lost. It only blocks the start of a run.
-- Renaming or deleting an object that code refers to makes the references check errors (`unknownName`); the editor lists every code block affected.
+- In the block's attributes, **Edit code…** opens the editor, a window over the views.
+- The code is coloured (keywords, events, the layout's objects, built-ins, units, numbers, texts, comments) with line
+  numbers; Tab indents by four spaces.
+- Every change is checked against the layout as it is now (names, members, events, waits; A17 §15.1). Problem lines are
+  underlined (errors red, warnings amber) and listed with their line, code and message; the toolbar counts them.
+- **Names you can use** lists the events, every object of the layout with its members (signals marked writable or not),
+  the built-ins and the units; a click copies one.
+- **Save** (Ctrl+S) runs BIMCraft's `modify` command on `source`: one undo step, logged, the same for agents. **Revert**
+  goes back to the saved code. Code with errors can be saved: it only keeps a run from starting.
+- Renaming or deleting an object that code names makes those names check errors at the next check or run start.
 
-## 5. During a run
+## 5. During a run (Discrete simulation module)
 
-1. **Start:** all enabled blocks are checked; any error stops the start with the list of errors. Block variables get their initial values; handlers are registered; `on start` handlers run.
-2. **Events:** handlers start and wait as described in A17 §9 and §14, the same way in 2D and 3D.
-3. **End:** `on finish` handlers run (they cannot wait); waiting activations are dropped.
-4. A run error stops the run and shows the block, the line, the column, the time and the message; the editor opens the block at that line.
+1. **Start:** every enabled block is checked; any error stops the start with the list (block, line, message). Each
+   block's variables get their values, every `@every` and `@at` timer is set, then the `@on_start` handlers run, in layout
+   order.
+2. **Events:** handlers start and wait as A17 §10, §11 and §16.2 say; turntables ask `@choose_exit` handlers for their
+   exits.
+3. **Beside the run:** the code's error, if one stopped the run; the **Console** (the last 200 lines; 10 000 are kept)
+   with each line's time and block; **Variables of** each block, as they are now; the block's statistics in the
+   statistics sheet.
+4. **Errors:** a run error stops the run and shows the block, the line, the time and the message (A17 §15.2).
 
-Several blocks may handle the same event; at the same instant and priority they run in layout order. Each block has its own random stream (A17 §14.5).
+Several blocks may handle the same event: at the same instant and priority they run in layout order. Each block has its
+own random stream (A17 §14.3).
+
+The **Physics simulation module** runs a layout's physics without its code for now (A17 §16.3).
 
 ## 6. In code
 
-From other blocks: `Routing.nextDestination()` calls a method; `Routing.routed` reads or writes a block variable; `Routing.enabled` reads the parameter. Inside the block: `self`.
+From other blocks: `Routing.next_exit(pallet)` calls a function; `Routing.routed` reads or writes a block variable. A
+block's `stats` holds its statistics.
 
 ## 7. Statistics
 
-| Key           | Meaning                                                    |
-| ------------- | ---------------------------------------------------------- |
-| `activations` | Handler activations started during the run                 |
-| `waiting`     | Activations waiting at the end of the run                  |
-| `steps`       | Statements executed (to find code that does too much work) |
+| Key           | Meaning                                                 |
+| ------------- | ------------------------------------------------------- |
+| `activations` | Handler activations started (exit decisions included)   |
+| `steps`       | Instructions run (to find code that does too much work) |
+| `waiting`     | Activations waiting now                                 |
 
-## 8. Validations
+## 8. Command line
 
-| Rule                | Severity | When                                                             |
-| ------------------- | -------- | ---------------------------------------------------------------- |
-| `scriptErrors`      | error    | The code has check errors (A17 §13.1); blocks the start of a run |
-| `scriptWarnings`    | warning  | The code has check warnings                                      |
-| `noHandlers`        | info     | No `on` handler and no method called from another block          |
-| `nameNotIdentifier` | warning  | The name cannot be used in code ([[S22 Area]] §5)                |
+`intracraft-cli code check LAYOUT.intracraft.json [CODE.py]` and `intracraft-cli code run LAYOUT.intracraft.json [CODE.py]
+[--seconds N]` (A17 §19): `CODE.py` is added to the layout as a block called `Code`.
 
-## 9. Commands and queries
+## 9. Validations
 
-- `script.setCode { instanceId, source }`: replaces the code (with undo). It is accepted even with check errors and returns them as issues, so agents and the editor see them at once.
-- `script.check { instanceId? }` (query): check errors and warnings of one block or of all blocks against the current layout.
+| Rule           | Severity | When                                                       |
+| -------------- | -------- | ---------------------------------------------------------- |
+| Check errors   | error    | The code has check errors (A17 §15.1): a run doesn't start |
+| Check warnings | warning  | Listed in the editor; the run starts                       |
 
 ## 10. Not included yet
 
-Breakpoints and step-by-step execution, a watch window for block variables during a run, code shared as a library between projects, and a visual block editor that writes IntraScript.
+Breakpoints and step-by-step execution, watch expressions, code shared between projects as a library, the code in the
+Physics simulation module, and moving, creating or deleting pallets from code (A17 §22).
 
 ## 11. Reference tests
 
-- Scenario **IS-1** (counter): Source → Roller1 with Photoeye1 → Sink; `on Photoeye1.detected rises` adds 1 to `Counted`; after 1 h `Counted` equals `Sink1.stats.palletsReceived` plus the pallets between the photocell and the sink.
-- Scenario **IS-2** (routing by order table): a turntable with two exits and `on choose exit of` reading `pallet.destination` set in `on create`; the share of pallets at each sink matches the weights within ±2 % over 10 000 pallets and is identical for the same seed.
-- Scenario **IS-3** (timed stop): `wait 2 s` at a photocell delays each pallet by exactly 2 s in 2D; in 3D the photocell events of IS-1 to IS-3 agree with 2D within ±50 ms.
-- A block with a typo cannot start a run; disabling it lets the run start.
-- `while true` without `wait` stops the run with `stepLimit` instead of freezing the editor.
+All pass in the Rust 2D engine (`cargo test -p intracraft-des intrascript`):
+
+- **IS-1** (counter): the roller line `demo-roller-line` with a photocell 1.5 m into its second roller; `@on_rise` counts
+  exactly the photocell's pulses, `@on_enter` of the sink exactly its pallets received, and the block's activations are
+  their sum.
+- **IS-2** (routing): `demo-turntable-split`; `@on_create` gives each pallet a destination ("B" with probability 0.3),
+  `@choose_exit` routes by it, `@on_enter(Outfeed_B)` stops the run if a pallet for A arrives there. Over 10 h (more than
+  2000 pallets) the share at line B is within ±3 % of 30 %, and the same seed gives the same counts.
+- **IS-3** (timed stop): `flow-t1`; stopping the conveyor for `wait(2 * s)` when the pallet enters makes its transit
+  14.25 s instead of 12.25 s, within 1 %.
+- A typo (`Roler_3_m`) keeps the run from starting and names the block, the line and the right name; disabling the block
+  lets it start.
+- `while True: pass` stops the run with `stepLimit`, the block, the line and the time, instead of freezing the window.
+- Parameters read with their units (`3000 mm`, `0.25 m/s`, `12 s`), a pallet read in its sink's `@on_enter`, and
+  `simulation.stop()` ending the run.
+- The editor driven as a user: place, edit, see a typo found, save (undoable), run and read the console
+  (`cargo test -p intracraft`).
 
 ## In the three modules
 
-Since 2026-10-31 IntraCraft is built in Rust on BIMCraft with three modules ([[ADR-0020 Rust Platform on BIMCraft with Three Modules]]). What this object is in each:
-
-| Module              | This object                                                                                                                                         |
-| ------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------- |
-| Design              | An information object placed on the plan as a family of category information; its content is edited in its own panel; listed in the Simulation tree |
-| Discrete simulation | Read and written by IntraScript code and the controller during the run, as this spec says                                                           |
-| Physics simulation  | The same as in the Discrete simulation module (information objects have no body)                                                                    |
-
-The behaviour above does not change. **Rust status:** not ported yet (R10, after the owner answers Q20 of [[A19 Rust Implementation Plan]]); the tests of this spec are the expected values of the port.
+| Module              | This object                                                                                            |
+| ------------------- | ------------------------------------------------------------------------------------------------------ |
+| Design              | A family of the library placed on the plan; its code edited in the code editor; in the simulation tree |
+| Discrete simulation | Its code runs with the run; console, variables and errors shown beside it                              |
+| Physics simulation  | Not run yet (A17 §16.3)                                                                                |

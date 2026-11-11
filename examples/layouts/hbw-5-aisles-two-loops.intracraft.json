@@ -1,0 +1,2722 @@
+{
+  "schemaVersion": 1,
+  "name": "Example: high-bay warehouse with five double-deep aisles and two conveyor loops",
+  "seed": 5,
+  "layout": {
+    "instances": [
+      {
+        "id": "aisle01",
+        "definitionId": "storage.aisle",
+        "definitionVersion": "0.1.0",
+        "name": "Aisle 01",
+        "position": {
+          "x": 0.0,
+          "y": 0.0,
+          "z": 0.0
+        },
+        "yaw": 0.0,
+        "params": {
+          "bays": 80.0,
+          "deep": 2.0,
+          "levelPitch": 1.6,
+          "levels": 15.0,
+          "pdHeight1": 0.6,
+          "pdHeight2": 10.6,
+          "pdLevels": 2.0,
+          "retrievalInterval": 150.0,
+          "retrievalMode": "interval",
+          "timeDistribution": "exponential"
+        },
+        "attributes": {
+          "section": "HBW"
+        }
+      },
+      {
+        "id": "aisle01_in1",
+        "definitionId": "conveyor.chain",
+        "definitionVersion": "0.1.0",
+        "name": "Aisle 01 in 1",
+        "position": {
+          "x": -2.42,
+          "y": 0.0,
+          "z": -1.4
+        },
+        "yaw": 0.0,
+        "params": {
+          "length": 2.4
+        },
+        "attributes": {
+          "section": "HBW"
+        }
+      },
+      {
+        "id": "aisle01_out1",
+        "definitionId": "conveyor.chain",
+        "definitionVersion": "0.1.0",
+        "name": "Aisle 01 out 1",
+        "position": {
+          "x": -0.02,
+          "y": 0.0,
+          "z": 1.4
+        },
+        "yaw": 3.141592653589793,
+        "params": {
+          "length": 2.4
+        },
+        "attributes": {
+          "section": "HBW"
+        }
+      },
+      {
+        "id": "aisle01_in2",
+        "definitionId": "conveyor.chain",
+        "definitionVersion": "0.1.0",
+        "name": "Aisle 01 in 2",
+        "position": {
+          "x": -2.42,
+          "y": 10.0,
+          "z": -1.4
+        },
+        "yaw": 0.0,
+        "params": {
+          "length": 2.4
+        },
+        "attributes": {
+          "section": "HBW"
+        }
+      },
+      {
+        "id": "aisle01_out2",
+        "definitionId": "conveyor.chain",
+        "definitionVersion": "0.1.0",
+        "name": "Aisle 01 out 2",
+        "position": {
+          "x": -0.02,
+          "y": 10.0,
+          "z": 1.4
+        },
+        "yaw": 3.141592653589793,
+        "params": {
+          "length": 2.4
+        },
+        "attributes": {
+          "section": "HBW"
+        }
+      },
+      {
+        "id": "aisle02",
+        "definitionId": "storage.aisle",
+        "definitionVersion": "0.1.0",
+        "name": "Aisle 02",
+        "position": {
+          "x": 0.0,
+          "y": 0.0,
+          "z": 6.9
+        },
+        "yaw": 0.0,
+        "params": {
+          "bays": 80.0,
+          "deep": 2.0,
+          "levelPitch": 1.6,
+          "levels": 15.0,
+          "pdHeight1": 0.6,
+          "pdHeight2": 10.6,
+          "pdLevels": 2.0,
+          "retrievalInterval": 150.0,
+          "retrievalMode": "interval",
+          "timeDistribution": "exponential"
+        },
+        "attributes": {
+          "section": "HBW"
+        }
+      },
+      {
+        "id": "aisle02_in1",
+        "definitionId": "conveyor.chain",
+        "definitionVersion": "0.1.0",
+        "name": "Aisle 02 in 1",
+        "position": {
+          "x": -2.42,
+          "y": 0.0,
+          "z": 5.5
+        },
+        "yaw": 0.0,
+        "params": {
+          "length": 2.4
+        },
+        "attributes": {
+          "section": "HBW"
+        }
+      },
+      {
+        "id": "aisle02_out1",
+        "definitionId": "conveyor.chain",
+        "definitionVersion": "0.1.0",
+        "name": "Aisle 02 out 1",
+        "position": {
+          "x": -0.02,
+          "y": 0.0,
+          "z": 8.3
+        },
+        "yaw": 3.141592653589793,
+        "params": {
+          "length": 2.4
+        },
+        "attributes": {
+          "section": "HBW"
+        }
+      },
+      {
+        "id": "aisle02_in2",
+        "definitionId": "conveyor.chain",
+        "definitionVersion": "0.1.0",
+        "name": "Aisle 02 in 2",
+        "position": {
+          "x": -2.42,
+          "y": 10.0,
+          "z": 5.5
+        },
+        "yaw": 0.0,
+        "params": {
+          "length": 2.4
+        },
+        "attributes": {
+          "section": "HBW"
+        }
+      },
+      {
+        "id": "aisle02_out2",
+        "definitionId": "conveyor.chain",
+        "definitionVersion": "0.1.0",
+        "name": "Aisle 02 out 2",
+        "position": {
+          "x": -0.02,
+          "y": 10.0,
+          "z": 8.3
+        },
+        "yaw": 3.141592653589793,
+        "params": {
+          "length": 2.4
+        },
+        "attributes": {
+          "section": "HBW"
+        }
+      },
+      {
+        "id": "aisle03",
+        "definitionId": "storage.aisle",
+        "definitionVersion": "0.1.0",
+        "name": "Aisle 03",
+        "position": {
+          "x": 0.0,
+          "y": 0.0,
+          "z": 13.8
+        },
+        "yaw": 0.0,
+        "params": {
+          "bays": 80.0,
+          "deep": 2.0,
+          "levelPitch": 1.6,
+          "levels": 15.0,
+          "pdHeight1": 0.6,
+          "pdHeight2": 10.6,
+          "pdLevels": 2.0,
+          "retrievalInterval": 150.0,
+          "retrievalMode": "interval",
+          "timeDistribution": "exponential"
+        },
+        "attributes": {
+          "section": "HBW"
+        }
+      },
+      {
+        "id": "aisle03_in1",
+        "definitionId": "conveyor.chain",
+        "definitionVersion": "0.1.0",
+        "name": "Aisle 03 in 1",
+        "position": {
+          "x": -2.42,
+          "y": 0.0,
+          "z": 12.4
+        },
+        "yaw": 0.0,
+        "params": {
+          "length": 2.4
+        },
+        "attributes": {
+          "section": "HBW"
+        }
+      },
+      {
+        "id": "aisle03_out1",
+        "definitionId": "conveyor.chain",
+        "definitionVersion": "0.1.0",
+        "name": "Aisle 03 out 1",
+        "position": {
+          "x": -0.02,
+          "y": 0.0,
+          "z": 15.200000000000001
+        },
+        "yaw": 3.141592653589793,
+        "params": {
+          "length": 2.4
+        },
+        "attributes": {
+          "section": "HBW"
+        }
+      },
+      {
+        "id": "aisle03_in2",
+        "definitionId": "conveyor.chain",
+        "definitionVersion": "0.1.0",
+        "name": "Aisle 03 in 2",
+        "position": {
+          "x": -2.42,
+          "y": 10.0,
+          "z": 12.4
+        },
+        "yaw": 0.0,
+        "params": {
+          "length": 2.4
+        },
+        "attributes": {
+          "section": "HBW"
+        }
+      },
+      {
+        "id": "aisle03_out2",
+        "definitionId": "conveyor.chain",
+        "definitionVersion": "0.1.0",
+        "name": "Aisle 03 out 2",
+        "position": {
+          "x": -0.02,
+          "y": 10.0,
+          "z": 15.200000000000001
+        },
+        "yaw": 3.141592653589793,
+        "params": {
+          "length": 2.4
+        },
+        "attributes": {
+          "section": "HBW"
+        }
+      },
+      {
+        "id": "aisle04",
+        "definitionId": "storage.aisle",
+        "definitionVersion": "0.1.0",
+        "name": "Aisle 04",
+        "position": {
+          "x": 0.0,
+          "y": 0.0,
+          "z": 20.700000000000003
+        },
+        "yaw": 0.0,
+        "params": {
+          "bays": 80.0,
+          "deep": 2.0,
+          "levelPitch": 1.6,
+          "levels": 15.0,
+          "pdHeight1": 0.6,
+          "pdHeight2": 10.6,
+          "pdLevels": 2.0,
+          "retrievalInterval": 150.0,
+          "retrievalMode": "interval",
+          "timeDistribution": "exponential"
+        },
+        "attributes": {
+          "section": "HBW"
+        }
+      },
+      {
+        "id": "aisle04_in1",
+        "definitionId": "conveyor.chain",
+        "definitionVersion": "0.1.0",
+        "name": "Aisle 04 in 1",
+        "position": {
+          "x": -2.42,
+          "y": 0.0,
+          "z": 19.300000000000004
+        },
+        "yaw": 0.0,
+        "params": {
+          "length": 2.4
+        },
+        "attributes": {
+          "section": "HBW"
+        }
+      },
+      {
+        "id": "aisle04_out1",
+        "definitionId": "conveyor.chain",
+        "definitionVersion": "0.1.0",
+        "name": "Aisle 04 out 1",
+        "position": {
+          "x": -0.02,
+          "y": 0.0,
+          "z": 22.1
+        },
+        "yaw": 3.141592653589793,
+        "params": {
+          "length": 2.4
+        },
+        "attributes": {
+          "section": "HBW"
+        }
+      },
+      {
+        "id": "aisle04_in2",
+        "definitionId": "conveyor.chain",
+        "definitionVersion": "0.1.0",
+        "name": "Aisle 04 in 2",
+        "position": {
+          "x": -2.42,
+          "y": 10.0,
+          "z": 19.300000000000004
+        },
+        "yaw": 0.0,
+        "params": {
+          "length": 2.4
+        },
+        "attributes": {
+          "section": "HBW"
+        }
+      },
+      {
+        "id": "aisle04_out2",
+        "definitionId": "conveyor.chain",
+        "definitionVersion": "0.1.0",
+        "name": "Aisle 04 out 2",
+        "position": {
+          "x": -0.02,
+          "y": 10.0,
+          "z": 22.1
+        },
+        "yaw": 3.141592653589793,
+        "params": {
+          "length": 2.4
+        },
+        "attributes": {
+          "section": "HBW"
+        }
+      },
+      {
+        "id": "aisle05",
+        "definitionId": "storage.aisle",
+        "definitionVersion": "0.1.0",
+        "name": "Aisle 05",
+        "position": {
+          "x": 0.0,
+          "y": 0.0,
+          "z": 27.6
+        },
+        "yaw": 0.0,
+        "params": {
+          "bays": 80.0,
+          "deep": 2.0,
+          "levelPitch": 1.6,
+          "levels": 15.0,
+          "pdHeight1": 0.6,
+          "pdHeight2": 10.6,
+          "pdLevels": 2.0,
+          "retrievalInterval": 150.0,
+          "retrievalMode": "interval",
+          "timeDistribution": "exponential"
+        },
+        "attributes": {
+          "section": "HBW"
+        }
+      },
+      {
+        "id": "aisle05_in1",
+        "definitionId": "conveyor.chain",
+        "definitionVersion": "0.1.0",
+        "name": "Aisle 05 in 1",
+        "position": {
+          "x": -2.42,
+          "y": 0.0,
+          "z": 26.200000000000003
+        },
+        "yaw": 0.0,
+        "params": {
+          "length": 2.4
+        },
+        "attributes": {
+          "section": "HBW"
+        }
+      },
+      {
+        "id": "aisle05_out1",
+        "definitionId": "conveyor.chain",
+        "definitionVersion": "0.1.0",
+        "name": "Aisle 05 out 1",
+        "position": {
+          "x": -0.02,
+          "y": 0.0,
+          "z": 29.0
+        },
+        "yaw": 3.141592653589793,
+        "params": {
+          "length": 2.4
+        },
+        "attributes": {
+          "section": "HBW"
+        }
+      },
+      {
+        "id": "aisle05_in2",
+        "definitionId": "conveyor.chain",
+        "definitionVersion": "0.1.0",
+        "name": "Aisle 05 in 2",
+        "position": {
+          "x": -2.42,
+          "y": 10.0,
+          "z": 26.200000000000003
+        },
+        "yaw": 0.0,
+        "params": {
+          "length": 2.4
+        },
+        "attributes": {
+          "section": "HBW"
+        }
+      },
+      {
+        "id": "aisle05_out2",
+        "definitionId": "conveyor.chain",
+        "definitionVersion": "0.1.0",
+        "name": "Aisle 05 out 2",
+        "position": {
+          "x": -0.02,
+          "y": 10.0,
+          "z": 29.0
+        },
+        "yaw": 3.141592653589793,
+        "params": {
+          "length": 2.4
+        },
+        "attributes": {
+          "section": "HBW"
+        }
+      },
+      {
+        "id": "low_transfer_to_chains",
+        "definitionId": "conveyor.transfer_rc",
+        "definitionVersion": "0.1.0",
+        "name": "Low_Transfer_To_Chains",
+        "position": {
+          "x": -3.84,
+          "y": 0.0,
+          "z": -7.2
+        },
+        "yaw": 0.0,
+        "params": {
+          "surfaceHeight": 0.56
+        },
+        "attributes": {
+          "section": "LoopLow"
+        }
+      },
+      {
+        "id": "low_chain_01",
+        "definitionId": "conveyor.chain",
+        "definitionVersion": "0.1.0",
+        "name": "Low_Chain_01",
+        "position": {
+          "x": -3.14,
+          "y": 0.0,
+          "z": -6.68
+        },
+        "yaw": 4.712389,
+        "params": {
+          "length": 4.56
+        },
+        "attributes": {
+          "section": "LoopLow"
+        }
+      },
+      {
+        "id": "low_to_aisle_1",
+        "definitionId": "conveyor.chain_turntable",
+        "definitionVersion": "0.1.0",
+        "name": "Low_To_Aisle_1",
+        "position": {
+          "x": -3.14,
+          "y": 0.0,
+          "z": -1.4
+        },
+        "yaw": 0.0,
+        "params": {},
+        "attributes": {
+          "section": "LoopLow"
+        }
+      },
+      {
+        "id": "low_chain_02",
+        "definitionId": "conveyor.chain",
+        "definitionVersion": "0.1.0",
+        "name": "Low_Chain_02",
+        "position": {
+          "x": -3.14,
+          "y": 0.0,
+          "z": -0.68
+        },
+        "yaw": 4.712389,
+        "params": {
+          "length": 1.36
+        },
+        "attributes": {
+          "section": "LoopLow"
+        }
+      },
+      {
+        "id": "low_from_aisle_1",
+        "definitionId": "conveyor.chain_turntable",
+        "definitionVersion": "0.1.0",
+        "name": "Low_From_Aisle_1",
+        "position": {
+          "x": -3.14,
+          "y": 0.0,
+          "z": 1.4
+        },
+        "yaw": 0.0,
+        "params": {},
+        "attributes": {
+          "section": "LoopLow"
+        }
+      },
+      {
+        "id": "low_chain_03",
+        "definitionId": "conveyor.chain",
+        "definitionVersion": "0.1.0",
+        "name": "Low_Chain_03",
+        "position": {
+          "x": -3.14,
+          "y": 0.0,
+          "z": 2.12
+        },
+        "yaw": 4.712389,
+        "params": {
+          "length": 2.66
+        },
+        "attributes": {
+          "section": "LoopLow"
+        }
+      },
+      {
+        "id": "low_to_aisle_2",
+        "definitionId": "conveyor.chain_turntable",
+        "definitionVersion": "0.1.0",
+        "name": "Low_To_Aisle_2",
+        "position": {
+          "x": -3.14,
+          "y": 0.0,
+          "z": 5.5
+        },
+        "yaw": 0.0,
+        "params": {},
+        "attributes": {
+          "section": "LoopLow"
+        }
+      },
+      {
+        "id": "low_chain_04",
+        "definitionId": "conveyor.chain",
+        "definitionVersion": "0.1.0",
+        "name": "Low_Chain_04",
+        "position": {
+          "x": -3.14,
+          "y": 0.0,
+          "z": 6.22
+        },
+        "yaw": 4.712389,
+        "params": {
+          "length": 1.36
+        },
+        "attributes": {
+          "section": "LoopLow"
+        }
+      },
+      {
+        "id": "low_from_aisle_2",
+        "definitionId": "conveyor.chain_turntable",
+        "definitionVersion": "0.1.0",
+        "name": "Low_From_Aisle_2",
+        "position": {
+          "x": -3.14,
+          "y": 0.0,
+          "z": 8.3
+        },
+        "yaw": 0.0,
+        "params": {},
+        "attributes": {
+          "section": "LoopLow"
+        }
+      },
+      {
+        "id": "low_chain_05",
+        "definitionId": "conveyor.chain",
+        "definitionVersion": "0.1.0",
+        "name": "Low_Chain_05",
+        "position": {
+          "x": -3.14,
+          "y": 0.0,
+          "z": 9.02
+        },
+        "yaw": 4.712389,
+        "params": {
+          "length": 2.66
+        },
+        "attributes": {
+          "section": "LoopLow"
+        }
+      },
+      {
+        "id": "low_to_aisle_3",
+        "definitionId": "conveyor.chain_turntable",
+        "definitionVersion": "0.1.0",
+        "name": "Low_To_Aisle_3",
+        "position": {
+          "x": -3.14,
+          "y": 0.0,
+          "z": 12.4
+        },
+        "yaw": 0.0,
+        "params": {},
+        "attributes": {
+          "section": "LoopLow"
+        }
+      },
+      {
+        "id": "low_chain_06",
+        "definitionId": "conveyor.chain",
+        "definitionVersion": "0.1.0",
+        "name": "Low_Chain_06",
+        "position": {
+          "x": -3.14,
+          "y": 0.0,
+          "z": 13.12
+        },
+        "yaw": 4.712389,
+        "params": {
+          "length": 1.36
+        },
+        "attributes": {
+          "section": "LoopLow"
+        }
+      },
+      {
+        "id": "low_from_aisle_3",
+        "definitionId": "conveyor.chain_turntable",
+        "definitionVersion": "0.1.0",
+        "name": "Low_From_Aisle_3",
+        "position": {
+          "x": -3.14,
+          "y": 0.0,
+          "z": 15.2
+        },
+        "yaw": 0.0,
+        "params": {},
+        "attributes": {
+          "section": "LoopLow"
+        }
+      },
+      {
+        "id": "low_chain_07",
+        "definitionId": "conveyor.chain",
+        "definitionVersion": "0.1.0",
+        "name": "Low_Chain_07",
+        "position": {
+          "x": -3.14,
+          "y": 0.0,
+          "z": 15.92
+        },
+        "yaw": 4.712389,
+        "params": {
+          "length": 2.66
+        },
+        "attributes": {
+          "section": "LoopLow"
+        }
+      },
+      {
+        "id": "low_to_aisle_4",
+        "definitionId": "conveyor.chain_turntable",
+        "definitionVersion": "0.1.0",
+        "name": "Low_To_Aisle_4",
+        "position": {
+          "x": -3.14,
+          "y": 0.0,
+          "z": 19.3
+        },
+        "yaw": 0.0,
+        "params": {},
+        "attributes": {
+          "section": "LoopLow"
+        }
+      },
+      {
+        "id": "low_chain_08",
+        "definitionId": "conveyor.chain",
+        "definitionVersion": "0.1.0",
+        "name": "Low_Chain_08",
+        "position": {
+          "x": -3.14,
+          "y": 0.0,
+          "z": 20.02
+        },
+        "yaw": 4.712389,
+        "params": {
+          "length": 1.36
+        },
+        "attributes": {
+          "section": "LoopLow"
+        }
+      },
+      {
+        "id": "low_from_aisle_4",
+        "definitionId": "conveyor.chain_turntable",
+        "definitionVersion": "0.1.0",
+        "name": "Low_From_Aisle_4",
+        "position": {
+          "x": -3.14,
+          "y": 0.0,
+          "z": 22.1
+        },
+        "yaw": 0.0,
+        "params": {},
+        "attributes": {
+          "section": "LoopLow"
+        }
+      },
+      {
+        "id": "low_chain_09",
+        "definitionId": "conveyor.chain",
+        "definitionVersion": "0.1.0",
+        "name": "Low_Chain_09",
+        "position": {
+          "x": -3.14,
+          "y": 0.0,
+          "z": 22.82
+        },
+        "yaw": 4.712389,
+        "params": {
+          "length": 2.66
+        },
+        "attributes": {
+          "section": "LoopLow"
+        }
+      },
+      {
+        "id": "low_to_aisle_5",
+        "definitionId": "conveyor.chain_turntable",
+        "definitionVersion": "0.1.0",
+        "name": "Low_To_Aisle_5",
+        "position": {
+          "x": -3.14,
+          "y": 0.0,
+          "z": 26.2
+        },
+        "yaw": 0.0,
+        "params": {},
+        "attributes": {
+          "section": "LoopLow"
+        }
+      },
+      {
+        "id": "low_chain_10",
+        "definitionId": "conveyor.chain",
+        "definitionVersion": "0.1.0",
+        "name": "Low_Chain_10",
+        "position": {
+          "x": -3.14,
+          "y": 0.0,
+          "z": 26.92
+        },
+        "yaw": 4.712389,
+        "params": {
+          "length": 1.36
+        },
+        "attributes": {
+          "section": "LoopLow"
+        }
+      },
+      {
+        "id": "low_from_aisle_5",
+        "definitionId": "conveyor.chain_turntable",
+        "definitionVersion": "0.1.0",
+        "name": "Low_From_Aisle_5",
+        "position": {
+          "x": -3.14,
+          "y": 0.0,
+          "z": 29.0
+        },
+        "yaw": 0.0,
+        "params": {},
+        "attributes": {
+          "section": "LoopLow"
+        }
+      },
+      {
+        "id": "low_chain_11",
+        "definitionId": "conveyor.chain",
+        "definitionVersion": "0.1.0",
+        "name": "Low_Chain_11",
+        "position": {
+          "x": -3.14,
+          "y": 0.0,
+          "z": 29.72
+        },
+        "yaw": 4.712389,
+        "params": {
+          "length": 4.56
+        },
+        "attributes": {
+          "section": "LoopLow"
+        }
+      },
+      {
+        "id": "low_transfer_to_rollers",
+        "definitionId": "conveyor.transfer_rc",
+        "definitionVersion": "0.1.0",
+        "name": "Low_Transfer_To_Rollers",
+        "position": {
+          "x": -2.44,
+          "y": 0.0,
+          "z": 34.8
+        },
+        "yaw": 3.141593,
+        "params": {
+          "surfaceHeight": 0.56,
+          "operationMode": "chainsToRollers"
+        },
+        "attributes": {
+          "section": "LoopLow"
+        }
+      },
+      {
+        "id": "low_roller_01",
+        "definitionId": "conveyor.roller",
+        "definitionVersion": "0.1.0",
+        "name": "Low_Roller_01",
+        "position": {
+          "x": -3.86,
+          "y": 0.0,
+          "z": 34.8
+        },
+        "yaw": 3.141593,
+        "params": {
+          "length": 5.0,
+          "surfaceHeight": 0.56
+        },
+        "attributes": {
+          "section": "LoopLow"
+        }
+      },
+      {
+        "id": "low_corner_1",
+        "definitionId": "conveyor.roller_turntable",
+        "definitionVersion": "0.1.0",
+        "name": "Low_Corner_1",
+        "position": {
+          "x": -9.58,
+          "y": 0.0,
+          "z": 34.8
+        },
+        "yaw": 0.0,
+        "params": {
+          "surfaceHeight": 0.56
+        },
+        "attributes": {
+          "section": "LoopLow"
+        }
+      },
+      {
+        "id": "low_roller_02",
+        "definitionId": "conveyor.roller",
+        "definitionVersion": "0.1.0",
+        "name": "Low_Roller_02",
+        "position": {
+          "x": -9.58,
+          "y": 0.0,
+          "z": 34.08
+        },
+        "yaw": 1.570796,
+        "params": {
+          "length": 1.56,
+          "surfaceHeight": 0.56
+        },
+        "attributes": {
+          "section": "LoopLow"
+        }
+      },
+      {
+        "id": "low_to_lane_1",
+        "definitionId": "conveyor.roller_turntable",
+        "definitionVersion": "0.1.0",
+        "name": "Low_To_Lane_1",
+        "position": {
+          "x": -9.58,
+          "y": 0.0,
+          "z": 31.8
+        },
+        "yaw": 0.0,
+        "params": {
+          "surfaceHeight": 0.56
+        },
+        "attributes": {
+          "section": "LoopLow"
+        }
+      },
+      {
+        "id": "low_roller_03",
+        "definitionId": "conveyor.roller",
+        "definitionVersion": "0.1.0",
+        "name": "Low_Roller_03",
+        "position": {
+          "x": -9.58,
+          "y": 0.0,
+          "z": 31.08
+        },
+        "yaw": 1.570796,
+        "params": {
+          "length": 1.56,
+          "surfaceHeight": 0.56
+        },
+        "attributes": {
+          "section": "LoopLow"
+        }
+      },
+      {
+        "id": "low_to_lane_2",
+        "definitionId": "conveyor.roller_turntable",
+        "definitionVersion": "0.1.0",
+        "name": "Low_To_Lane_2",
+        "position": {
+          "x": -9.58,
+          "y": 0.0,
+          "z": 28.8
+        },
+        "yaw": 0.0,
+        "params": {
+          "surfaceHeight": 0.56
+        },
+        "attributes": {
+          "section": "LoopLow"
+        }
+      },
+      {
+        "id": "low_roller_04",
+        "definitionId": "conveyor.roller",
+        "definitionVersion": "0.1.0",
+        "name": "Low_Roller_04",
+        "position": {
+          "x": -9.58,
+          "y": 0.0,
+          "z": 28.08
+        },
+        "yaw": 1.570796,
+        "params": {
+          "length": 1.56,
+          "surfaceHeight": 0.56
+        },
+        "attributes": {
+          "section": "LoopLow"
+        }
+      },
+      {
+        "id": "low_to_lane_3",
+        "definitionId": "conveyor.roller_turntable",
+        "definitionVersion": "0.1.0",
+        "name": "Low_To_Lane_3",
+        "position": {
+          "x": -9.58,
+          "y": 0.0,
+          "z": 25.8
+        },
+        "yaw": 0.0,
+        "params": {
+          "surfaceHeight": 0.56
+        },
+        "attributes": {
+          "section": "LoopLow"
+        }
+      },
+      {
+        "id": "low_roller_05",
+        "definitionId": "conveyor.roller",
+        "definitionVersion": "0.1.0",
+        "name": "Low_Roller_05",
+        "position": {
+          "x": -9.58,
+          "y": 0.0,
+          "z": 25.08
+        },
+        "yaw": 1.570796,
+        "params": {
+          "length": 1.56,
+          "surfaceHeight": 0.56
+        },
+        "attributes": {
+          "section": "LoopLow"
+        }
+      },
+      {
+        "id": "low_to_lane_4",
+        "definitionId": "conveyor.roller_turntable",
+        "definitionVersion": "0.1.0",
+        "name": "Low_To_Lane_4",
+        "position": {
+          "x": -9.58,
+          "y": 0.0,
+          "z": 22.8
+        },
+        "yaw": 0.0,
+        "params": {
+          "surfaceHeight": 0.56
+        },
+        "attributes": {
+          "section": "LoopLow"
+        }
+      },
+      {
+        "id": "low_roller_06",
+        "definitionId": "conveyor.roller",
+        "definitionVersion": "0.1.0",
+        "name": "Low_Roller_06",
+        "position": {
+          "x": -9.58,
+          "y": 0.0,
+          "z": 22.08
+        },
+        "yaw": 1.570796,
+        "params": {
+          "length": 1.56,
+          "surfaceHeight": 0.56
+        },
+        "attributes": {
+          "section": "LoopLow"
+        }
+      },
+      {
+        "id": "low_to_lane_5",
+        "definitionId": "conveyor.roller_turntable",
+        "definitionVersion": "0.1.0",
+        "name": "Low_To_Lane_5",
+        "position": {
+          "x": -9.58,
+          "y": 0.0,
+          "z": 19.8
+        },
+        "yaw": 0.0,
+        "params": {
+          "surfaceHeight": 0.56
+        },
+        "attributes": {
+          "section": "LoopLow"
+        }
+      },
+      {
+        "id": "low_roller_07",
+        "definitionId": "conveyor.roller",
+        "definitionVersion": "0.1.0",
+        "name": "Low_Roller_07",
+        "position": {
+          "x": -9.58,
+          "y": 0.0,
+          "z": 19.08
+        },
+        "yaw": 1.570796,
+        "params": {
+          "length": 1.56,
+          "surfaceHeight": 0.56
+        },
+        "attributes": {
+          "section": "LoopLow"
+        }
+      },
+      {
+        "id": "low_to_lane_6",
+        "definitionId": "conveyor.roller_turntable",
+        "definitionVersion": "0.1.0",
+        "name": "Low_To_Lane_6",
+        "position": {
+          "x": -9.58,
+          "y": 0.0,
+          "z": 16.8
+        },
+        "yaw": 0.0,
+        "params": {
+          "surfaceHeight": 0.56
+        },
+        "attributes": {
+          "section": "LoopLow"
+        }
+      },
+      {
+        "id": "low_roller_08",
+        "definitionId": "conveyor.roller",
+        "definitionVersion": "0.1.0",
+        "name": "Low_Roller_08",
+        "position": {
+          "x": -9.58,
+          "y": 0.0,
+          "z": 16.08
+        },
+        "yaw": 1.570796,
+        "params": {
+          "length": 1.56,
+          "surfaceHeight": 0.56
+        },
+        "attributes": {
+          "section": "LoopLow"
+        }
+      },
+      {
+        "id": "low_to_lane_7",
+        "definitionId": "conveyor.roller_turntable",
+        "definitionVersion": "0.1.0",
+        "name": "Low_To_Lane_7",
+        "position": {
+          "x": -9.58,
+          "y": 0.0,
+          "z": 13.8
+        },
+        "yaw": 0.0,
+        "params": {
+          "surfaceHeight": 0.56
+        },
+        "attributes": {
+          "section": "LoopLow"
+        }
+      },
+      {
+        "id": "low_roller_09",
+        "definitionId": "conveyor.roller",
+        "definitionVersion": "0.1.0",
+        "name": "Low_Roller_09",
+        "position": {
+          "x": -9.58,
+          "y": 0.0,
+          "z": 13.08
+        },
+        "yaw": 1.570796,
+        "params": {
+          "length": 1.56,
+          "surfaceHeight": 0.56
+        },
+        "attributes": {
+          "section": "LoopLow"
+        }
+      },
+      {
+        "id": "low_to_lane_8",
+        "definitionId": "conveyor.roller_turntable",
+        "definitionVersion": "0.1.0",
+        "name": "Low_To_Lane_8",
+        "position": {
+          "x": -9.58,
+          "y": 0.0,
+          "z": 10.8
+        },
+        "yaw": 0.0,
+        "params": {
+          "surfaceHeight": 0.56
+        },
+        "attributes": {
+          "section": "LoopLow"
+        }
+      },
+      {
+        "id": "low_roller_10",
+        "definitionId": "conveyor.roller",
+        "definitionVersion": "0.1.0",
+        "name": "Low_Roller_10",
+        "position": {
+          "x": -9.58,
+          "y": 0.0,
+          "z": 10.08
+        },
+        "yaw": 1.570796,
+        "params": {
+          "length": 1.56,
+          "surfaceHeight": 0.56
+        },
+        "attributes": {
+          "section": "LoopLow"
+        }
+      },
+      {
+        "id": "low_to_lane_9",
+        "definitionId": "conveyor.roller_turntable",
+        "definitionVersion": "0.1.0",
+        "name": "Low_To_Lane_9",
+        "position": {
+          "x": -9.58,
+          "y": 0.0,
+          "z": 7.8
+        },
+        "yaw": 0.0,
+        "params": {
+          "surfaceHeight": 0.56
+        },
+        "attributes": {
+          "section": "LoopLow"
+        }
+      },
+      {
+        "id": "low_roller_11",
+        "definitionId": "conveyor.roller",
+        "definitionVersion": "0.1.0",
+        "name": "Low_Roller_11",
+        "position": {
+          "x": -9.58,
+          "y": 0.0,
+          "z": 7.08
+        },
+        "yaw": 1.570796,
+        "params": {
+          "length": 1.56,
+          "surfaceHeight": 0.56
+        },
+        "attributes": {
+          "section": "LoopLow"
+        }
+      },
+      {
+        "id": "low_to_lane_10",
+        "definitionId": "conveyor.roller_turntable",
+        "definitionVersion": "0.1.0",
+        "name": "Low_To_Lane_10",
+        "position": {
+          "x": -9.58,
+          "y": 0.0,
+          "z": 4.8
+        },
+        "yaw": 0.0,
+        "params": {
+          "surfaceHeight": 0.56
+        },
+        "attributes": {
+          "section": "LoopLow"
+        }
+      },
+      {
+        "id": "low_roller_12",
+        "definitionId": "conveyor.roller",
+        "definitionVersion": "0.1.0",
+        "name": "Low_Roller_12",
+        "position": {
+          "x": -9.58,
+          "y": 0.0,
+          "z": 4.08
+        },
+        "yaw": 1.570796,
+        "params": {
+          "length": 1.56,
+          "surfaceHeight": 0.56
+        },
+        "attributes": {
+          "section": "LoopLow"
+        }
+      },
+      {
+        "id": "low_from_entry_1",
+        "definitionId": "conveyor.roller_turntable",
+        "definitionVersion": "0.1.0",
+        "name": "Low_From_Entry_1",
+        "position": {
+          "x": -9.58,
+          "y": 0.0,
+          "z": 1.8
+        },
+        "yaw": 0.0,
+        "params": {
+          "surfaceHeight": 0.56
+        },
+        "attributes": {
+          "section": "LoopLow"
+        }
+      },
+      {
+        "id": "low_roller_13",
+        "definitionId": "conveyor.roller",
+        "definitionVersion": "0.1.0",
+        "name": "Low_Roller_13",
+        "position": {
+          "x": -9.58,
+          "y": 0.0,
+          "z": 1.08
+        },
+        "yaw": 1.570796,
+        "params": {
+          "length": 1.56,
+          "surfaceHeight": 0.56
+        },
+        "attributes": {
+          "section": "LoopLow"
+        }
+      },
+      {
+        "id": "low_from_entry_2",
+        "definitionId": "conveyor.roller_turntable",
+        "definitionVersion": "0.1.0",
+        "name": "Low_From_Entry_2",
+        "position": {
+          "x": -9.58,
+          "y": 0.0,
+          "z": -1.2
+        },
+        "yaw": 0.0,
+        "params": {
+          "surfaceHeight": 0.56
+        },
+        "attributes": {
+          "section": "LoopLow"
+        }
+      },
+      {
+        "id": "low_roller_14",
+        "definitionId": "conveyor.roller",
+        "definitionVersion": "0.1.0",
+        "name": "Low_Roller_14",
+        "position": {
+          "x": -9.58,
+          "y": 0.0,
+          "z": -1.92
+        },
+        "yaw": 1.570796,
+        "params": {
+          "length": 1.56,
+          "surfaceHeight": 0.56
+        },
+        "attributes": {
+          "section": "LoopLow"
+        }
+      },
+      {
+        "id": "low_from_entry_3",
+        "definitionId": "conveyor.roller_turntable",
+        "definitionVersion": "0.1.0",
+        "name": "Low_From_Entry_3",
+        "position": {
+          "x": -9.58,
+          "y": 0.0,
+          "z": -4.2
+        },
+        "yaw": 0.0,
+        "params": {
+          "surfaceHeight": 0.56
+        },
+        "attributes": {
+          "section": "LoopLow"
+        }
+      },
+      {
+        "id": "low_roller_15",
+        "definitionId": "conveyor.roller",
+        "definitionVersion": "0.1.0",
+        "name": "Low_Roller_15",
+        "position": {
+          "x": -9.58,
+          "y": 0.0,
+          "z": -4.92
+        },
+        "yaw": 1.570796,
+        "params": {
+          "length": 1.56,
+          "surfaceHeight": 0.56
+        },
+        "attributes": {
+          "section": "LoopLow"
+        }
+      },
+      {
+        "id": "low_corner_2",
+        "definitionId": "conveyor.roller_turntable",
+        "definitionVersion": "0.1.0",
+        "name": "Low_Corner_2",
+        "position": {
+          "x": -9.58,
+          "y": 0.0,
+          "z": -7.2
+        },
+        "yaw": 0.0,
+        "params": {
+          "surfaceHeight": 0.56
+        },
+        "attributes": {
+          "section": "LoopLow"
+        }
+      },
+      {
+        "id": "low_roller_16",
+        "definitionId": "conveyor.roller",
+        "definitionVersion": "0.1.0",
+        "name": "Low_Roller_16",
+        "position": {
+          "x": -8.86,
+          "y": 0.0,
+          "z": -7.2
+        },
+        "yaw": 0.0,
+        "params": {
+          "length": 5.0,
+          "surfaceHeight": 0.56
+        },
+        "attributes": {
+          "section": "LoopLow"
+        }
+      },
+      {
+        "id": "low_lane_1",
+        "definitionId": "conveyor.gravity",
+        "definitionVersion": "0.1.0",
+        "name": "Low_Lane_1",
+        "position": {
+          "x": -10.3,
+          "y": 0.0,
+          "z": 31.8
+        },
+        "yaw": 3.141593,
+        "params": {
+          "length": 9.0,
+          "exitHeight": 0.2
+        },
+        "attributes": {
+          "section": "LoopLow"
+        }
+      },
+      {
+        "id": "low_operator_1",
+        "definitionId": "flow.sink",
+        "definitionVersion": "0.1.0",
+        "name": "Low_Operator_1",
+        "position": {
+          "x": -19.32,
+          "y": 0.0,
+          "z": 31.8
+        },
+        "yaw": 3.141593,
+        "params": {
+          "surfaceHeight": 0.2,
+          "removalMode": "afterTime",
+          "removalTime": 540
+        },
+        "attributes": {
+          "section": "LoopLow"
+        }
+      },
+      {
+        "id": "low_lane_2",
+        "definitionId": "conveyor.gravity",
+        "definitionVersion": "0.1.0",
+        "name": "Low_Lane_2",
+        "position": {
+          "x": -10.3,
+          "y": 0.0,
+          "z": 28.8
+        },
+        "yaw": 3.141593,
+        "params": {
+          "length": 9.0,
+          "exitHeight": 0.2
+        },
+        "attributes": {
+          "section": "LoopLow"
+        }
+      },
+      {
+        "id": "low_operator_2",
+        "definitionId": "flow.sink",
+        "definitionVersion": "0.1.0",
+        "name": "Low_Operator_2",
+        "position": {
+          "x": -19.32,
+          "y": 0.0,
+          "z": 28.8
+        },
+        "yaw": 3.141593,
+        "params": {
+          "surfaceHeight": 0.2,
+          "removalMode": "afterTime",
+          "removalTime": 540
+        },
+        "attributes": {
+          "section": "LoopLow"
+        }
+      },
+      {
+        "id": "low_lane_3",
+        "definitionId": "conveyor.gravity",
+        "definitionVersion": "0.1.0",
+        "name": "Low_Lane_3",
+        "position": {
+          "x": -10.3,
+          "y": 0.0,
+          "z": 25.8
+        },
+        "yaw": 3.141593,
+        "params": {
+          "length": 9.0,
+          "exitHeight": 0.2
+        },
+        "attributes": {
+          "section": "LoopLow"
+        }
+      },
+      {
+        "id": "low_operator_3",
+        "definitionId": "flow.sink",
+        "definitionVersion": "0.1.0",
+        "name": "Low_Operator_3",
+        "position": {
+          "x": -19.32,
+          "y": 0.0,
+          "z": 25.8
+        },
+        "yaw": 3.141593,
+        "params": {
+          "surfaceHeight": 0.2,
+          "removalMode": "afterTime",
+          "removalTime": 540
+        },
+        "attributes": {
+          "section": "LoopLow"
+        }
+      },
+      {
+        "id": "low_lane_4",
+        "definitionId": "conveyor.gravity",
+        "definitionVersion": "0.1.0",
+        "name": "Low_Lane_4",
+        "position": {
+          "x": -10.3,
+          "y": 0.0,
+          "z": 22.8
+        },
+        "yaw": 3.141593,
+        "params": {
+          "length": 9.0,
+          "exitHeight": 0.2
+        },
+        "attributes": {
+          "section": "LoopLow"
+        }
+      },
+      {
+        "id": "low_operator_4",
+        "definitionId": "flow.sink",
+        "definitionVersion": "0.1.0",
+        "name": "Low_Operator_4",
+        "position": {
+          "x": -19.32,
+          "y": 0.0,
+          "z": 22.8
+        },
+        "yaw": 3.141593,
+        "params": {
+          "surfaceHeight": 0.2,
+          "removalMode": "afterTime",
+          "removalTime": 540
+        },
+        "attributes": {
+          "section": "LoopLow"
+        }
+      },
+      {
+        "id": "low_lane_5",
+        "definitionId": "conveyor.gravity",
+        "definitionVersion": "0.1.0",
+        "name": "Low_Lane_5",
+        "position": {
+          "x": -10.3,
+          "y": 0.0,
+          "z": 19.8
+        },
+        "yaw": 3.141593,
+        "params": {
+          "length": 9.0,
+          "exitHeight": 0.2
+        },
+        "attributes": {
+          "section": "LoopLow"
+        }
+      },
+      {
+        "id": "low_operator_5",
+        "definitionId": "flow.sink",
+        "definitionVersion": "0.1.0",
+        "name": "Low_Operator_5",
+        "position": {
+          "x": -19.32,
+          "y": 0.0,
+          "z": 19.8
+        },
+        "yaw": 3.141593,
+        "params": {
+          "surfaceHeight": 0.2,
+          "removalMode": "afterTime",
+          "removalTime": 540
+        },
+        "attributes": {
+          "section": "LoopLow"
+        }
+      },
+      {
+        "id": "low_lane_6",
+        "definitionId": "conveyor.gravity",
+        "definitionVersion": "0.1.0",
+        "name": "Low_Lane_6",
+        "position": {
+          "x": -10.3,
+          "y": 0.0,
+          "z": 16.8
+        },
+        "yaw": 3.141593,
+        "params": {
+          "length": 9.0,
+          "exitHeight": 0.2
+        },
+        "attributes": {
+          "section": "LoopLow"
+        }
+      },
+      {
+        "id": "low_operator_6",
+        "definitionId": "flow.sink",
+        "definitionVersion": "0.1.0",
+        "name": "Low_Operator_6",
+        "position": {
+          "x": -19.32,
+          "y": 0.0,
+          "z": 16.8
+        },
+        "yaw": 3.141593,
+        "params": {
+          "surfaceHeight": 0.2,
+          "removalMode": "afterTime",
+          "removalTime": 540
+        },
+        "attributes": {
+          "section": "LoopLow"
+        }
+      },
+      {
+        "id": "low_lane_7",
+        "definitionId": "conveyor.gravity",
+        "definitionVersion": "0.1.0",
+        "name": "Low_Lane_7",
+        "position": {
+          "x": -10.3,
+          "y": 0.0,
+          "z": 13.8
+        },
+        "yaw": 3.141593,
+        "params": {
+          "length": 9.0,
+          "exitHeight": 0.2
+        },
+        "attributes": {
+          "section": "LoopLow"
+        }
+      },
+      {
+        "id": "low_operator_7",
+        "definitionId": "flow.sink",
+        "definitionVersion": "0.1.0",
+        "name": "Low_Operator_7",
+        "position": {
+          "x": -19.32,
+          "y": 0.0,
+          "z": 13.8
+        },
+        "yaw": 3.141593,
+        "params": {
+          "surfaceHeight": 0.2,
+          "removalMode": "afterTime",
+          "removalTime": 540
+        },
+        "attributes": {
+          "section": "LoopLow"
+        }
+      },
+      {
+        "id": "low_lane_8",
+        "definitionId": "conveyor.gravity",
+        "definitionVersion": "0.1.0",
+        "name": "Low_Lane_8",
+        "position": {
+          "x": -10.3,
+          "y": 0.0,
+          "z": 10.8
+        },
+        "yaw": 3.141593,
+        "params": {
+          "length": 9.0,
+          "exitHeight": 0.2
+        },
+        "attributes": {
+          "section": "LoopLow"
+        }
+      },
+      {
+        "id": "low_operator_8",
+        "definitionId": "flow.sink",
+        "definitionVersion": "0.1.0",
+        "name": "Low_Operator_8",
+        "position": {
+          "x": -19.32,
+          "y": 0.0,
+          "z": 10.8
+        },
+        "yaw": 3.141593,
+        "params": {
+          "surfaceHeight": 0.2,
+          "removalMode": "afterTime",
+          "removalTime": 540
+        },
+        "attributes": {
+          "section": "LoopLow"
+        }
+      },
+      {
+        "id": "low_lane_9",
+        "definitionId": "conveyor.gravity",
+        "definitionVersion": "0.1.0",
+        "name": "Low_Lane_9",
+        "position": {
+          "x": -10.3,
+          "y": 0.0,
+          "z": 7.8
+        },
+        "yaw": 3.141593,
+        "params": {
+          "length": 9.0,
+          "exitHeight": 0.2
+        },
+        "attributes": {
+          "section": "LoopLow"
+        }
+      },
+      {
+        "id": "low_operator_9",
+        "definitionId": "flow.sink",
+        "definitionVersion": "0.1.0",
+        "name": "Low_Operator_9",
+        "position": {
+          "x": -19.32,
+          "y": 0.0,
+          "z": 7.8
+        },
+        "yaw": 3.141593,
+        "params": {
+          "surfaceHeight": 0.2,
+          "removalMode": "afterTime",
+          "removalTime": 540
+        },
+        "attributes": {
+          "section": "LoopLow"
+        }
+      },
+      {
+        "id": "low_lane_10",
+        "definitionId": "conveyor.gravity",
+        "definitionVersion": "0.1.0",
+        "name": "Low_Lane_10",
+        "position": {
+          "x": -10.3,
+          "y": 0.0,
+          "z": 4.8
+        },
+        "yaw": 3.141593,
+        "params": {
+          "length": 9.0,
+          "exitHeight": 0.2
+        },
+        "attributes": {
+          "section": "LoopLow"
+        }
+      },
+      {
+        "id": "low_operator_10",
+        "definitionId": "flow.sink",
+        "definitionVersion": "0.1.0",
+        "name": "Low_Operator_10",
+        "position": {
+          "x": -19.32,
+          "y": 0.0,
+          "z": 4.8
+        },
+        "yaw": 3.141593,
+        "params": {
+          "surfaceHeight": 0.2,
+          "removalMode": "afterTime",
+          "removalTime": 540
+        },
+        "attributes": {
+          "section": "LoopLow"
+        }
+      },
+      {
+        "id": "low_source_1",
+        "definitionId": "flow.source",
+        "definitionVersion": "0.1.0",
+        "name": "Low_Source_1",
+        "position": {
+          "x": -13.72,
+          "y": 0.0,
+          "z": 1.8
+        },
+        "yaw": 0.0,
+        "params": {
+          "interval": 120,
+          "palletType": "eur",
+          "loadKind": "block",
+          "loadHeight": 1.2,
+          "loadMass": 600,
+          "surfaceHeight": 0.56
+        },
+        "attributes": {
+          "section": "LoopLow"
+        }
+      },
+      {
+        "id": "low_entry_1",
+        "definitionId": "conveyor.roller",
+        "definitionVersion": "0.1.0",
+        "name": "Low_Entry_1",
+        "position": {
+          "x": -13.3,
+          "y": 0.0,
+          "z": 1.8
+        },
+        "yaw": 0.0,
+        "params": {
+          "length": 3.0,
+          "surfaceHeight": 0.56
+        },
+        "attributes": {
+          "section": "LoopLow"
+        }
+      },
+      {
+        "id": "low_source_2",
+        "definitionId": "flow.source",
+        "definitionVersion": "0.1.0",
+        "name": "Low_Source_2",
+        "position": {
+          "x": -13.72,
+          "y": 0.0,
+          "z": -1.2
+        },
+        "yaw": 0.0,
+        "params": {
+          "interval": 120,
+          "palletType": "eur",
+          "loadKind": "block",
+          "loadHeight": 1.2,
+          "loadMass": 600,
+          "surfaceHeight": 0.56
+        },
+        "attributes": {
+          "section": "LoopLow"
+        }
+      },
+      {
+        "id": "low_entry_2",
+        "definitionId": "conveyor.roller",
+        "definitionVersion": "0.1.0",
+        "name": "Low_Entry_2",
+        "position": {
+          "x": -13.3,
+          "y": 0.0,
+          "z": -1.2
+        },
+        "yaw": 0.0,
+        "params": {
+          "length": 3.0,
+          "surfaceHeight": 0.56
+        },
+        "attributes": {
+          "section": "LoopLow"
+        }
+      },
+      {
+        "id": "low_source_3",
+        "definitionId": "flow.source",
+        "definitionVersion": "0.1.0",
+        "name": "Low_Source_3",
+        "position": {
+          "x": -13.72,
+          "y": 0.0,
+          "z": -4.2
+        },
+        "yaw": 0.0,
+        "params": {
+          "interval": 120,
+          "palletType": "eur",
+          "loadKind": "block",
+          "loadHeight": 1.2,
+          "loadMass": 600,
+          "surfaceHeight": 0.56
+        },
+        "attributes": {
+          "section": "LoopLow"
+        }
+      },
+      {
+        "id": "low_entry_3",
+        "definitionId": "conveyor.roller",
+        "definitionVersion": "0.1.0",
+        "name": "Low_Entry_3",
+        "position": {
+          "x": -13.3,
+          "y": 0.0,
+          "z": -4.2
+        },
+        "yaw": 0.0,
+        "params": {
+          "length": 3.0,
+          "surfaceHeight": 0.56
+        },
+        "attributes": {
+          "section": "LoopLow"
+        }
+      },
+      {
+        "id": "high_transfer_to_chains",
+        "definitionId": "conveyor.transfer_rc",
+        "definitionVersion": "0.1.0",
+        "name": "High_Transfer_To_Chains",
+        "position": {
+          "x": -3.84,
+          "y": 10.0,
+          "z": -7.2
+        },
+        "yaw": 0.0,
+        "params": {
+          "surfaceHeight": 0.56
+        },
+        "attributes": {
+          "section": "LoopHigh"
+        }
+      },
+      {
+        "id": "high_chain_01",
+        "definitionId": "conveyor.chain",
+        "definitionVersion": "0.1.0",
+        "name": "High_Chain_01",
+        "position": {
+          "x": -3.14,
+          "y": 10.0,
+          "z": -6.68
+        },
+        "yaw": 4.712389,
+        "params": {
+          "length": 4.56
+        },
+        "attributes": {
+          "section": "LoopHigh"
+        }
+      },
+      {
+        "id": "high_to_aisle_1",
+        "definitionId": "conveyor.chain_turntable",
+        "definitionVersion": "0.1.0",
+        "name": "High_To_Aisle_1",
+        "position": {
+          "x": -3.14,
+          "y": 10.0,
+          "z": -1.4
+        },
+        "yaw": 0.0,
+        "params": {},
+        "attributes": {
+          "section": "LoopHigh"
+        }
+      },
+      {
+        "id": "high_chain_02",
+        "definitionId": "conveyor.chain",
+        "definitionVersion": "0.1.0",
+        "name": "High_Chain_02",
+        "position": {
+          "x": -3.14,
+          "y": 10.0,
+          "z": -0.68
+        },
+        "yaw": 4.712389,
+        "params": {
+          "length": 1.36
+        },
+        "attributes": {
+          "section": "LoopHigh"
+        }
+      },
+      {
+        "id": "high_from_aisle_1",
+        "definitionId": "conveyor.chain_turntable",
+        "definitionVersion": "0.1.0",
+        "name": "High_From_Aisle_1",
+        "position": {
+          "x": -3.14,
+          "y": 10.0,
+          "z": 1.4
+        },
+        "yaw": 0.0,
+        "params": {},
+        "attributes": {
+          "section": "LoopHigh"
+        }
+      },
+      {
+        "id": "high_chain_03",
+        "definitionId": "conveyor.chain",
+        "definitionVersion": "0.1.0",
+        "name": "High_Chain_03",
+        "position": {
+          "x": -3.14,
+          "y": 10.0,
+          "z": 2.12
+        },
+        "yaw": 4.712389,
+        "params": {
+          "length": 2.66
+        },
+        "attributes": {
+          "section": "LoopHigh"
+        }
+      },
+      {
+        "id": "high_to_aisle_2",
+        "definitionId": "conveyor.chain_turntable",
+        "definitionVersion": "0.1.0",
+        "name": "High_To_Aisle_2",
+        "position": {
+          "x": -3.14,
+          "y": 10.0,
+          "z": 5.5
+        },
+        "yaw": 0.0,
+        "params": {},
+        "attributes": {
+          "section": "LoopHigh"
+        }
+      },
+      {
+        "id": "high_chain_04",
+        "definitionId": "conveyor.chain",
+        "definitionVersion": "0.1.0",
+        "name": "High_Chain_04",
+        "position": {
+          "x": -3.14,
+          "y": 10.0,
+          "z": 6.22
+        },
+        "yaw": 4.712389,
+        "params": {
+          "length": 1.36
+        },
+        "attributes": {
+          "section": "LoopHigh"
+        }
+      },
+      {
+        "id": "high_from_aisle_2",
+        "definitionId": "conveyor.chain_turntable",
+        "definitionVersion": "0.1.0",
+        "name": "High_From_Aisle_2",
+        "position": {
+          "x": -3.14,
+          "y": 10.0,
+          "z": 8.3
+        },
+        "yaw": 0.0,
+        "params": {},
+        "attributes": {
+          "section": "LoopHigh"
+        }
+      },
+      {
+        "id": "high_chain_05",
+        "definitionId": "conveyor.chain",
+        "definitionVersion": "0.1.0",
+        "name": "High_Chain_05",
+        "position": {
+          "x": -3.14,
+          "y": 10.0,
+          "z": 9.02
+        },
+        "yaw": 4.712389,
+        "params": {
+          "length": 2.66
+        },
+        "attributes": {
+          "section": "LoopHigh"
+        }
+      },
+      {
+        "id": "high_to_aisle_3",
+        "definitionId": "conveyor.chain_turntable",
+        "definitionVersion": "0.1.0",
+        "name": "High_To_Aisle_3",
+        "position": {
+          "x": -3.14,
+          "y": 10.0,
+          "z": 12.4
+        },
+        "yaw": 0.0,
+        "params": {},
+        "attributes": {
+          "section": "LoopHigh"
+        }
+      },
+      {
+        "id": "high_chain_06",
+        "definitionId": "conveyor.chain",
+        "definitionVersion": "0.1.0",
+        "name": "High_Chain_06",
+        "position": {
+          "x": -3.14,
+          "y": 10.0,
+          "z": 13.12
+        },
+        "yaw": 4.712389,
+        "params": {
+          "length": 1.36
+        },
+        "attributes": {
+          "section": "LoopHigh"
+        }
+      },
+      {
+        "id": "high_from_aisle_3",
+        "definitionId": "conveyor.chain_turntable",
+        "definitionVersion": "0.1.0",
+        "name": "High_From_Aisle_3",
+        "position": {
+          "x": -3.14,
+          "y": 10.0,
+          "z": 15.2
+        },
+        "yaw": 0.0,
+        "params": {},
+        "attributes": {
+          "section": "LoopHigh"
+        }
+      },
+      {
+        "id": "high_chain_07",
+        "definitionId": "conveyor.chain",
+        "definitionVersion": "0.1.0",
+        "name": "High_Chain_07",
+        "position": {
+          "x": -3.14,
+          "y": 10.0,
+          "z": 15.92
+        },
+        "yaw": 4.712389,
+        "params": {
+          "length": 2.66
+        },
+        "attributes": {
+          "section": "LoopHigh"
+        }
+      },
+      {
+        "id": "high_to_aisle_4",
+        "definitionId": "conveyor.chain_turntable",
+        "definitionVersion": "0.1.0",
+        "name": "High_To_Aisle_4",
+        "position": {
+          "x": -3.14,
+          "y": 10.0,
+          "z": 19.3
+        },
+        "yaw": 0.0,
+        "params": {},
+        "attributes": {
+          "section": "LoopHigh"
+        }
+      },
+      {
+        "id": "high_chain_08",
+        "definitionId": "conveyor.chain",
+        "definitionVersion": "0.1.0",
+        "name": "High_Chain_08",
+        "position": {
+          "x": -3.14,
+          "y": 10.0,
+          "z": 20.02
+        },
+        "yaw": 4.712389,
+        "params": {
+          "length": 1.36
+        },
+        "attributes": {
+          "section": "LoopHigh"
+        }
+      },
+      {
+        "id": "high_from_aisle_4",
+        "definitionId": "conveyor.chain_turntable",
+        "definitionVersion": "0.1.0",
+        "name": "High_From_Aisle_4",
+        "position": {
+          "x": -3.14,
+          "y": 10.0,
+          "z": 22.1
+        },
+        "yaw": 0.0,
+        "params": {},
+        "attributes": {
+          "section": "LoopHigh"
+        }
+      },
+      {
+        "id": "high_chain_09",
+        "definitionId": "conveyor.chain",
+        "definitionVersion": "0.1.0",
+        "name": "High_Chain_09",
+        "position": {
+          "x": -3.14,
+          "y": 10.0,
+          "z": 22.82
+        },
+        "yaw": 4.712389,
+        "params": {
+          "length": 2.66
+        },
+        "attributes": {
+          "section": "LoopHigh"
+        }
+      },
+      {
+        "id": "high_to_aisle_5",
+        "definitionId": "conveyor.chain_turntable",
+        "definitionVersion": "0.1.0",
+        "name": "High_To_Aisle_5",
+        "position": {
+          "x": -3.14,
+          "y": 10.0,
+          "z": 26.2
+        },
+        "yaw": 0.0,
+        "params": {},
+        "attributes": {
+          "section": "LoopHigh"
+        }
+      },
+      {
+        "id": "high_chain_10",
+        "definitionId": "conveyor.chain",
+        "definitionVersion": "0.1.0",
+        "name": "High_Chain_10",
+        "position": {
+          "x": -3.14,
+          "y": 10.0,
+          "z": 26.92
+        },
+        "yaw": 4.712389,
+        "params": {
+          "length": 1.36
+        },
+        "attributes": {
+          "section": "LoopHigh"
+        }
+      },
+      {
+        "id": "high_from_aisle_5",
+        "definitionId": "conveyor.chain_turntable",
+        "definitionVersion": "0.1.0",
+        "name": "High_From_Aisle_5",
+        "position": {
+          "x": -3.14,
+          "y": 10.0,
+          "z": 29.0
+        },
+        "yaw": 0.0,
+        "params": {},
+        "attributes": {
+          "section": "LoopHigh"
+        }
+      },
+      {
+        "id": "high_chain_11",
+        "definitionId": "conveyor.chain",
+        "definitionVersion": "0.1.0",
+        "name": "High_Chain_11",
+        "position": {
+          "x": -3.14,
+          "y": 10.0,
+          "z": 29.72
+        },
+        "yaw": 4.712389,
+        "params": {
+          "length": 4.56
+        },
+        "attributes": {
+          "section": "LoopHigh"
+        }
+      },
+      {
+        "id": "high_transfer_to_rollers",
+        "definitionId": "conveyor.transfer_rc",
+        "definitionVersion": "0.1.0",
+        "name": "High_Transfer_To_Rollers",
+        "position": {
+          "x": -2.44,
+          "y": 10.0,
+          "z": 34.8
+        },
+        "yaw": 3.141593,
+        "params": {
+          "surfaceHeight": 0.56,
+          "operationMode": "chainsToRollers"
+        },
+        "attributes": {
+          "section": "LoopHigh"
+        }
+      },
+      {
+        "id": "high_roller_01",
+        "definitionId": "conveyor.roller",
+        "definitionVersion": "0.1.0",
+        "name": "High_Roller_01",
+        "position": {
+          "x": -3.86,
+          "y": 10.0,
+          "z": 34.8
+        },
+        "yaw": 3.141593,
+        "params": {
+          "length": 3.0,
+          "surfaceHeight": 0.56
+        },
+        "attributes": {
+          "section": "LoopHigh"
+        }
+      },
+      {
+        "id": "high_corner_1",
+        "definitionId": "conveyor.roller_turntable",
+        "definitionVersion": "0.1.0",
+        "name": "High_Corner_1",
+        "position": {
+          "x": -7.58,
+          "y": 10.0,
+          "z": 34.8
+        },
+        "yaw": 0.0,
+        "params": {
+          "surfaceHeight": 0.56
+        },
+        "attributes": {
+          "section": "LoopHigh"
+        }
+      },
+      {
+        "id": "high_roller_02",
+        "definitionId": "conveyor.roller",
+        "definitionVersion": "0.1.0",
+        "name": "High_Roller_02",
+        "position": {
+          "x": -7.58,
+          "y": 10.0,
+          "z": 34.08
+        },
+        "yaw": 1.570796,
+        "params": {
+          "length": 10.56,
+          "surfaceHeight": 0.56
+        },
+        "attributes": {
+          "section": "LoopHigh"
+        }
+      },
+      {
+        "id": "high_to_exit_1",
+        "definitionId": "conveyor.roller_turntable",
+        "definitionVersion": "0.1.0",
+        "name": "High_To_Exit_1",
+        "position": {
+          "x": -7.58,
+          "y": 10.0,
+          "z": 22.8
+        },
+        "yaw": 0.0,
+        "params": {
+          "surfaceHeight": 0.56
+        },
+        "attributes": {
+          "section": "LoopHigh"
+        }
+      },
+      {
+        "id": "high_roller_03",
+        "definitionId": "conveyor.roller",
+        "definitionVersion": "0.1.0",
+        "name": "High_Roller_03",
+        "position": {
+          "x": -7.58,
+          "y": 10.0,
+          "z": 22.08
+        },
+        "yaw": 1.570796,
+        "params": {
+          "length": 7.56,
+          "surfaceHeight": 0.56
+        },
+        "attributes": {
+          "section": "LoopHigh"
+        }
+      },
+      {
+        "id": "high_to_exit_2",
+        "definitionId": "conveyor.roller_turntable",
+        "definitionVersion": "0.1.0",
+        "name": "High_To_Exit_2",
+        "position": {
+          "x": -7.58,
+          "y": 10.0,
+          "z": 13.8
+        },
+        "yaw": 0.0,
+        "params": {
+          "surfaceHeight": 0.56
+        },
+        "attributes": {
+          "section": "LoopHigh"
+        }
+      },
+      {
+        "id": "high_roller_04",
+        "definitionId": "conveyor.roller",
+        "definitionVersion": "0.1.0",
+        "name": "High_Roller_04",
+        "position": {
+          "x": -7.58,
+          "y": 10.0,
+          "z": 13.08
+        },
+        "yaw": 1.570796,
+        "params": {
+          "length": 10.56,
+          "surfaceHeight": 0.56
+        },
+        "attributes": {
+          "section": "LoopHigh"
+        }
+      },
+      {
+        "id": "high_from_entry_1",
+        "definitionId": "conveyor.roller_turntable",
+        "definitionVersion": "0.1.0",
+        "name": "High_From_Entry_1",
+        "position": {
+          "x": -7.58,
+          "y": 10.0,
+          "z": 1.8
+        },
+        "yaw": 0.0,
+        "params": {
+          "surfaceHeight": 0.56
+        },
+        "attributes": {
+          "section": "LoopHigh"
+        }
+      },
+      {
+        "id": "high_roller_05",
+        "definitionId": "conveyor.roller",
+        "definitionVersion": "0.1.0",
+        "name": "High_Roller_05",
+        "position": {
+          "x": -7.58,
+          "y": 10.0,
+          "z": 1.08
+        },
+        "yaw": 1.570796,
+        "params": {
+          "length": 7.56,
+          "surfaceHeight": 0.56
+        },
+        "attributes": {
+          "section": "LoopHigh"
+        }
+      },
+      {
+        "id": "high_corner_2",
+        "definitionId": "conveyor.roller_turntable",
+        "definitionVersion": "0.1.0",
+        "name": "High_Corner_2",
+        "position": {
+          "x": -7.58,
+          "y": 10.0,
+          "z": -7.2
+        },
+        "yaw": 0.0,
+        "params": {
+          "surfaceHeight": 0.56
+        },
+        "attributes": {
+          "section": "LoopHigh"
+        }
+      },
+      {
+        "id": "high_roller_06",
+        "definitionId": "conveyor.roller",
+        "definitionVersion": "0.1.0",
+        "name": "High_Roller_06",
+        "position": {
+          "x": -6.86,
+          "y": 10.0,
+          "z": -7.2
+        },
+        "yaw": 0.0,
+        "params": {
+          "length": 3.0,
+          "surfaceHeight": 0.56
+        },
+        "attributes": {
+          "section": "LoopHigh"
+        }
+      },
+      {
+        "id": "high_exit_1",
+        "definitionId": "conveyor.roller",
+        "definitionVersion": "0.1.0",
+        "name": "High_Exit_1",
+        "position": {
+          "x": -8.3,
+          "y": 10.0,
+          "z": 22.8
+        },
+        "yaw": 3.141593,
+        "params": {
+          "length": 3.0,
+          "surfaceHeight": 0.56
+        },
+        "attributes": {
+          "section": "LoopHigh"
+        }
+      },
+      {
+        "id": "high_sink_1",
+        "definitionId": "flow.sink",
+        "definitionVersion": "0.1.0",
+        "name": "High_Sink_1",
+        "position": {
+          "x": -11.32,
+          "y": 10.0,
+          "z": 22.8
+        },
+        "yaw": 3.141593,
+        "params": {
+          "surfaceHeight": 0.56
+        },
+        "attributes": {
+          "section": "LoopHigh"
+        }
+      },
+      {
+        "id": "high_exit_2",
+        "definitionId": "conveyor.roller",
+        "definitionVersion": "0.1.0",
+        "name": "High_Exit_2",
+        "position": {
+          "x": -8.3,
+          "y": 10.0,
+          "z": 13.8
+        },
+        "yaw": 3.141593,
+        "params": {
+          "length": 3.0,
+          "surfaceHeight": 0.56
+        },
+        "attributes": {
+          "section": "LoopHigh"
+        }
+      },
+      {
+        "id": "high_sink_2",
+        "definitionId": "flow.sink",
+        "definitionVersion": "0.1.0",
+        "name": "High_Sink_2",
+        "position": {
+          "x": -11.32,
+          "y": 10.0,
+          "z": 13.8
+        },
+        "yaw": 3.141593,
+        "params": {
+          "surfaceHeight": 0.56
+        },
+        "attributes": {
+          "section": "LoopHigh"
+        }
+      },
+      {
+        "id": "high_source_1",
+        "definitionId": "flow.source",
+        "definitionVersion": "0.1.0",
+        "name": "High_Source_1",
+        "position": {
+          "x": -11.72,
+          "y": 10.0,
+          "z": 1.8
+        },
+        "yaw": 0.0,
+        "params": {
+          "interval": 120,
+          "palletType": "eur",
+          "loadKind": "block",
+          "loadHeight": 1.2,
+          "loadMass": 600,
+          "surfaceHeight": 0.56
+        },
+        "attributes": {
+          "section": "LoopHigh"
+        }
+      },
+      {
+        "id": "high_entry_1",
+        "definitionId": "conveyor.roller",
+        "definitionVersion": "0.1.0",
+        "name": "High_Entry_1",
+        "position": {
+          "x": -11.3,
+          "y": 10.0,
+          "z": 1.8
+        },
+        "yaw": 0.0,
+        "params": {
+          "length": 3.0,
+          "surfaceHeight": 0.56
+        },
+        "attributes": {
+          "section": "LoopHigh"
+        }
+      },
+      {
+        "id": "routing",
+        "definitionId": "info.code",
+        "definitionVersion": "0.1.0",
+        "name": "Routing",
+        "position": {
+          "x": -6.4,
+          "y": 0.0,
+          "z": -10.0
+        },
+        "yaw": 0.0,
+        "params": {
+          "source": "\"\"\"Routes the pallets of the two loops: a new pallet goes to an aisle whose infeed chains are free, a retrieved\npallet to an exit with room. A pallet that finds its place busy goes on to the next one, round the loop if need be.\"\"\"\nfrom intrascript import *\n\nAISLES = 5\nLOW_EXITS = 10        # gravity lanes of the lower loop\nHIGH_EXITS = 2        # exits of the upper loop\nLANE_ROOM = 6         # pallets on a gravity lane before the loop sends the next one to another lane\n\n# The turntable in front of each aisle's infeed chains, on both loops, and the aisle's number.\nAISLE_AT = {\n    Low_To_Aisle_1: 1,\n    Low_To_Aisle_2: 2,\n    Low_To_Aisle_3: 3,\n    Low_To_Aisle_4: 4,\n    Low_To_Aisle_5: 5,\n    High_To_Aisle_1: 1,\n    High_To_Aisle_2: 2,\n    High_To_Aisle_3: 3,\n    High_To_Aisle_4: 4,\n    High_To_Aisle_5: 5,\n}\n\n# The turntable at each exit, and the exit's number on its loop.\nEXIT_AT = {\n    Low_To_Lane_1: 1,\n    Low_To_Lane_2: 2,\n    Low_To_Lane_3: 3,\n    Low_To_Lane_4: 4,\n    Low_To_Lane_5: 5,\n    Low_To_Lane_6: 6,\n    Low_To_Lane_7: 7,\n    Low_To_Lane_8: 8,\n    Low_To_Lane_9: 9,\n    Low_To_Lane_10: 10,\n    High_To_Exit_1: 1,\n    High_To_Exit_2: 2,\n}\n\n# Where each of those turntables branches off the loop to.\nBRANCH = {\n    Low_To_Aisle_1: Aisle_01_in_1,\n    Low_To_Aisle_2: Aisle_02_in_1,\n    Low_To_Aisle_3: Aisle_03_in_1,\n    Low_To_Aisle_4: Aisle_04_in_1,\n    Low_To_Aisle_5: Aisle_05_in_1,\n    High_To_Aisle_1: Aisle_01_in_2,\n    High_To_Aisle_2: Aisle_02_in_2,\n    High_To_Aisle_3: Aisle_03_in_2,\n    High_To_Aisle_4: Aisle_04_in_2,\n    High_To_Aisle_5: Aisle_05_in_2,\n    Low_To_Lane_1: Low_Lane_1,\n    Low_To_Lane_2: Low_Lane_2,\n    Low_To_Lane_3: Low_Lane_3,\n    Low_To_Lane_4: Low_Lane_4,\n    Low_To_Lane_5: Low_Lane_5,\n    Low_To_Lane_6: Low_Lane_6,\n    Low_To_Lane_7: Low_Lane_7,\n    Low_To_Lane_8: Low_Lane_8,\n    Low_To_Lane_9: Low_Lane_9,\n    Low_To_Lane_10: Low_Lane_10,\n    High_To_Exit_1: High_Exit_1,\n    High_To_Exit_2: High_Exit_2,\n}\n\nnext_aisle = 0\nnext_low_exit = 0\nnext_high_exit = 0\nsent_on = 0           # pallets that found their aisle or their exit busy and went on to the next\n\n\n@on_create(Low_Source_1, Low_Source_2, Low_Source_3, High_Source_1)\ndef new_pallet(pallet):\n    \"\"\"A new pallet is to be stored; the aisles take turns.\"\"\"\n    global next_aisle\n    next_aisle = next_aisle % AISLES + 1\n    pallet.goal = \"store\"\n    pallet.aisle = next_aisle\n\n\n@on_enter(Aisle_01_out_1, Aisle_02_out_1, Aisle_03_out_1, Aisle_04_out_1, Aisle_05_out_1)\ndef retrieved_low(pallet):\n    \"\"\"A pallet the crane set down at floor height leaves through a gravity lane; the lanes take turns.\"\"\"\n    global next_low_exit\n    next_low_exit = next_low_exit % LOW_EXITS + 1\n    pallet.goal = \"leave\"\n    pallet.way_out = next_low_exit\n\n\n@on_enter(Aisle_01_out_2, Aisle_02_out_2, Aisle_03_out_2, Aisle_04_out_2, Aisle_05_out_2)\ndef retrieved_high(pallet):\n    \"\"\"A pallet the crane set down at 10 m leaves through one of the two upper exits, in turn.\"\"\"\n    global next_high_exit\n    next_high_exit = next_high_exit % HIGH_EXITS + 1\n    pallet.goal = \"leave\"\n    pallet.way_out = next_high_exit\n\n\n@choose_exit(Low_To_Aisle_1, Low_To_Aisle_2, Low_To_Aisle_3, Low_To_Aisle_4, Low_To_Aisle_5, High_To_Aisle_1, High_To_Aisle_2, High_To_Aisle_3, High_To_Aisle_4, High_To_Aisle_5)\ndef at_an_aisle(pallet, sender):\n    \"\"\"Into the aisle if the pallet is for it and its infeed chains are free; otherwise on along the loop.\"\"\"\n    global sent_on\n    if pallet.attributes.get(\"goal\") != \"store\" or pallet.aisle != AISLE_AT[sender]:\n        return onward(sender)\n    if not BRANCH[sender].occupied:\n        return BRANCH[sender]\n    pallet.aisle = pallet.aisle % AISLES + 1\n    sent_on += 1\n    return onward(sender)\n\n\n@choose_exit(Low_To_Lane_1, Low_To_Lane_2, Low_To_Lane_3, Low_To_Lane_4, Low_To_Lane_5, Low_To_Lane_6, Low_To_Lane_7, Low_To_Lane_8, Low_To_Lane_9, Low_To_Lane_10)\ndef at_a_lane(pallet, sender):\n    \"\"\"Onto the gravity lane if it is the pallet's and has room; otherwise on to the next lane.\"\"\"\n    global sent_on\n    if pallet.attributes.get(\"goal\") != \"leave\" or pallet.way_out != EXIT_AT[sender]:\n        return onward(sender)\n    if BRANCH[sender].count < LANE_ROOM:\n        return BRANCH[sender]\n    pallet.way_out = pallet.way_out % LOW_EXITS + 1\n    sent_on += 1\n    return onward(sender)\n\n\n@choose_exit(High_To_Exit_1, High_To_Exit_2)\ndef at_a_high_exit(pallet, sender):\n    \"\"\"Out through the exit if it is the pallet's and its conveyor is free; otherwise on to the other exit.\"\"\"\n    global sent_on\n    if pallet.attributes.get(\"goal\") != \"leave\" or pallet.way_out != EXIT_AT[sender]:\n        return onward(sender)\n    if not BRANCH[sender].occupied:\n        return BRANCH[sender]\n    pallet.way_out = pallet.way_out % HIGH_EXITS + 1\n    sent_on += 1\n    return onward(sender)\n\n\ndef onward(turntable):\n    \"\"\"The loop conveyor after a turntable: its exit that is not the branch.\"\"\"\n    for way in turntable.exits:\n        if way != BRANCH[turntable]:\n            return way\n    return None\n\n\n@every(1 * h)\ndef report():\n    stock = sum([aisle.stats[\"stock\"] for aisle in [Aisle_01, Aisle_02, Aisle_03, Aisle_04, Aisle_05]])\n    print(f\"stock {stock:.0f} pallets; {sent_on} pallets sent on to the next aisle or exit so far\")\n"
+        },
+        "attributes": {}
+      }
+    ],
+    "connections": [],
+    "rules": []
+  }
+}

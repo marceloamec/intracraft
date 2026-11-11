@@ -41,6 +41,71 @@ Definitions: `flow.source` (`source.json`) and `flow.sink` (`sink.json`). Implem
 - `palletModel` = none with `loadKind` = none would create nothing: the source warns (`sourceCreatesNothing`) and sends an empty pallet of its type.
 - A load block without a pallet travels as a carton stack (contact material `cardboard`). With a pallet, the block keeps the pallet footprint as before; a catalogue load may overhang it, and then the footprint is the larger one.
 
+### 1.2 Load recipes and the output table (amendment 2026-11-10, awaiting the owner's confirmation; not built)
+
+Decision: [[ADR-0031 Asset Library Load Units and Loose Loads]]. A source creates load units from **load recipes** ([[S24 Load Recipes]]), and an **output table** says which recipe each unit gets. The arrival rule (`generationMode`, `interval`, `blockIfOccupied`) keeps deciding **when** a unit leaves; the table decides **what** leaves.
+
+New parameters:
+
+| Key           | Unit | Default                     | Range                                                  | Description                                                       |
+| ------------- | ---- | --------------------------- | ------------------------------------------------------ | ----------------------------------------------------------------- |
+| `outputRule`  | enum | `single`                    | `single`, `share`, `sequence`, `timetable`, `onDemand` | How the recipe of each unit is chosen                             |
+| `recipe`      | ref  | `mu.recipe.wrapped-cartons` | a recipe of the project library                        | With `single`                                                     |
+| `repeatEvery` | s    | 0                           | 0 … 86400                                              | With `timetable`: start the table again after this time; 0 = once |
+
+The **output table** is the source's own content, edited as a grid in its property sheet (the grid of [[S19 Table]]). Its columns:
+
+| Column     | Used by     | Meaning                                                                         |
+| ---------- | ----------- | ------------------------------------------------------------------------------- |
+| `recipe`   | all         | A recipe of the project library                                                 |
+| `share`    | `share`     | Weight of the row; the rows need not add up to 100                              |
+| `count`    | `sequence`  | Units of this row before the next row                                           |
+| `time`     | `timetable` | Time since the start of the run                                                 |
+| `quantity` | `timetable` | Units to create at that time                                                    |
+| `mass`     | all         | Optional: replaces the recipe's load mass for this row (kg)                     |
+| any other  | all         | Becomes an attribute of the unit (`destination` → `pallet.destination` in code) |
+
+Rules:
+
+| Rule        | Behaviour                                                                                                                                                    |
+| ----------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| `single`    | Every unit is `recipe`. The table is not used                                                                                                                |
+| `share`     | Each unit draws its row with probability share / sum of shares                                                                                               |
+| `sequence`  | Row 1 `count` times, then row 2, and so on; after the last row, row 1 again                                                                                  |
+| `timetable` | At each row's `time`, `quantity` units join a queue; they leave one after another as soon as the entry is free. `generationMode` and `interval` are not used |
+| `onDemand`  | No arrivals by themselves; code asks for a unit (`Source1.create("recipe name")`, [[A17 IntraScript Language]]; specified, to be built)                      |
+
+- **Seed.** The `share` draw uses a stream of its own, derived from the source's stream. Adding or changing an output table therefore never changes the arrival times of the same project.
+- **`maxPallets`** counts all units, whatever their recipe.
+- **Every unit** is born with its name `MU<n>` ([[ADR-0029 Sections, Addresses and Load-Unit Names]]) and the read-only attribute `recipe`, plus the row's extra columns.
+- **Units of different sizes.** The entry-free rule of §1 uses the length of the unit that is leaving and of the one before it; each unit keeps its own length, width, height and mass in both modules.
+- **Orientation.** `orientation` stays a parameter of the source and applies to every recipe.
+- **Statistics.** Units created and waiting time lost, in total and per recipe.
+- **3D.** A `rigid` recipe leaves as one body, a `loose` recipe as a carrier with its items ([[S24 Load Recipes]] §4), at the conveying speed as today.
+
+**Old parameters.** `palletType`, `palletModel`, `loadKind`, `loadAsset`, `loadMass` and `loadHeight` (§1 and §1.1) keep working: a source that has no `recipe` set behaves exactly as before, and its values are shown as the matching built-in recipe (S24 §3) with that pallet type, mass and height. New sources use recipes. `palletModel` = `none` (a load travelling without a pallet) stays available through the old parameters only; recipes always have a carrier for now (ADR-0031 §5).
+
+Validations:
+
+| Id                    | Level   | When                                                             |
+| --------------------- | ------- | ---------------------------------------------------------------- |
+| `outputTableEmpty`    | error   | A rule other than `single` and `onDemand` with no rows           |
+| `outputRecipeMissing` | error   | A row names a recipe that is not in the project library          |
+| `outputShareInvalid`  | error   | `share`: a negative share, or all shares zero                    |
+| `outputCountInvalid`  | error   | `sequence` or `timetable`: a count or quantity below 1           |
+| `outputTimesUnsorted` | warning | `timetable`: times not rising; the rows are used in time order   |
+| `unitWiderThanDeck`   | warning | A recipe's footprint is wider than the conveyor the source feeds |
+
+Reference tests:
+
+- **Unchanged.** A source with `single` and a built-in recipe gives the same event times and statistics as the same source with the old parameters, in every reference scenario.
+- **Share.** Two rows, shares 70 and 30, 10,000 units: the first recipe is drawn 7000 ± 118 times (99 % of a binomial with standard deviation √(10000 × 0.7 × 0.3) = 45.8); the same seed gives the same sequence; shares 7 and 3 give the same sequence as 70 and 30.
+- **Arrival times untouched.** With `exponential` arrivals, the arrival times with and without a `share` table are identical.
+- **Sequence.** Rows A × 2 and B × 1: the first nine units are A A B A A B A A B.
+- **Timetable.** One row at 60 s with quantity 3, EUR pallets long side first onto a roller conveyor running at 0.25 m/s with `minGap` 0.15 m: units leave at 60 s, 65.4 s and 70.8 s (headway (1.2 + 0.15) / 0.25 = 5.4 s, as in test T2), and nothing before 60 s.
+- **Mixed sizes.** A sequence of an EUR unit and a 1200 × 1000 unit, both long side first: both have the same headway; short side first, the gap between them is still `minGap`, measured tail to front.
+- **Attributes.** A row with `destination` = B gives units whose `pallet.destination` reads "B" in code.
+
 ## 2. Sink
 
 | Key           | Plan key         | Unit | Default   | Range                              | Description        |

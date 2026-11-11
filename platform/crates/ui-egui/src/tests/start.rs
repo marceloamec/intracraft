@@ -1,4 +1,5 @@
 use super::*;
+use crate::Brand;
 use std::time::{Duration, Instant};
 
 /// The app on its start page, its recent files kept in `dir`.
@@ -127,4 +128,36 @@ fn the_footer_says_whether_an_update_is_out() {
     h.state_mut().updates.as_mut().unwrap().check_now();
     h.run();
     h.get_by_label("BIMCraft 0.4.0 is up to date");
+}
+
+#[test]
+fn an_application_built_on_bimcraft_shows_its_own_name_and_keeps_projects_in_its_own_files() {
+    let dir = tempfile::tempdir().unwrap();
+    let mut h = home(dir.path(), &[]);
+    h.state_mut().brand = Brand {
+        name: "Acme",
+        tagline: "Plans for rockets.",
+        project: "Acme project",
+        extension: "acme",
+        source: "https://example.com/acme",
+        logo: |_, _| {},
+    };
+    h.run();
+    h.get_by_label("Acme");
+    h.get_by_label("Plans for rockets.");
+    assert!(h.query_by_label("BIMCraft").is_none());
+    let opens = h.state().open_extensions();
+    for ext in ["acme", "bimcraft", "ifc"] {
+        assert!(opens.contains(&ext), "{ext} in {opens:?}");
+    }
+    assert_eq!(opens.iter().filter(|e| **e == "acme").count(), 1);
+    // A project under the application's own name is a project like any other.
+    press(&mut h, "New Project");
+    h.state_mut().run("wall", json!({"points": [[0, 0], [3000, 0]]}));
+    let plant = dir.path().join("plant.acme");
+    assert!(h.state_mut().save_to(&plant));
+    assert!(h.state_mut().open_path(&plant));
+    assert_eq!(walls(&h).len(), 1);
+    // BIMCraft alone keeps its own.
+    assert_eq!(BimApp::new(Session::new()).brand.extension, "bimcraft");
 }

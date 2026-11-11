@@ -207,6 +207,7 @@ pub enum Category {
     Pallets,
     Control,
     Scenery,
+    Storage,
 }
 
 #[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]

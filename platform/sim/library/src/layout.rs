@@ -130,6 +130,16 @@ impl Project {
         }
         serde_json::from_value(value).map_err(|e| format!("project file: {e}"))
     }
+
+    /// The project as the text of a reference project file.
+    pub fn write(&self) -> Result<String, String> {
+        serde_json::to_string_pretty(self)
+            .map(|text| {
+                text + "
+"
+            })
+            .map_err(|e| format!("the project doesn't write: {e}"))
+    }
 }
 
 #[cfg(test)]

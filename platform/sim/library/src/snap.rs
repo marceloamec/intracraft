@@ -58,6 +58,16 @@ struct SnapOption {
 /// Where a component dropped at `candidate` ends up: lined up with the nearest free port facing one of its ports
 /// (within `radius`), else on the 100 mm grid. The yaw is kept; the user turns it.
 pub fn snap_pose(candidate: &Candidate, layout: &Layout, library: &Library, radius: f64) -> Result<Snap, String> {
+    snap_where(candidate, layout, library, radius, false)
+}
+
+/// As [`snap_pose`], but only an out port lines up with an in port (or an inout with either): what a drag in the
+/// editor joins, so a conveyor never snaps backwards onto another.
+pub fn snap_fitting(candidate: &Candidate, layout: &Layout, library: &Library, radius: f64) -> Result<Snap, String> {
+    snap_where(candidate, layout, library, radius, true)
+}
+
+fn snap_where(candidate: &Candidate, layout: &Layout, library: &Library, radius: f64, fitting: bool) -> Result<Snap, String> {
     let values = instance_values(candidate.definition, &candidate.params);
     let moving: Vec<WorldPort> = resolve_ports(candidate.definition, &values)?
         .iter()
@@ -67,7 +77,7 @@ pub fn snap_pose(candidate: &Candidate, layout: &Layout, library: &Library, radi
     let mut best: Option<SnapOption> = None;
     for m in &moving {
         for t in &targets {
-            if !faces_each_other(m, t) {
+            if !faces_each_other(m, t) || (fitting && !directions_compatible(m, t)) {
                 continue;
             }
             let dx = t.position.x + t.facing.0 * PORT_GAP - m.position.x;
@@ -419,6 +429,27 @@ mod tests {
         assert_eq!(rules(None), ["portHeightMismatch"]);
         assert_eq!(rules(Some("roller2")).len(), 1);
         assert!(rules(Some("roller9")).is_empty());
+    }
+
+    #[test]
+    fn a_fitting_snap_never_joins_two_out_ports() {
+        // Turned round, the dropped roller's out port B faces roller1's out port B, 0.2 m off.
+        let lib = Library::built_in().unwrap();
+        let layout = with_connections(layout_of(vec![instance("roller1", "conveyor.roller", at(0.0, 0.0))]), &lib);
+        let candidate = Candidate {
+            definition: lib.get("conveyor.roller").unwrap(),
+            params: Default::default(),
+            position: at(6.2, 0.0),
+            yaw: PI,
+            instance_id: None,
+        };
+        let any = snap_pose(&candidate, &layout, &lib, SNAP_RADIUS).unwrap();
+        assert_eq!(any.issues.iter().map(|i| i.rule).collect::<Vec<_>>(), ["portDirectionMismatch"]);
+        let fitting = snap_fitting(&candidate, &layout, &lib, SNAP_RADIUS).unwrap();
+        assert_eq!(fitting.link, None);
+        // Facing the right way, it joins as the plain snap does.
+        let ahead = Candidate { position: at(3.2, 0.0), yaw: 0.0, ..candidate };
+        assert_eq!(snap_fitting(&ahead, &layout, &lib, SNAP_RADIUS).unwrap().link, link("roller1", "A", "B"));
     }
 
     #[test]

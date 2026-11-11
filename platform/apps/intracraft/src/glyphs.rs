@@ -16,10 +16,22 @@ pub enum Glyph {
     Elevator,
     Gravity,
     Process,
+    /// A stretch wrapper: the round table seen from above, the mast beside it with the film roll.
+    Wrapper,
     Source,
     Sink,
     Photocell,
     Scenery,
+    /// A storage aisle: a rack seen from its end, the crane's mast between its two rows.
+    Rack,
+    /// The warehouse wizard: racks side by side under a roof.
+    Warehouse,
+    /// A code block: braces.
+    Code,
+    /// The 3D window: a cube seen from a corner.
+    View3D,
+    /// The view split in two, the plan and the 3D view.
+    Split,
     Run,
     Pause,
     Step,
@@ -41,9 +53,12 @@ impl Glyph {
             "conveyor.elevator" => Glyph::Elevator,
             "conveyor.gravity" => Glyph::Gravity,
             "flow.process_station" => Glyph::Process,
+            "flow.stretch_wrapper" => Glyph::Wrapper,
             "flow.source" => Glyph::Source,
             "flow.sink" => Glyph::Sink,
             "sensor.photoeye" => Glyph::Photocell,
+            "info.code" => Glyph::Code,
+            "storage.aisle" => Glyph::Rack,
             _ => Glyph::Scenery,
         }
     }
@@ -109,6 +124,12 @@ impl Glyph {
                 line(at(6.0, 4.0), at(18.0, 4.0));
                 frame(10.0, 6.0, 14.0, 10.0);
             }
+            Glyph::Wrapper => {
+                circle(10.0, 12.0, 8.0);
+                frame(5.0, 8.5, 15.0, 15.5);
+                frame(19.0, 9.0, 22.0, 15.0);
+                circle(17.0, 12.0, 1.6);
+            }
             Glyph::Source | Glyph::Sink => {
                 frame(3.0, 7.0, 13.0, 17.0);
                 let (tail, tip) = if self == Glyph::Source { (13.0, 21.0) } else { (21.0, 13.5) };
@@ -121,11 +142,55 @@ impl Glyph {
                 frame(18.0, 9.0, 22.0, 15.0);
                 p.line_segment([at(6.0, 12.0), at(18.0, 12.0)], Stroke::new(PEN, ink.gamma_multiply(0.6)));
             }
+            Glyph::Split => {
+                frame(2.0, 5.0, 22.0, 19.0);
+                line(at(12.0, 5.0), at(12.0, 19.0));
+                poly(&[(14.5, 10.0), (17.0, 8.5), (19.5, 10.0), (19.5, 15.0), (17.0, 16.5), (14.5, 15.0)]);
+                frame(4.5, 9.0, 9.5, 15.0);
+            }
+            Glyph::View3D => {
+                poly(&[(4.0, 8.0), (12.0, 4.0), (20.0, 8.0), (20.0, 17.0), (12.0, 21.0), (4.0, 17.0)]);
+                line(at(4.0, 8.0), at(12.0, 12.0));
+                line(at(20.0, 8.0), at(12.0, 12.0));
+                line(at(12.0, 12.0), at(12.0, 21.0));
+            }
+            Glyph::Rack => {
+                for x in [3.0, 8.0, 16.0, 21.0] {
+                    line(at(x, 3.0), at(x, 21.0));
+                }
+                for y in [8.0, 14.0, 20.0] {
+                    line(at(3.0, y), at(8.0, y));
+                    line(at(16.0, y), at(21.0, y));
+                }
+                line(at(12.0, 2.0), at(12.0, 21.0));
+                frame(10.0, 10.0, 14.0, 13.0);
+            }
+            Glyph::Warehouse => {
+                poly(&[(2.0, 9.0), (12.0, 3.0), (22.0, 9.0), (22.0, 21.0), (2.0, 21.0)]);
+                for x in [6.0, 10.0, 14.0, 18.0] {
+                    line(at(x, 11.0), at(x, 21.0));
+                }
+                for y in [14.0, 17.5] {
+                    line(at(6.0, y), at(10.0, y));
+                    line(at(14.0, y), at(18.0, y));
+                }
+            }
             Glyph::Scenery => {
                 poly(&[(4.0, 8.0), (12.0, 4.0), (20.0, 8.0), (20.0, 17.0), (12.0, 21.0), (4.0, 17.0)]);
                 line(at(4.0, 8.0), at(12.0, 12.0));
                 line(at(20.0, 8.0), at(12.0, 12.0));
                 line(at(12.0, 12.0), at(12.0, 21.0));
+            }
+            Glyph::Code => {
+                // `{` and `}`: a bar with a point halfway, its ends turned in.
+                for (out, inn, tip) in [(9.0, 11.0, 6.0), (15.0, 13.0, 18.0)] {
+                    line(at(inn, 4.0), at(out, 5.0));
+                    line(at(out, 5.0), at(out, 10.5));
+                    line(at(out, 10.5), at(tip, 12.0));
+                    line(at(tip, 12.0), at(out, 13.5));
+                    line(at(out, 13.5), at(out, 19.0));
+                    line(at(out, 19.0), at(inn, 20.0));
+                }
             }
             Glyph::Run => poly(&[(7.0, 4.0), (19.0, 12.0), (7.0, 20.0)]),
             Glyph::Pause => {

@@ -2,661 +2,768 @@
 title: A17 IntraScript Language
 lang: en
 tags: [app, control, scripting]
-status: proposed — waiting for the owner's confirmation
-updated: 2026-10-31
+status: accepted — IntraScript 1.0, implemented in the Discrete simulation module
+updated: 2026-11-09
 ---
 
 # A17 IntraScript Language
 
-> **Rust platform (2026-10-31):** the language is unchanged; its interpreter is the Rust crate `intracraft-script` (`platform/sim/script`) instead of `packages/script` (§14.6 and §21), built in phase R10 of [[A19 Rust Implementation Plan]] once Q20 is answered ([[ADR-0020 Rust Platform on BIMCraft with Three Modules]]).
+**IntraScript** is IntraCraft's own programming language for simulation. It programs what parameters and If/Then rules
+cannot: routing by pallet or order data, sequences with waits, counters and queues, reports during the run. Its code
+lives in **code blocks** ([[S21 Code Block]]), objects placed on the plan beside the equipment they drive, edited in their
+own code editor, as the method objects of commercial plant simulators.
 
-**IntraScript** is the programming language of IntraCraft. It programs behaviour that parameters and If/Then rules cannot express: routing by order data, sequences with waits, counters, queues and tables, reports during the run. Code lives in **code blocks** placed on the 2D plan, next to the variables, tables and lists it works with, and grouped in **areas** that give the model a hierarchy.
-
-Decision and scope: [[ADR-0018 IntraScript Scripting Language]]. Information objects: [[S18 Variable]], [[S19 Table]], [[S20 List]], [[S21 Code Block]], [[S22 Area]]. Rules it coexists with: [[A08 Controller]].
+IntraScript is written with **Python's syntax** and adds what a plant simulation needs: events as decorators, waiting
+inside a sequence, physical units, and the layout's objects by name. It is not CPython: IntraCraft runs it with its own
+small interpreter, open source and sandboxed. Decisions: [[ADR-0018 IntraScript Scripting Language]] (the language and its
+objects) and [[ADR-0027 IntraScript in Python Syntax with Its Own Interpreter]] (the syntax and the interpreter). A guided
+start: [[A20 IntraScript Tutorial]].
 
 ## 1. Goals
 
-| Goal                        | What it means for the language                                                                     |
-| --------------------------- | -------------------------------------------------------------------------------------------------- |
-| Readable by plant engineers | English keywords, blocks closed with `end`, no symbols to learn for references (`self`, `pallet`…) |
-| Checked before the run      | Types, units and names are checked while typing; a model with errors cannot start                  |
-| Physical units in the code  | `150 mm`, `0.25 m/s`, `2 s`; adding a length to a time is an error, not a wrong result             |
-| Same code in 2D and 3D      | Code sees the same objects, signals and events in both modes (§14)                                 |
-| Deterministic and sandboxed | Seeded random numbers, no clock, no files, no network; same layout and seed give the same result   |
-| Ready for AI agents         | Code is text inside the project, changed only through commands (§16)                               |
+| Goal                        | What it means                                                                                        |
+| --------------------------- | ---------------------------------------------------------------------------------------------------- |
+| Familiar                    | Python's syntax: what engineers, the internet and AI assistants already know; any editor colours it  |
+| Checked before the run      | Names, members, events and waits are checked while typing; a model with errors cannot start          |
+| Physical units in the code  | `150 * mm`, `0.25 * m / s`, `2 * s`; adding a length to a time is an error, not a wrong number       |
+| Made for simulation         | Events (`@on_enter`), waits (`wait`, `wait_until`), exit decisions, seeded random numbers            |
+| Deterministic and sandboxed | Same layout, code and seed → same run; no files, network or clock; runaway loops stop with a message |
+| Open source                 | The interpreter is `intracraft-script` (MIT OR Apache-2.0), no third-party code                      |
 
 ## 2. A first example
 
-```intrascript
-// Pallets for destination "B" leave the turntable towards Roller5; the others go to Roller7.
-var routed: integer := 0
+```python
+"""Routes pallets by destination and holds each one 2 s at the photocell."""
+from intrascript import *
 
-on choose exit of Turntable1
-  routed += 1
-  if pallet.destination = "B"
-    return Roller5
-  end
-  return Roller7
-end
+routed = 0
 
-// Hold every pallet two seconds at the photocell of zone 3.
-on Photoeye3.detected rises
-  Roller3.run := false
-  wait 2 s
-  Roller3.run := true
-end
+
+@on_create(Infeed)
+def tag(pallet):
+    pallet.destination = "B" if random.chance(0.3) else "A"
+
+
+@choose_exit(Turntable)
+def route(pallet):
+    global routed
+    routed += 1
+    return Line_B if pallet.destination == "B" else Line_A
+
+
+@on_rise(Photoeye3.detected)
+def hold():
+    Roller3.run = False
+    wait(2 * s)
+    Roller3.run = True
 ```
+
+`Infeed`, `Turntable`, `Line_A`, `Photoeye3` and `Roller3` are objects of the layout, named as §12.1 says. The first line
+is optional: it only lets Python editors know IntraScript's names (§18.2).
 
 ## 3. Writing code
 
-- **One statement per line.** No semicolons. A line continues on the next one when it ends with an operator, a comma or an open bracket.
-- **Blocks end with `end`.** `if`, `case`, `while`, `for`, `method` and `on` open a block; `repeat` closes with `until`.
-- **Not case-sensitive.** `Roller3`, `roller3` and `ROLLER3` are the same name; the editor rewrites a name with the spelling of its declaration. Text values (`"B"`) are compared exactly.
-- **Comments** start with `//` and run to the end of the line. Lines starting with `///` directly above a `method` are its **help text**, shown by the editor when the method is used.
-- **Names** start with a letter and continue with letters, digits or `_`. Reserved words (§17) cannot be names.
+IntraScript follows Python 3:
+
+- **Indentation makes blocks**, four spaces per level. Tabs are refused (the editor turns them into spaces).
+- **A line ends a statement**, unless a bracket is open or it ends with `\`. `;` separates statements on one line.
+- **`#` starts a comment.** A text right after `def …:` is the function's **help**, shown by the editor.
+- **Names are case-sensitive**: `Roller3` and `roller3` are different. Python's keywords can't be names.
+- **`=` assigns, `==` compares, `!=` is "not equal"**; `True`, `False`, `None` are capitalised.
+- **Counting starts at 0**: the first item of a list is `items[0]`, the last `items[-1]`.
 
 ### 3.1 Literals
 
-| Kind            | Examples                                          | Notes                                                       |
-| --------------- | ------------------------------------------------- | ----------------------------------------------------------- |
-| Integer         | `12`, `-3`, `1_000_000`                           | `_` groups digits                                           |
-| Real            | `0.25`, `1.5e3`                                   | Decimal point, never a comma                                |
-| Quantity        | `150 mm`, `0.25 m/s`, `0.5 m/s2`, `90 deg`, `2 s` | A number followed by a unit (§4.2); `m/s²` is also accepted |
-| Clock time      | `1:30:00`                                         | Hours, minutes, seconds; type `time` (here 5400 s)          |
-| Rate            | `120 /h`                                          | Events per time; type `rate`                                |
-| Text            | `"Hall A"`, `"say ""hi"""`                        | A double quote inside text is written twice                 |
-| Boolean         | `true`, `false`                                   |                                                             |
-| Empty reference | `none`                                            | An object, pallet or list reference that points to nothing  |
-| List            | `[1, 2, 3]`, `[Roller1, Roller2]`, `[]`           | All items of one type                                       |
+| Kind       | Examples                                | Notes                                                  |
+| ---------- | --------------------------------------- | ------------------------------------------------------ |
+| Integer    | `12`, `-3`, `1_000_000`, `0x1F`         | Whole numbers up to ±9.2·10¹⁸                          |
+| Float      | `0.25`, `1.5e3`                         | Decimal point, never a comma                           |
+| Quantity   | `150 * mm`, `0.25 * m / s`, `90 * deg`  | A number times a unit (§5); `150mm` is a syntax error  |
+| Text       | `"Hall A"`, `'B'`, `"""…"""`            | Escapes `\n`, `\t`, `\\`, `\"`, `\xHH`, `\uHHHH`       |
+| f-string   | `f"{n} pallets, {gap:.1f}"`             | Values between braces, with an optional format (§14.6) |
+| Boolean    | `True`, `False`                         |                                                        |
+| None       | `None`                                  | No value: no pallet, no object                         |
+| List       | `[1, 2, 3]`, `[Roller1, Roller2]`, `[]` | Changeable, shared (§4.3)                              |
+| Tuple      | `(1, "A")`, `(x,)`                      | Fixed                                                  |
+| Dictionary | `{"A": 0, "B": 0}`, `{}`                | Keys in the order they came in                         |
 
-## 4. Types
+## 4. Values
 
-Every variable, parameter, method result, table column and pallet attribute has a type. The checker infers the type of `var x := 3` from its value; writing the type (`var x: integer := 3`) is recommended for anything that is not obvious.
+Variables have no declared type, as in Python; every value has one. Annotations (`x: int = 3`) are allowed and only
+document.
 
-### 4.1 Basic types
+### 4.1 Types
 
-| Type      | Values                                                      | Default |
-| --------- | ----------------------------------------------------------- | ------- |
-| `integer` | Whole numbers up to ±2^53                                   | `0`     |
-| `real`    | Decimal numbers (64-bit)                                    | `0.0`   |
-| `boolean` | `true`, `false`                                             | `false` |
-| `text`    | Text of up to 100 000 characters                            | `""`    |
-| `any`     | A value whose type is known only when the code runs (§10.6) | —       |
+| Type     | Values                                 | Truth            |
+| -------- | -------------------------------------- | ---------------- |
+| `int`    | Whole numbers                          | false when 0     |
+| `float`  | Decimal numbers (64-bit)               | false when 0.0   |
+| quantity | A number with a dimension (§5)         | false when 0     |
+| `bool`   | `True`, `False`                        |                  |
+| `str`    | Text, up to 100 000 characters         | false when empty |
+| `list`   | Items, up to 100 000                   | false when empty |
+| `tuple`  | Fixed items                            | false when empty |
+| `dict`   | Key → value, up to 100 000 keys        | false when empty |
+| `range`  | `range(10)`, `range(2, 20, 3)`         |                  |
+| object   | An object of the layout (§12)          | true             |
+| pallet   | A pallet of the run (§13)              | true             |
+| function | A function of a code block, a built-in | true             |
+| `None`   | No value                               | false            |
 
-An `integer` becomes a `real` where a real is expected; the other way needs `round`, `floor`, `ceil` or `toInteger`.
+`int / int` gives a float (`7 / 2` is `3.5`); `//` and `%` round toward minus infinity, as Python. Whole numbers that
+outgrow ±9.2·10¹⁸ stop the run (`tooLarge`) instead of growing without bound.
 
-### 4.2 Quantities and units
+### 4.2 Dictionary keys
 
-Quantities carry a physical dimension. Internally they are stored in SI units ([[A13 Conventions]]); the units only matter when writing literals, converting and displaying.
+Keys are numbers, texts, `None`, tuples of keys, objects and pallets. `1`, `1.0` and `True` are the same key, as in Python.
+Lists, dictionaries and quantities can't be keys.
 
-| Type           | Dimension      | Units accepted in code                 | Shown by default as |
-| -------------- | -------------- | -------------------------------------- | ------------------- |
-| `time`         | time           | `ms`, `s`, `min`, `h`, `d`, clock time | `s` (or clock time) |
-| `length`       | length         | `mm`, `cm`, `m`, `km`                  | `mm`                |
-| `speed`        | length / time  | `mm/s`, `m/s`, `m/min`, `m/h`          | `m/s`               |
-| `acceleration` | length / time² | `mm/s2`, `m/s2`                        | `m/s²`              |
-| `mass`         | mass           | `g`, `kg`, `t`                         | `kg`                |
-| `angle`        | angle          | `deg`, `rad`                           | `°`                 |
-| `angularSpeed` | angle / time   | `deg/s`, `rad/s`, `rpm`                | `°/s`               |
-| `rate`         | 1 / time       | `/s`, `/min`, `/h`                     | `/h`                |
+### 4.3 Values and references
 
-Rules:
+Numbers, quantities, texts and tuples behave as values. Lists and dictionaries are **shared**: after `b = a`, both names
+see the same list; `a.copy()` makes another. Objects and pallets are references to things of the model.
 
-- `+`, `-`, comparisons and assignment need the **same dimension**: `1 m + 20 mm` is `1.02 m`; `1 m + 2 s` is a check error.
-- `*` and `/` combine dimensions: `150 mm / 0.25 m/s` is `0.6 s`; `0.25 m/s * 4 s` is `1 m`; `length / length` is a `real`. Intermediate results may have any dimension; a value stored in a variable must have one of the types above or be a plain number.
-- An `integer` or `real` multiplies any quantity: `2 * Roller1.length`.
-- **Conversion to a number:** `gap in mm` gives a `real` (`150.0`). **Conversion from a number:** multiply by a unit literal, `x * 1 mm`.
-- `sqrt` halves even dimensions (`sqrt(4 m * 1 m)` is `2 m`); trigonometric functions take an `angle`.
+## 5. Units
 
-### 4.3 References to objects and pallets
+A quantity is a number in SI units with its **dimension** (length, mass, time, angle). Unit names are built-in values of
+size one unit, so `150 * mm` is 0.15 m and a quantity divided by a unit is a plain number: `gap / mm` is `150.0`.
 
-| Type                                                         | Points to                                                    |
-| ------------------------------------------------------------ | ------------------------------------------------------------ |
-| `object`                                                     | Any object of the layout                                     |
-| `conveyor`, `sensor`, `source`, `sink`, `station`, `scenery` | Objects of that library category ([[A05 Component Library]]) |
-| `area`, `variable`, `table`, `list`, `code`                  | Information objects ([[S18 Variable]]…[[S22 Area]])          |
-| `pallet`                                                     | A pallet (or load) moving through the model                  |
+| Unit name                       | Size                         | Dimension     |
+| ------------------------------- | ---------------------------- | ------------- |
+| `mm`, `cm`, `m`, `km`           | 0.001, 0.01, 1, 1000 m       | length        |
+| `ms`, `s`, `minute`, `h`, `day` | 0.001, 1, 60, 3600, 86 400 s | time          |
+| `g`, `kg`, `tonne`              | 0.001, 1, 1000 kg            | mass          |
+| `deg`, `rad`                    | π/180, 1 rad                 | angle         |
+| `rpm`                           | 2π/60 rad/s                  | angular speed |
+| `percent`                       | 0.01                         | none          |
 
-A narrower reference fits a wider one (`conveyor` → `object`); the other way needs a check: `if target is conveyor`. Reading a member of `none` stops the run with `noneReference`.
+Minutes are `minute` (`min` is Python's minimum) and tonnes `tonne`.
 
-### 4.4 Lists
+**Rules**
 
-`list of T` holds items of type `T`, numbered **from 1**. `list of conveyor`, `list of pallet`, `list of length` and `list of list of integer` are all valid.
+- `+`, `-`, comparisons, `//` and `%` need the **same dimension**: `1 * m + 20 * mm` is 1.02 m; `1 * m + 2 * s` stops the run
+  with `unitMismatch`; `gap + 2` too ("give the plain number its unit, for example `2 * mm`").
+- `*` and `/` combine dimensions: `150 * mm / (0.25 * m / s)` is 0.6 s; `0.25 * m / s * 4 * s` is 1 m; a length over a length
+  is a plain float.
+- `**` takes a whole exponent: `0.5 * m / s**2` is an acceleration; `math.sqrt(4 * m * 1 * m)` is 2 m.
+- Products and quotients that convert units are rounded to 14 significant digits, so `150 * mm / mm` is exactly 150.
+- `round`, `int` and `float` refuse quantities: say the unit, `round(gap / mm)`.
+- Parameters of the layout come with their units: `Roller3.length` is a length, `Roller3.nominal_speed` a speed.
+- **Display:** lengths in mm, times in s, speeds in m/s, accelerations in m/s², masses in kg, angles in deg, rates per hour —
+  `print(Roller3.length)` shows `3000 mm`. An f-string format applies to that number: `f"{gap:.1f}"` is `150.0 mm`.
 
-```intrascript
-var zones: list of conveyor := [Roller1, Roller2, Roller3]
-for each zone in zones
-  zone.run := true
-end
-var last: conveyor := zones[zones.count]
+## 6. Variables
+
+| Where it is assigned                      | What it is                             | Lifetime                           |
+| ----------------------------------------- | -------------------------------------- | ---------------------------------- |
+| At the top of a block                     | A **block variable**                   | The whole run; reset at each start |
+| Inside a function                         | A local variable of that call          | One call (kept while it waits)     |
+| Inside a function after `global name`     | The block variable                     | The whole run                      |
+| `pallet.name = value`                     | An **attribute of the pallet** (§13.1) | Until the pallet leaves the model  |
+| `Other.name = value` (another code block) | That block's variable                  | The whole run                      |
+
+Python's rule applies: a name assigned anywhere inside a function is local to it. To change a block variable, write
+`global name` at the top of the function. The checker warns when a function assigns a name that is also a block
+variable without `global` (`localShadowsGlobal`), because that is nearly always the mistake.
+
+```python
+counted = 0
+
+@on_rise(Photoeye1.detected)
+def count():
+    global counted
+    counted += 1
 ```
 
-List members: `count`, `isEmpty`, `first`, `last`, `[i]`, `add(x)`, `insert(i, x)`, `removeAt(i)`, `remove(x)` (first match), `contains(x)`, `indexOf(x)` (0 when absent), `clear()`, `sort(descending := false)`, `copy()`, and for numbers or quantities `sum()`, `min()`, `max()`, `mean()`.
+The top of a block holds only variables, functions, imports and the block's help text. Code that should run at the start
+goes in a function decorated with `@on_start` (§10).
 
-### 4.5 Values and references
+## 7. Statements
 
-Numbers, quantities, booleans and text are **copied** on assignment. Lists, objects and pallets are **shared**: after `var b := a`, both names see the same list. `a.copy()` makes an independent list.
+| Statement                                                   | Notes                                                                                    |
+| ----------------------------------------------------------- | ---------------------------------------------------------------------------------------- |
+| `x = value`, `a = b = 0`                                    | Also items (`d["A"] = 1`), attributes (`Roller3.run = False`) and unpacking (`a, b = t`) |
+| `x += 1` (`-=`, `*=`, `/=`, `//=`, `%=`, `**=`)             | On names, items and attributes                                                           |
+| `if … elif … else`                                          |                                                                                          |
+| `while condition:`                                          | `break` and `continue` as in Python; no `else` on loops                                  |
+| `for x in items:`                                           | Over lists, tuples, texts, dictionaries (their keys), ranges, `enumerate`, `zip`…        |
+| `return`, `return value`                                    | Inside a function                                                                        |
+| `pass`                                                      |                                                                                          |
+| `global a, b`                                               | §6                                                                                       |
+| `assert condition, "message"`                               | Stops the run with `assertionFailed` when false                                          |
+| `from intrascript import *`, `import math`, `import random` | Allowed and ignored: those names are built in; other imports are an error                |
 
-## 5. Declarations
+## 8. Expressions and operators
 
-```intrascript
-const MAX_WAITING: integer := 4          // fixed value
-var released: integer := 0               // block variable (lives for the whole run)
-pallet attribute destination: text := "" // every pallet gets this attribute
+From the loosest to the tightest binding, as Python:
 
-method releaseNext(zone: conveyor, pause: time := 2 s) -> boolean
-  var started: time := now               // local variable (lives for one call)
-  ...
-end
+| Level | Operators                                                        | Notes                                      |
+| ----- | ---------------------------------------------------------------- | ------------------------------------------ |
+| 1     | `a if condition else b`                                          |                                            |
+| 2     | `or`                                                             | Gives the first true operand, or the last  |
+| 3     | `and`                                                            | Gives the first false operand, or the last |
+| 4     | `not`                                                            |                                            |
+| 5     | `==`, `!=`, `<`, `<=`, `>`, `>=`, `in`, `not in`, `is`, `is not` | Chained: `0 < n <= 3`                      |
+| 6     | `+`, `-`                                                         | `+` also joins texts, lists and tuples     |
+| 7     | `*`, `/`, `//`, `%`                                              | `*` also repeats texts and lists           |
+| 8     | `-x`, `+x`                                                       |                                            |
+| 9     | `**`                                                             | Right to left; `-2 ** 2` is −4             |
+| 10    | `a.b`, `a[i]`, `a[i:j:k]`, `f(x)`                                | Attribute, item, slice, call               |
+
+Also: list comprehensions with one `for` and an optional `if` (`[z for z in zones if not z.occupied]`). Comparing
+quantities of different dimensions is an error, never just `False`.
+
+## 9. Functions
+
+```python
+def release(zone, pause=2 * s):
+    """Starts the zone after the pause and says whether it held a pallet."""
+    wait(pause)
+    zone.run = True
+    return zone.occupied
 ```
 
-| Declaration        | Where                       | Lifetime                                   |
-| ------------------ | --------------------------- | ------------------------------------------ |
-| `var` at the top   | Code block, outside methods | The whole run; reset at the start of a run |
-| `var` inside       | Method or `on` handler      | One call or one activation                 |
-| `const`            | Anywhere                    | Value fixed at check time                  |
-| `pallet attribute` | Code block, outside methods | Every pallet, from creation to departure   |
+- Functions are defined at the top of a block, not inside another function. Calls may name arguments:
+  `release(Roller3, pause=5 * s)`.
+- A default value is a fixed value: a number, a text, a quantity (`2 * s`), `True`, `False` or `None`.
+- A function that waits makes its caller wait too.
+- Functions call each other and themselves, up to 200 calls deep (`depthLimit`).
+- Functions and variables of **another code block** are reached through its name: `Routing.next_exit(pallet)`,
+  `Routing.routed`. The checker knows each block's names.
+- `sorted`, `min`, `max` and `list.sort` take `key=` a function of a block (no `lambda` in 1.0).
 
-A pallet attribute is declared once in the model (in any code block); declaring the same name twice with different types is a check error.
+## 10. Events
 
-## 6. Statements
+Code runs when something happens. A function becomes an **event handler** with a decorator; each time the event occurs, a
+new **activation** of the handler starts.
 
-### 6.1 Assignment
+| Decorator                          | When it runs                                                            | `pallet`       | `sender`            |
+| ---------------------------------- | ----------------------------------------------------------------------- | -------------- | ------------------- |
+| `@on_start`                        | At time 0, after every block's variables have their values              | `None`         | `None`              |
+| `@on_finish`                       | When the run is ended (the CLI's `code run`, a closing run); can't wait | `None`         | `None`              |
+| `@on_create(Source1)`              | A source made a pallet                                                  | The new pallet | The source          |
+| `@on_enter(Roller3)`               | A pallet now belongs to the object (§10.3)                              | The pallet     | The object          |
+| `@on_leave(Roller3)`               | A pallet no longer belongs to the object                                | The pallet     | The object          |
+| `@on_rise(Photoeye3.detected)`     | The signal turns `True`                                                 | `None`         | The signal's object |
+| `@on_fall(Photoeye3.detected)`     | The signal turns `False`                                                | `None`         | The signal's object |
+| `@on_change(Roller3.run)`          | The signal changes either way                                           | `None`         | The signal's object |
+| `@every(10 * minute, start=0 * s)` | Again and again; the first time at `start` (default: one interval)      | `None`         | `None`              |
+| `@at(2 * h)`                       | Once, at that time                                                      | `None`         | `None`              |
+| `@choose_exit(Turntable1)`         | A pallet centred on the turntable needs an exit (§10.4); can't wait     | The pallet     | The turntable       |
 
-`x := value`, and the shortcuts `+=`, `-=`, `*=`, `/=`. The target can be a variable, a writable member (`Roller3.run`, `pallet.destination`), a table cell (`Orders[2, "qty"]`) or a list item.
+- A handler takes the parameters it wants among `pallet` and `sender`, by those names; others need a default value.
+- Several objects at once: `@on_enter(Roller1, Roller2)`. Several decorators on one function bind it to all of them.
+- An object whose name is not an identifier can be given as a text with its name or id: `@on_enter("Roller 1")`; an
+  object in a section by its address: `@on_enter(Seccion1.Roller3)`, `@on_rise(Seccion1.Photoeye3.detected)`.
+- The checker refuses events an object doesn't have: `@on_enter` on a photocell, `@on_create` on a conveyor, a signal the
+  object doesn't have (`unknownEvent`, listing the ones it has).
 
-### 6.2 Choices
+### 10.1 Order at one instant
 
-```intrascript
-if Buffer.count >= MAX_WAITING
-  Source1.enable := false
-elseif Buffer.isEmpty
-  Source1.enable := true
-else
-  print("Buffer level ", Buffer.count)
-end
+- `priority=` on any decorator: **higher runs first** at the same instant (default 0).
+- Equal priority: blocks in layout order, then handlers in the order they are written.
+- An activation runs until it ends or waits; nothing else runs meanwhile (no two pieces of code ever run at once).
 
-case pallet.type
-when "EUR", "EUR6"
-  return Roller5
-when "IND"
-  return Roller7
-else
-  return none
-end
+### 10.2 What a handler sees
+
+The handler's `pallet` and `sender`, `now()` (the time), every object of the layout, the block's variables and the other
+blocks. Pallets that just went into a sink can still be read inside `@on_enter(Sink1)`.
+
+### 10.3 When a pallet belongs to an object (2D)
+
+In the Discrete simulation module a pallet belongs to the object its tail is on: a conveyor takes it over when the pallet
+has crossed its entry entirely; a station's deck when it is on it; a sink when it takes it away (the pallet leaves the
+model right after its `@on_enter`). A source's new pallet is created on its first conveyor: `@on_create(Source)` comes
+first, then `@on_enter(Conveyor)`. For the moment the front edge passes a point, put a photocell there and use `@on_rise`.
+
+### 10.4 Exit decisions
+
+`@choose_exit(Turntable1)` answers where the pallet centred on the turntable goes. It returns one of the objects connected
+to the turntable's exits (`Turntable1.exits`) or `None`; `None` lets the turntable's own exit rule decide
+([[ADR-0008 Turntable 2D Cycle and Exit Rule]]). It runs to its end at once, so neither it nor anything it calls may wait
+(`waitInDecision`, found by the checker through the calls it can see, and at run time otherwise). Returning an object
+that is not one of the exits stops the run (`notAnExit`). In 1.0 turntables are the objects with exit decisions.
+
+## 11. Waiting
+
+| Call                                           | Effect                                                                     |
+| ---------------------------------------------- | -------------------------------------------------------------------------- |
+| `wait(2 * s)`                                  | Pauses this activation for 2 s of simulated time; the plant goes on        |
+| `wait(0 * s)`                                  | Lets everything else due at this instant run first                         |
+| `wait(5)`                                      | A plain number counts as seconds                                           |
+| `wait_until(Roller4.occupied)`                 | Pauses until the condition is true; at once if it already is; gives `True` |
+| `wait_until(Buffer.count > 0, timeout=30 * s)` | Gives `False` if 30 s pass first                                           |
+
+```python
+@on_enter(Roller5)
+def watch(pallet):
+    if not wait_until(Photoeye5.detected, timeout=30 * s):
+        warn("No pallet reached Photoeye5 within 30 s")
 ```
 
-`case` compares with `=`; the first matching `when` runs; `else` is optional.
+`wait_until` is a special form: its condition is looked at again after every event of the run (and at its timeout), not
+evaluated once as a Python call would. A paused activation keeps everything it was doing — loop counters, calls in
+progress, local variables — and resumes in event order. A negative wait stops the run (`negativeWait`). `wait` and
+`wait_until` are not allowed at the top of a block, in `@on_finish` or in an exit decision.
 
-### 6.3 Loops
+**Wait for conditions, don't poll**: `wait_until(Roller4.occupied)` instead of a loop with `wait(0.1 * s)`.
 
-```intrascript
-while not Roller4.occupied
-  wait 1 s
-end
+## 12. Objects of the layout
 
-repeat
-  attempts += 1
-until pallet.move(Buffer2) or attempts = 3
+### 12.1 Names
 
-for i := 1 to Orders.rows
-  Orders[i, "done"] := false
-end
+Every object of the layout is a name in code. An object's **name in the layout** is its project parameter `Name` (a text of components; the Design module's attribute table will show it, and until then it is set with BIMCraft's `modify` command, as `set_name` does in `intracraft-model`); without one it is its family and id (`Roller conveyor 100023`). Its **code name** is that name when it is an identifier
+(`Roller3`), otherwise the name with every other character turned into `_` (`Roller conveyor 100023` →
+`Roller_conveyor_100023`, `Outfeed (15 s)` → `Outfeed_15_s`); two objects with the same code name get `_<id>` added. The
+editor lists every name with its members (S21 §4). A name of the block hides an object of the same name (`shadowedName`).
 
-for i := 10 to 1 step -1
-  ...
-end
+Sections (ADR-0029) add a path: an object in section `Seccion1` is `Seccion1.Roller3` in code, and the checker resolves the whole path before the names. Each load unit has `pallet.name` (`MU3`, its number) and `pallet.address` (`Seccion1.Conveyor1.MU3`, where it is now); the number stays, the address follows the unit.
 
-for each p in Roller2.pallets
-  p.destination := "B"
-end
-```
+A bare name is looked up: the function's local variables, the block's variables and functions, the layout's objects,
+the built-in names and units. Areas ([[S22 Area]]) and paths such as `Hall1.LineA.Roller3` are not part of 1.0.
 
-`break` leaves the innermost loop; `continue` jumps to its next turn. The bounds of `for … to` are evaluated once.
+### 12.2 Members
 
-### 6.4 Waiting
+Members come from each object's **library definition** and from what the run knows of it; nothing is written by hand per
+component. The library's camelCase keys read in Python's snake_case: `nominalSpeed` → `nominal_speed`.
 
-| Statement                                  | Effect                                                                  |
-| ------------------------------------------ | ----------------------------------------------------------------------- |
-| `wait 2 s`                                 | Suspends the activation for 2 s of simulated time                       |
-| `wait 0 s`                                 | Lets every other activation of the same instant run first               |
-| `wait until Photoeye1.detected`            | Suspends until the condition is true (resumes at once if it already is) |
-| `wait until Buffer.count > 0 timeout 30 s` | Same, but gives up after 30 s; then `timedOut` is `true`                |
+| Member                | Objects                          | Access      | Value                                                                                |
+| --------------------- | -------------------------------- | ----------- | ------------------------------------------------------------------------------------ |
+| `name`, `id`, `kind`  | All                              | read        | Text: layout name, id, definition (`conveyor.roller`)                                |
+| Every parameter       | All                              | read        | With its unit (§5); options as text; switches as `bool`                              |
+| `run`                 | Conveyors                        | read, write | Signal: `False` stops the conveyor (it brakes), `True` runs it                       |
+| `running`, `occupied` | Conveyors                        | read        | Signals                                                                              |
+| `enable`              | Sources                          | read, write | Signal: `False` stops making pallets                                                 |
+| `detected`            | Photocells                       | read        | Signal: the beam is interrupted                                                      |
+| `occupied`, `count`   | Objects that carry pallets       | read        | A pallet is on it; how many                                                          |
+| `pallets`             | Objects that carry pallets       | read        | List of its pallets, the one furthest ahead first                                    |
+| `exits`               | Turntables                       | read        | List of the objects connected to its exits                                           |
+| `next`                | Objects of the flow              | read        | The object its output leads to, or `None`                                            |
+| `stats`               | Objects of the flow, code blocks | read        | Dictionary of its statistics now, snake_case keys: `Sink1.stats["pallets_received"]` |
 
-```intrascript
-wait until Photoeye5.detected timeout 30 s
-if timedOut
-  warn("No pallet reached Photoeye5 within 30 s")
-end
-```
+- **Parameters can't be changed while the model runs** (`notWritable`): they are design data, changed in the Design module.
+- Signals are written as `True` or `False`. Code's writes take effect at once and count as signal changes, so other
+  handlers and If/Then rules react to them at the same instant.
+- A code block's members are its variables and functions (§9).
 
-`timedOut` belongs to the current activation and keeps the result of its last `wait until`. A negative wait stops the run (`negativeWait`). Waiting is not allowed in exit decisions (§9.2).
-
-### 6.5 Output
-
-| Call             | Effect                                                                 |
-| ---------------- | ---------------------------------------------------------------------- |
-| `print(a, b, …)` | Writes the values, joined, to the console of the run with the time     |
-| `warn(a, b, …)`  | Same, as a warning in the run's issue list                             |
-| `error(a, b, …)` | Stops the run with this message, the code block, the line and the time |
-
-## 7. Expressions and operators
-
-From the tightest to the loosest binding:
-
-| Level | Operators                             | Notes                                                                     |
-| ----- | ------------------------------------- | ------------------------------------------------------------------------- |
-| 1     | `a.b`, `a[i]`, `f(x)`                 | Member, index, call                                                       |
-| 2     | `^`                                   | Power; with quantities the exponent must be an integer literal            |
-| 3     | `-a`                                  | Negation                                                                  |
-| 4     | `*`, `/`, `div`, `mod`                | `/` always gives a real or quantity; `div` and `mod` take integers        |
-| 5     | `+`, `-`                              | `+` also joins text                                                       |
-| 6     | `in`                                  | Unit conversion to a number: `gap in mm`                                  |
-| 7     | `=`, `<>`, `<`, `<=`, `>`, `>=`, `is` | Not chained: write `a < b and b < c`                                      |
-| 8     | `not`                                 | `not Roller1.occupied and ready` means `(not Roller1.occupied) and ready` |
-| 9     | `and`                                 | The right side is evaluated only when needed                              |
-| 10    | `or`                                  | Same                                                                      |
-
-Text is compared character by character (`"B" < "a"`), independent of the computer's language. Comparing reals with `=` is exact; for measured values prefer a tolerance: `abs(a - b) < 1 mm`.
-
-## 8. Methods
-
-```intrascript
-/// Starts the zone after the given pause and reports whether it had a pallet.
-method releaseZone(zone: conveyor, pause: time := 2 s) -> boolean
-  wait pause
-  zone.run := true
-  return zone.occupied
-end
-```
-
-- Parameters may have default values; those come last. A call may name its arguments: `releaseZone(Roller3, pause := 5 s)`.
-- `-> type` declares the result; every path must end with `return value` (check error `missingReturn`). A method without `-> type` returns nothing.
-- Arguments are passed like assignments (§4.5): a method can change a list it receives, never a number of the caller.
-- Methods may call themselves; the depth is limited (§14.5).
-- A method that waits makes its caller wait as well.
-- Methods of another code block are called with its name: `Routing.nextDestination()`.
-
-## 9. Events
-
-Code runs only when something happens. An `on` block binds code to an event; each time the event occurs a new **activation** starts.
-
-| Event                          | When it fires                                                        | `pallet`                     | `sender`             |
-| ------------------------------ | -------------------------------------------------------------------- | ---------------------------- | -------------------- |
-| `on start`                     | At time 0, after tables and variables are reset                      | `none`                       | `none`               |
-| `on finish`                    | When the run reaches its end time or `simulation.stop()`             | `none`                       | `none`               |
-| `on create Source1`            | A source has created a pallet (before it moves)                      | The new pallet               | The source           |
-| `on enter Roller3`             | A pallet is handed over to the object (front edge at the entry port) | The pallet                   | The object           |
-| `on leave Roller3`             | A pallet's tail has left the object                                  | The pallet                   | The object           |
-| `on Photoeye3.detected rises`  | The signal changes from `false` to `true` (`falls`, `changes`)       | Pallet at the sensor, if any | The signal's object  |
-| `on Counter changes`           | The value of a variable or the content of a list changes             | `none`                       | The variable or list |
-| `on every 10 min`              | Every 10 min, first at 10 min; `from 0 s` moves the first one        | `none`                       | `none`               |
-| `on at 2 h`                    | Once, at 2 h                                                         | `none`                       | `none`               |
-| `on choose exit of Turntable1` | A pallet needs an exit (§9.2)                                        | The pallet                   | The object           |
-
-`enter` and `leave` exist for every object with ports; a sink's `enter` fires before the pallet is removed.
-
-### 9.1 Several activations at the same time
-
-- `on … priority 5` sets the priority; **higher runs first** at the same instant (default 0).
-- Equal priority: code blocks in layout order, then handlers in line order.
-- An activation runs until it ends or waits; nothing else runs in between (no two pieces of code run at once).
-
-### 9.2 Exit decisions
-
-`on choose exit of X` answers which way a pallet leaves an object with more than one exit (turntables, transfer tables, elevators). It must **return** one of the objects connected to an exit of `X` (`X.exits`) or `none`; `none` lets the object's own exit rule decide ([[ADR-0008 Turntable 2D Cycle and Exit Rule]]). The decision runs to the end without waiting (`wait` there is a check error), because the object needs the answer at once. Returning an object that is not connected to an exit stops the run (`notAnExit`).
-
-## 10. Objects, hierarchy and references
-
-### 10.1 The model tree
-
-```
-root                      the layout
-├─ Hall1                  area
-│  ├─ LineA               area
-│  │  ├─ Roller3          conveyor
-│  │  ├─ Photoeye3        sensor
-│  │  └─ ZoneLogic        code block
-│  └─ Orders              table
-└─ Source1                source
-```
-
-Every object has a **name**, unique inside its area (not case-sensitive), and a **path** from the root: `Hall1.LineA.Roller3`. Areas are described in [[S22 Area]].
-
-### 10.2 How a name is found
-
-A bare name is looked up, in this order:
-
-1. local variables and parameters of the method or handler;
-2. variables, constants and methods of the code block;
-3. objects in the code block's own area;
-4. objects in each enclosing area, up to `root`;
-5. built-in names (§12).
-
-So code inside `LineA` writes `Roller3`, and the same code keeps working when the area is copied as `LineB` with its own `Roller3`. A local name that hides an object gives the warning `shadowedName`.
-
-### 10.3 Context words
-
-| Word     | Means                                                     |
-| -------- | --------------------------------------------------------- |
-| `self`   | The code block that contains the code                     |
-| `parent` | The area that contains the code block (`root` at the top) |
-| `root`   | The layout                                                |
-| `pallet` | The pallet of the current event (§9), or `none`           |
-| `sender` | The object that raised the current event, or `none`       |
-| `now`    | The current simulation time (`time`)                      |
-
-`X.parent` gives the area of any object, so `pallet.location.parent` is the area the pallet is in.
-
-### 10.4 Members of an object
-
-Members come from the object's **definition** ([[A05 Component Library]]): nothing is written by hand per component.
-
-| Member               | Type                              | Access         | Example                                        |
-| -------------------- | --------------------------------- | -------------- | ---------------------------------------------- |
-| `name`, `id`, `kind` | `text`                            | read           | `Roller3.kind` is `"conveyor.roller"`          |
-| `parent`             | `area`                            | read           |                                                |
-| Parameters           | From the parameter's unit (below) | read           | `Roller3.nominalSpeed` → `0.25 m/s`            |
-| Input signals        | `boolean`                         | read and write | `Roller3.run := false`                         |
-| Output signals       | `boolean`                         | read           | `Photoeye3.detected`                           |
-| Free attributes      | From the value in the layout      | read and write | `Roller3.zone` → `"A"`                         |
-| `occupied`, `count`  | `boolean`, `integer`              | read           | Pallets on the object                          |
-| `pallets`            | `list of pallet`                  | read (copy)    | First item = the pallet furthest ahead         |
-| `next`, `previous`   | `object`                          | read           | Connected neighbour; `none` if none or several |
-| `exits`              | `list of object`                  | read           | Objects connected to its exits                 |
-| `stats.<key>`        | Per statistic                     | read           | `Station1.stats.utilization`                   |
-
-Parameter types follow their unit: `m` → `length`, `s` → `time`, `m/s` → `speed`, `m/s²` → `acceleration`, `kg` → `mass`, `rad` → `angle`, `rad/s` → `angularSpeed`, no unit → `real` (or `integer`), enumerations → `text`, switches → `boolean`. **Parameters cannot be changed while the model runs** (`notWritable`); they are design data, changed in the editor. Writes to free attributes change the running copy only and are undone at the next start.
-
-### 10.5 Finding objects
-
-| Call                               | Result                                                    |
-| ---------------------------------- | --------------------------------------------------------- |
-| `root.find("Hall1.LineA.Roller3")` | The object with that path, or `none`                      |
-| `LineA.find("Roller3")`            | Path relative to an area                                  |
-| `root.byId("roller3")`             | The object with that id (ids never change when renaming)  |
-| `LineA.objects(conveyor)`          | Direct children of that kind, in layout order             |
-| `LineA.allObjects(sensor)`         | All descendants of that kind                              |
-| `LineA.pallets`                    | Pallets on all objects inside the area (work in progress) |
-
-### 10.6 Information objects
-
-| Object               | In code                                                          | Specification      |
-| -------------------- | ---------------------------------------------------------------- | ------------------ |
-| Variable `Counter`   | `Counter` is its value: `Counter += 1`; `Counter.stats.max`      | [[S18 Variable]]   |
-| Table `Orders`       | `Orders[row, column]`, `Orders.rows`, `Orders.find("id", "A17")` | [[S19 Table]]      |
-| List `Waiting`       | `Waiting.push(pallet)`, `Waiting.pop()`, `Waiting.count`         | [[S20 List]]       |
-| Code block `Routing` | `Routing.nextDestination()`, `Routing.routed`                    | [[S21 Code Block]] |
-| Area `LineA`         | `LineA.Roller3`, `LineA.objects(conveyor)`                       | [[S22 Area]]       |
-
-A variable name followed by `.` names the object itself (`Counter.stats.max`); on its own it is the value. A table cell whose column is given by a constant name or number has that column's type; a column chosen at run time gives an `any` value, which can only be assigned to a declared variable or passed to `toText` and is checked when the code runs (`typeMismatch`).
-
-## 11. Pallets
+## 13. Pallets
 
 A `pallet` is anything a source creates: a pallet, a pallet with a load, or a load alone ([[S09 Source and Sink]]).
 
-| Member                      | Type      | Access         | Notes                                           |
-| --------------------------- | --------- | -------------- | ----------------------------------------------- |
-| `id`                        | `integer` | read           | Unique in the run, in creation order            |
-| `type`                      | `text`    | read           | Pallet type id ([[S10 Pallet Types]])           |
-| `length`, `width`, `height` | `length`  | read           | Along travel, across travel, total height       |
-| `mass`, `loadMass`          | `mass`    | read           | Whole item, load only                           |
-| `createdAt`, `age`          | `time`    | read           | Creation time, time since creation              |
-| `location`                  | `object`  | read           | Object carrying it now                          |
-| `speed`                     | `speed`   | read           | Current speed along travel                      |
-| Declared attributes         | Declared  | read and write | `pallet attribute destination: text := ""` (§5) |
-| `move(target)`              | `boolean` | action         | See below                                       |
-| `delete()`                  | —         | action         | Takes the pallet out of the model at once       |
+| Member                      | Value                                                  | Access         |
+| --------------------------- | ------------------------------------------------------ | -------------- |
+| `id`                        | Whole number, unique in the run, in creation order     | read           |
+| `type`                      | Pallet type id ([[S10 Pallet Types]])                  | read           |
+| `length`, `width`, `height` | Along travel, across travel, total height (lengths)    | read           |
+| `load_mass`                 | Mass of the load                                       | read           |
+| `created_at`, `age`         | Creation time, time since                              | read           |
+| `location`                  | The object carrying it now, or `None`                  | read           |
+| `speed`                     | Its speed now                                          | read           |
+| `attributes`                | A copy of the attributes code gave it, as a dictionary | read           |
+| Any other name              | An attribute code gives it (§13.1)                     | read and write |
 
-Creating pallets: `Source1.create(type := "")` creates one pallet at the source now, as if its interval had ended, and returns it; it returns `none` when the source exit is blocked. `on create` fires for it.
+### 13.1 Attributes
 
-### 11.1 Moving pallets directly
+`pallet.destination = "B"` gives the pallet an attribute; any value fits, up to 1000 attributes per pallet. Reading one it
+doesn't have stops the run with a message that says so (`unknownAttribute`); `pallet.attributes.get("destination")` reads
+it or `None`. Attributes live as long as the pallet is in the model. The pallet's own data (the table above) can't be
+written.
 
-`pallet.move(target)` places the pallet at the entry of `target` (a conveyor, station or sink), with its front edge at the entry port, moving with the target's current speed. It returns `false` and changes nothing when the target cannot take it now: its entry is occupied, a station is in a cycle, or the pallet itself is inside a station cycle (turning, lifting, processing). Moving onto a sink counts as an arrival at that sink. `delete()` counts the pallet in the run statistic `deletedByCode`, never as an arrival.
+Moving, creating and deleting pallets from code (`pallet.move`, `Source1.create()`, `pallet.delete()`) are specified in
+[[ADR-0018 IntraScript Scripting Language]] and not part of 1.0 (§22).
 
-| Mode | What happens                                                                                                                         |
-| ---- | ------------------------------------------------------------------------------------------------------------------------------------ |
-| 2D   | The pallet is taken from its carrier and put on the target at the same instant                                                       |
-| 3D   | **Teleport:** the rigid body is removed and created again at the target's entry with the deck speed, if no other body overlaps there |
+## 14. Built-in names
 
-A direct move is not physical: photocells between the old and the new place do not see the pallet, and travel time is zero. Both modes record it in the run log as `teleport`. Prefer commanding the equipment (`run`, `turnTo`, exit decisions) when the result should be comparable with the real installation.
+### 14.1 Functions
 
-## 12. Built-in functions
+| Function                                                    | Notes                                                                      |
+| ----------------------------------------------------------- | -------------------------------------------------------------------------- |
+| `print(a, b, …)`                                            | Writes the values, separated by spaces, to the run's console with the time |
+| `warn(a, b, …)`                                             | The same, as a warning                                                     |
+| `error(a, b, …)`                                            | Stops the run with this message (`userError`)                              |
+| `now()`                                                     | The simulation time, a time quantity                                       |
+| `len`, `range`, `abs`, `min`, `max`, `sum`                  | As Python; `min`/`max` take `key=`; `sum` of quantities keeps the unit     |
+| `round(x)`, `round(x, digits)`                              | Halves to even, as Python                                                  |
+| `int`, `float`, `str`, `bool`, `repr`                       |                                                                            |
+| `list`, `tuple`, `dict`                                     |                                                                            |
+| `sorted(x, key=f, reverse=False)`, `reversed(x)`            |                                                                            |
+| `enumerate(x, start=0)`, `zip(a, b, …)`, `any(x)`, `all(x)` |                                                                            |
+| `wait`, `wait_until`                                        | §11                                                                        |
 
-| Group      | Functions                                                                                                                                                                                                                    |
-| ---------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| Numbers    | `abs`, `min(a, b, …)`, `max(a, b, …)`, `round(x)`, `round(x, digits)`, `floor`, `ceil`, `sqrt`, `sin`, `cos`, `tan`, `atan2(y, x)`, `PI`                                                                                     |
-| Conversion | `toText(x)`, `toText(x, "mm")`, `toText(x, digits := 2)`, `toText(now, "hh:mm:ss")`, `toInteger(text)`, `toReal(text)`, `x in unit`                                                                                          |
-| Text       | `t.size`, `t.upper`, `t.lower`, `t.trim`, `t.contains(s)`, `t.startsWith(s)`, `t.part(from, count)`, `t.split(separator)`                                                                                                    |
-| Time       | `now`, `simulation.endTime`                                                                                                                                                                                                  |
-| Random     | `random.uniform(a, b)`, `random.normal(mean, stdDev)`, `random.exponential(mean)`, `random.triangular(min, mode, max)`, `random.integer(a, b)`, `random.chance(p)`, `random.choice(list)`, `random.row(table, weightColumn)` |
-| Simulation | `simulation.mode` (`"2D"` or `"3D"`), `simulation.seed`, `simulation.stop(reason := "")`                                                                                                                                     |
-| Output     | `print`, `warn`, `error` (§6.5)                                                                                                                                                                                              |
+### 14.2 `math`
 
-`random.*` accept quantities (`random.uniform(20 s, 40 s)` is a `time`). `round` rounds halves away from zero. `random.row` picks a table row with probability proportional to a numeric column (a distribution table).
+`math.sqrt` (keeps even dimensions), `sin`, `cos`, `tan` (take angles or plain numbers), `atan2` (gives an angle), `floor`,
+`ceil`, `hypot`, `isclose(a, b, rel_tol=…, abs_tol=…)`, `exp`, `log`, and `math.pi`, `math.e`, `math.inf`.
 
-## 13. Errors
+### 14.3 `random`
 
-### 13.1 Found before the run (check errors)
+Each code block draws from **its own stream**, seeded by the project's seed and the block's id, so adding or editing one
+block never changes another's numbers ([[T03 Time, Event Ordering and Determinism]]). All accept quantities of one
+dimension: `random.uniform(20 * s, 40 * s)` is a time.
 
-The editor checks every code block on each change and lists the problems by line. **A run does not start while any enabled code block has an error**; warnings do not block it.
+| Function                                 | Gives                                              |
+| ---------------------------------------- | -------------------------------------------------- |
+| `random.random()`                        | Uniform in [0, 1)                                  |
+| `random.uniform(a, b)`                   | Uniform in [a, b)                                  |
+| `random.normal(mean, std_dev)` (`gauss`) | Normal                                             |
+| `random.exponential(mean)`               | Exponential with that **mean** (not Python's rate) |
+| `random.triangular(low, high, mode)`     | Triangular, in Python's order                      |
+| `random.randint(a, b)`                   | Whole number from a to b, both included            |
+| `random.chance(p)`                       | `True` with probability p                          |
+| `random.choice(items)`                   | One of the items                                   |
 
-| Code                 | Severity | Example                                                        |
-| -------------------- | -------- | -------------------------------------------------------------- |
-| `syntax`             | error    | `if` without `end`                                             |
-| `unknownName`        | error    | `Roler3.run` (typo), or an object that was deleted or renamed  |
-| `typeMismatch`       | error    | `var n: integer := "five"`                                     |
-| `unitMismatch`       | error    | `Roller1.length + 2 s`                                         |
-| `notWritable`        | error    | `Roller1.length := 4 m`, `Photoeye1.detected := true`          |
-| `wrongArguments`     | error    | Missing, extra or wrongly typed arguments                      |
-| `missingReturn`      | error    | A method with `-> boolean` that can end without `return`       |
-| `waitInDecision`     | error    | `wait` inside `on choose exit of`                              |
-| `unknownEvent`       | error    | `on enter Photoeye1` (a sensor has no ports)                   |
-| `duplicateName`      | error    | Two methods or block variables with the same name              |
-| `signalWrittenTwice` | warning  | An If/Then rule and a code block write the same signal (§14.4) |
-| `unusedVariable`     | warning  | A local variable that is never read                            |
-| `shadowedName`       | warning  | A local variable with the name of an object                    |
-| `unreachableCode`    | warning  | Statements after `return`                                      |
-| `anyValue`           | warning  | A table column chosen at run time (§10.6)                      |
+### 14.4 `simulation`
 
-### 13.2 Found while running (run errors)
+`simulation.mode` (`"2D"`), `simulation.seed`, `simulation.stop(reason)`: the run ends at the end of this instant and
+says why.
 
-A run error **stops the run** and shows: code block, line, column, simulation time and message, for example `Routing, line 12: row 5 does not exist; Orders has 4 rows (at 00:12:31.250)`.
+### 14.5 Methods
 
-| Code                    | Cause                                                                                       |
-| ----------------------- | ------------------------------------------------------------------------------------------- |
-| `indexOutOfRange`       | List or table index outside 1 … count                                                       |
-| `divisionByZero`        | `/`, `div` or `mod` by zero                                                                 |
-| `noneReference`         | Member of `none`                                                                            |
-| `typeMismatch`          | An `any` value of the wrong type                                                            |
-| `negativeWait`          | `wait` with a negative time                                                                 |
-| `notAnExit`             | Exit decision returned an object that is not connected to an exit                           |
-| `emptyList`, `listFull` | `pop` on an empty list, `push` on a full one ([[S20 List]])                                 |
-| `stepLimit`             | An activation ran more than 1 000 000 steps without waiting (a loop that never ends)        |
-| `depthLimit`            | Methods nested more than 200 deep                                                           |
-| `cascadeLimit`          | More than 1 000 activations started at one instant (code and signals triggering each other) |
-| `tooLarge`              | List or table over 100 000 items or rows, text over 100 000 characters, integer over ±2^53  |
-| `userError`             | `error(…)` was called                                                                       |
+| Of    | Methods                                                                                                                                  |
+| ----- | ---------------------------------------------------------------------------------------------------------------------------------------- |
+| text  | `upper`, `lower`, `strip`, `lstrip`, `rstrip`, `startswith`, `endswith`, `split`, `join`, `replace`, `find`, `count`, `isdigit`, `zfill` |
+| list  | `append`, `extend`, `insert`, `pop`, `remove`, `index`, `count`, `clear`, `sort(key=, reverse=)`, `reverse`, `copy`                      |
+| tuple | `count`, `index`                                                                                                                         |
+| dict  | `get`, `keys`, `values`, `items`, `pop`, `setdefault`, `update`, `clear`, `copy`                                                         |
 
-## 14. How code runs
+### 14.6 f-string formats
 
-### 14.1 Activations
+`{value:spec}` with `spec` = `[[fill]align][0][width][.precision][type]`, align `<`, `>`, `^`, type `d`, `f`, `e`, `g`, `%`,
+`s`: `f"{x:.2f}"`, `f"{n:03d}"`, `f"{name:>10}"`, `f"{share:.1%}"`. A quantity formats its number in its display unit and
+keeps the unit (§5).
 
-Each event starts an **activation** with its own local variables. An activation runs until it ends or reaches a `wait`; then it is suspended with everything it was doing (loop counters, method calls) and resumes later. Waiting activations are ordered like all events: by time, then priority, then creation order ([[T03 Time, Event Ordering and Determinism]]).
+## 15. Errors
 
-### 14.2 In the 2D mode
+### 15.1 Found before the run (the checker)
 
-1. An event of the model happens (a pallet enters, a sensor switches, a station finishes).
-2. The object updates its state and its output signals.
-3. The If/Then rules are evaluated ([[A08 Controller]]).
-4. The handlers for that event start, in the order of §9.1.
-5. Signals written by code take effect at once; rules and handlers that depend on them run next, at the same instant, up to the cascade limit.
+The editor checks a block at every change against the layout as it is; `intracraft-cli code check` does the same. **A run
+does not start while an enabled code block has an error**; warnings don't stop it. Every problem has a code, a line, a
+column and a message that says what to do.
 
-`wait 2 s` resumes exactly 2 s later (rounded to the microsecond). `wait until` is checked again after every event of the run.
+| Code                                        | Severity | Example                                                                        |
+| ------------------------------------------- | -------- | ------------------------------------------------------------------------------ |
+| `syntax`                                    | error    | A missing `:`, a wrong indentation, `150mm`, a Python feature left out (§18.1) |
+| `unknownName`                               | error    | `Roler3.run` — with "did you mean `Roller3`?"                                  |
+| `unknownMember`                             | error    | `Roller3.rnu`, `math.sqroot`, `Routing.next_exti`                              |
+| `notWritable`                               | error    | `Roller3.length = 4 * m`, `Photoeye1.detected = True`, `pallet.id = 3`         |
+| `unknownEvent`                              | error    | `@on_enter(Photoeye1)`, `@on_rise(Roller3.detected)`, `@on_enterr`             |
+| `handlerParameters`                         | error    | `@on_enter(Roller3) def f(box):`                                               |
+| `wrongArguments`                            | error    | `@every()` without a time, `wait()` without one                                |
+| `waitInDecision`                            | error    | `wait` in `@choose_exit` or `@on_finish`, or in a function they call           |
+| `waitOutsideHandler`                        | error    | `wait` at the top of a block                                                   |
+| `topLevelCode`                              | error    | A call or a loop at the top of a block                                         |
+| `importNotAllowed`                          | error    | `import os`                                                                    |
+| `duplicateName`                             | error    | Two functions with one name                                                    |
+| `nestedFunction`                            | error    | `def` inside a function                                                        |
+| `defaultNotConstant`                        | error    | `def f(x=Roller3.length)`                                                      |
+| `breakOutsideLoop`, `returnOutsideFunction` | error    | As their names say                                                             |
+| `tooLarge`                                  | error    | Code longer than 200 000 characters                                            |
+| `localShadowsGlobal`                        | warning  | Assigning a block variable inside a function without `global`                  |
+| `shadowedName`                              | warning  | A variable named like an object or a built-in                                  |
+| `unusedVariable`                            | warning  | A local variable that is never read (names starting with `_` are exempt)       |
+| `unreachableCode`                           | warning  | Lines after `return`, `break` or `continue`                                    |
 
-### 14.3 In the 3D mode
+### 15.2 Found while running
 
-The same code runs on the controller cycle (every 10 ms, like the rules): events detected by the physics during the cycle start their handlers in the order they happened; `wait` resumes at the first cycle at or after its time; `wait until` is checked on every cycle; exit decisions are answered at once. Times therefore differ from the 2D mode by up to one cycle, inside the ±50 ms agreement criterion ([[A11 Testing and Validation]]).
+A run error **stops the run** and says the block, the line, the time and the message, for example
+`Routing, line 12: the dictionary has no key 'C' [keyNotFound] (at 0:12:31.250)`. The Discrete simulation module shows it
+above the console; `intracraft-cli code run` prints it and exits with 1.
 
-### 14.4 Code and If/Then rules
+| Code                           | Cause                                                                                                    |
+| ------------------------------ | -------------------------------------------------------------------------------------------------------- |
+| `unitMismatch`                 | Adding, comparing or waiting with the wrong dimensions                                                   |
+| `typeMismatch`                 | An operation on the wrong kind of value (`"a" + 1`)                                                      |
+| `divisionByZero`               | `/`, `//` or `%` by zero                                                                                 |
+| `indexOutOfRange`              | `items[5]` of a list of 3                                                                                |
+| `keyNotFound`                  | `d["C"]` of a dictionary without it (use `d.get("C")`)                                                   |
+| `unknownAttribute`             | An attribute a pallet hasn't been given, a method a value doesn't have                                   |
+| `noneReference`                | `.x` of `None`; a pallet read after it left the model                                                    |
+| `unboundLocal`                 | A local variable read before it gets a value (often a missing `global`)                                  |
+| `emptyList`, `notFound`        | `pop()` of an empty list, `remove(x)` of an absent item                                                  |
+| `wrongArguments`               | Missing, extra or repeated arguments                                                                     |
+| `negativeWait`                 | `wait(-1 * s)`                                                                                           |
+| `waitInDecision`               | A wait reached at run time where nothing may wait                                                        |
+| `notAnExit`                    | An exit decision returned something that is not one of the exits                                         |
+| `notANumber`                   | A result that is not a number (`math.sqrt(-1)`)                                                          |
+| `assertionFailed`, `userError` | `assert` failed; `error(…)` was called                                                                   |
+| `stepLimit`                    | An activation ran 1 000 000 steps without waiting (a loop that never ends)                               |
+| `depthLimit`                   | Calls nested more than 200 deep                                                                          |
+| `cascadeLimit`                 | More than 1 000 handlers started at one instant (code and signals triggering each other)                 |
+| `tooLarge`                     | A list, text or dictionary over 100 000 items; a whole number over ±9.2·10¹⁸; 10 000 waiting activations |
 
-Both stay. Rules suit simple on/off logic and are quicker to read; code suits decisions, data and sequences. At one instant the rules run first, then the code. When both write the same signal, the last write wins; the checker warns (`signalWrittenTwice`) when a rule and a code block write the same signal.
+## 16. How code runs
 
-### 14.5 Determinism and limits
+### 16.1 Activations
 
-- Random numbers come from the project's seeded generator; each code block has its **own stream**, derived from its id, so editing or adding one block does not change the random numbers of another.
-- No access to the computer clock; `now` is simulation time.
-- Every collection is visited in a defined order (layout order, list order, row order).
-- Same layout, code and seed → the same result in every run and on every computer.
+Each event starts an **activation** of its handler with its own local variables. It runs until it ends or waits; a
+waiting activation keeps its calls, loops and variables and resumes later. Waiting activations are ordered like every
+event of the run: by time, then priority, then the order they started in ([[T03 Time, Event Ordering and Determinism]]).
 
-| Limit                                   | Value     |
-| --------------------------------------- | --------- |
-| Steps of one activation without waiting | 1 000 000 |
-| Nested method calls                     | 200       |
-| Activations started at one instant      | 1 000     |
-| Items in a list, rows in a table        | 100 000   |
-| Characters in a text                    | 100 000   |
-| Waiting activations at once             | 10 000    |
+### 16.2 In the Discrete simulation module (2D)
 
-### 14.6 Sandbox
+1. An event of the run happens (a pallet arrives, a sensor switches, a station finishes, a code timer is due).
+2. The plant settles at that time: pallets move on, objects update their output signals.
+3. The If/Then rules run ([[A08 Controller]]).
+4. The code runs: due timers (`wait`, `@every`, `@at`) first, then the handlers of what changed — new pallets, pallets
+   that entered and left objects, signals that rose or fell — in the order of §10.1, then every `wait_until` looks at its
+   condition again.
+5. If the rules or the code wrote a signal, the plant settles again at the same instant and steps 3–5 repeat, up to the
+   cascade limit.
 
-Code reaches the model only through the members listed in this note. It cannot read or write files, open network connections, read the clock, start programs or see API tokens ([[A15 AI Agent Integration]]). The interpreter is written in TypeScript inside the simulation worker and never turns code into JavaScript (`eval` is not used).
+`wait(2 * s)` resumes exactly 2 s later (to the microsecond). Exit decisions are asked while the plant settles, when a
+pallet is centred on a turntable.
 
-## 15. Style guide
+### 16.3 In the Physics simulation module (3D)
 
-- **Indent** with two spaces, like the rest of IntraCraft.
-- **Names:** objects in `PascalCase` (`InfeedSensor`, `Orders`); variables, methods and attributes in `camelCase` (`releasedPallets`); constants in `UPPER_SNAKE` (`MAX_WAITING`). Names of yes/no values and methods start with `is` or `has` (`isFree`).
-- **Units belong in the type, not in the name:** `gap: length := 150 mm`, never `gapMm := 150`.
-- **Write units** in every quantity literal, even when the value is in SI units.
-- **Spaces** around operators and `:=`, after commas and after the `:` of a type; none before `(` in a call.
-- **Blank lines:** one between methods and handlers; none just after a line that opens a block.
-- **Short handlers:** a handler says *when*; a method says *how*. Move logic of more than about 20 lines into methods.
-- **Help text:** every method called from another code block gets a `///` line.
+Not part of 1.0: a layout with code blocks runs its physics without them. The plan ([[ADR-0027 IntraScript in Python
+Syntax with Its Own Interpreter]]) runs the same code on the controller cycle (every 10 ms), where the physics reports
+sensor edges and pallets entering and leaving objects; times then differ from 2D by up to one cycle, inside the ±50 ms
+agreement criterion ([[A11 Testing and Validation]]).
+
+### 16.4 Determinism and limits
+
+- Random numbers come from the block's seeded stream; there is no clock, no file and no network.
+- Every collection is visited in a defined order (layout order, list order, insertion order of dictionaries).
+- Same layout, code and seed → the same run on every computer.
+
+| Limit                                               | Value                           |
+| --------------------------------------------------- | ------------------------------- |
+| Steps of one activation without waiting             | 1 000 000                       |
+| Nested calls                                        | 200                             |
+| Handlers started at one instant                     | 1 000                           |
+| Items of a list or dictionary, characters of a text | 100 000                         |
+| Waiting activations at once                         | 10 000                          |
+| Characters of a block's code                        | 200 000                         |
+| Attributes of a pallet                              | 1 000                           |
+| Console lines kept                                  | 10 000 (the oldest are dropped) |
+
+### 16.5 Sandbox
+
+Code reaches the model only through the members of this note. It cannot import modules, read or write files, open
+network connections, read the clock, start programs or see API tokens ([[A15 AI Agent Integration]]). The interpreter is
+safe Rust (no `unsafe`, no `eval`, no panics): hostile code ends in a check error or a run error, never in a crash.
+
+## 17. Style guide
+
+- **Follow PEP 8**: four spaces, lines up to about 100 characters, two blank lines between functions.
+- **Names:** variables, functions and pallet attributes in `snake_case` (`released_pallets`); fixed values in `UPPER_SNAKE`
+  (`MAX_WAITING = 4`); objects keep their layout names. Yes/no names start with `is_` or `has_`.
+- **Units belong in the value, not in the name:** `gap = 150 * mm`, never `gap_mm = 150`. Write the unit in every quantity,
+  even when it is SI.
+- **Handlers say when, functions say how:** a handler longer than about 20 lines calls functions.
+- **Help text:** every function another block calls gets a one-line docstring.
 - **Comments** explain why, not what.
-- **Wait for conditions, do not poll:** `wait until Roller4.occupied` instead of a loop with `wait 0.1 s`.
-- **Prefer equipment over teleport:** command conveyors and decide exits; use `pallet.move` only for model shortcuts.
+- **Wait for conditions, don't poll** (§11). **Command the equipment** (`run`, `enable`, exit decisions) so the 2D and 3D
+  results stay comparable.
+- **One concern per block:** routing in one, reports in another; blocks talk through functions, not shared globals.
 
-## 16. Code in the project and AI agents
+## 18. Python compatibility
 
-Code is stored as text in the project file ([[S21 Code Block]]) with a `languageVersion`, so future versions of the language can upgrade it with an explicit migration. It changes only through commands (`script.setCode`; tables and lists through `data.*`) with undo and the actor log; the query `script.check` returns the check errors. Agents use the same commands ([[ADR-0004 AI-Ready Command Layer and MCP]]); code written by an agent is checked like any other.
+### 18.1 What IntraScript leaves out
 
-## 17. Reserved words
+Classes, `lambda`, `try`/`except`/`raise` (use `error()`), `with`, generators (`yield`), `async`/`await`, `del`,
+`nonlocal`, nested functions, `*args`/`**kwargs`, sets, `:=`, `while … else`, `for … else`, comprehensions with more than
+one `for`, dictionary comprehensions, `%` text formatting, `import` of anything but `intrascript`, `math` and `random`.
+Each one is a syntax error that names it. Everything else of this note is Python's meaning, except where it says
+otherwise: `wait_until` (§11), quantities (§5), `random` (§14.3), event decorators (§10).
 
-`and`, `any`, `attribute`, `break`, `case`, `const`, `continue`, `div`, `each`, `else`, `elseif`, `end`, `false`, `for`, `if`, `in`, `is`, `method`, `mod`, `none`, `not`, `now`, `of`, `on`, `or`, `pallet`, `parent`, `priority`, `repeat`, `return`, `root`, `self`, `sender`, `step`, `timedOut`, `timeout`, `to`, `true`, `until`, `var`, `wait`, `when`, `while`, and the type names of §4. Event words (`start`, `finish`, `create`, `enter`, `leave`, `choose`, `exit`, `rises`, `falls`, `changes`, `every`, `at`, `from`) are keywords only right after `on`.
+### 18.2 Python editors: `intrascript.py`
 
-## 18. Grammar (summary)
+`platform/sim/script/python/intrascript.py` describes every IntraScript name for Python tools. With it beside the code (or
+on `PYTHONPATH`), `from intrascript import *` makes any Python editor complete and explain the events, functions and
+units, and Python's own syntax check accepts the code. It does not simulate: run the code in IntraCraft.
+
+## 19. Code in the project, the editor, agents
+
+- A code block keeps its code in its `source` attribute (text) and its `enabled` switch ([[S21 Code Block]]); the project
+  file needs no new field. Changing the code is BIMCraft's `modify` command, so it is undone, logged and open to agents
+  like every other change ([[ADR-0004 AI-Ready Command Layer and MCP]]).
+- The **editor** (Design module, "Edit code…" in the block's attributes):
+  - colours the code (keywords, events, objects and sections, built-ins, units, numbers, texts, comments), with line
+    numbers, a status line (line, column, saved or not) and a zoom (Ctrl++, Ctrl+-, Ctrl+0);
+  - checks it while typing, underlines the problem lines and lists them; a click on a problem selects its line;
+  - **completes names** (`intracraft_script::complete`): after `Roller3.` its members, after `@` the events, after
+    `pallet.`, `math.`, `random.`, `simulation.`, a section or another code block their names, and Ctrl+Space anywhere;
+    Up and Down choose, Enter or Tab insert, Esc closes;
+  - keeps the indentation on Enter (one level more after `:`), indents and outdents the selected lines with Tab and
+    Shift+Tab, comments them out and in with Ctrl+/;
+  - finds and replaces (Ctrl+F, Ctrl+H; match case, previous, next, replace, replace all) and goes to a line (Ctrl+G);
+  - inserts templates from its Insert menu (a handler for each event, holding a conveyor, waiting with a timeout, a
+    function, a block variable), indented, with the word to change selected;
+  - lists the names the code can use and inserts one at the cursor with a click; saves with Ctrl+S.
+- The **Discrete simulation module** shows the code's error, its console and every block's variables beside the run.
+- **Command line:** `intracraft-cli code check LAYOUT.intracraft.json [CODE.py]` lists the problems (exit 1 on an error);
+  `intracraft-cli code run LAYOUT.intracraft.json [CODE.py] [--seconds N]` runs the layout for N simulated seconds (3600 by
+  default) and prints the console and each block's statistics. `CODE.py` is added to the layout as a block called `Code`.
+  `intracraft-cli code names LAYOUT.intracraft.json` lists every name code can use with that layout (objects with their
+  addresses, events and members; the load units' members; events; built-ins; units); without a layout it lists one
+  object of every kind of the library.
+- **Documentation for users** (Spanish): the guide `docs/tutorial/intrascript-tutorial.html` and the full manual
+  `docs/tutorial/intrascript-manual.html`, whose object tables come from `code names` and whose examples were run.
+- The language version is 1 (`intracraft_script::LANGUAGE_VERSION`); a later version that changes meaning migrates old
+  code explicitly.
+
+## 20. Grammar (summary)
 
 ```ebnf
-codeBlock   = { declaration | method | handler } ;
-declaration = ( "var" | "const" ) name [ ":" type ] ":=" expression NEWLINE
-            | "var" name ":" type NEWLINE
-            | "pallet" "attribute" name ":" type ":=" expression NEWLINE ;
-type        = "integer" | "real" | "boolean" | "text" | "any" | quantityType | objectType
-            | "pallet" | "list" "of" type ;
-method      = { "///" docText NEWLINE } "method" name "(" [ param { "," param } ] ")" [ "->" type ] NEWLINE
-              body "end" ;
-param       = name ":" type [ ":=" expression ] ;
-handler     = "on" event [ "priority" integer ] NEWLINE body "end" ;
-event       = "start" | "finish" | ( "create" | "enter" | "leave" ) path
-            | path ( "rises" | "falls" | "changes" ) | "every" expression [ "from" expression ]
-            | "at" expression | "choose" "exit" "of" path ;
-body        = { statement NEWLINE } ;
-statement   = declaration | target assignOp expression | call
-            | "if" expression NEWLINE body { "elseif" expression NEWLINE body } [ "else" NEWLINE body ] "end"
-            | "case" expression NEWLINE { "when" expression { "," expression } NEWLINE body } [ "else" NEWLINE body ] "end"
-            | "while" expression NEWLINE body "end"
-            | "repeat" NEWLINE body "until" expression
-            | "for" name ":=" expression "to" expression [ "step" expression ] NEWLINE body "end"
-            | "for" "each" name "in" expression NEWLINE body "end"
-            | "break" | "continue" | "return" [ expression ]
-            | "wait" expression | "wait" "until" expression [ "timeout" expression ] ;
-assignOp    = ":=" | "+=" | "-=" | "*=" | "/=" ;
-path        = name { "." name } ;
+block       = { NEWLINE | toplevel } ;
+toplevel    = simple_line | funcdef ;
+funcdef     = { "@" decorator NEWLINE } "def" NAME "(" [ param { "," param } ] ")" [ "->" expr ] ":" suite ;
+decorator   = NAME [ "(" [ arg { "," arg } ] ")" ] ;
+param       = NAME [ ":" expr ] [ "=" expr ] ;
+suite       = simple_line | NEWLINE INDENT { statement } DEDENT ;
+statement   = simple_line | if | while | for ;
+if          = "if" expr ":" suite { "elif" expr ":" suite } [ "else" ":" suite ] ;
+while       = "while" expr ":" suite ;
+for         = "for" targets "in" exprs ":" suite ;
+simple_line = small { ";" small } NEWLINE ;
+small       = exprs | targets "=" { exprs "=" } exprs | target augop exprs | target ":" expr [ "=" exprs ]
+            | "pass" | "break" | "continue" | "return" [ exprs ] | "global" NAME { "," NAME }
+            | "assert" expr [ "," expr ] | "import" dotted | "from" dotted "import" ( "*" | NAME { "," NAME } ) ;
+augop       = "+=" | "-=" | "*=" | "/=" | "//=" | "%=" | "**=" ;
+expr        = or_expr [ "if" or_expr "else" expr ] ;
+or_expr     = and_expr { "or" and_expr } ;
+and_expr    = not_expr { "and" not_expr } ;
+not_expr    = "not" not_expr | comparison ;
+comparison  = arith { cmp_op arith } ;
+cmp_op      = "==" | "!=" | "<" | "<=" | ">" | ">=" | "in" | "not" "in" | "is" | "is" "not" ;
+arith       = term { ( "+" | "-" ) term } ;
+term        = factor { ( "*" | "/" | "//" | "%" ) factor } ;
+factor      = ( "-" | "+" ) factor | power ;
+power       = primary [ "**" factor ] ;
+primary     = atom { "." NAME | "[" subscript "]" | "(" [ arg { "," arg } ] ")" } ;
+arg         = expr | NAME "=" expr ;
+atom        = NAME | NUMBER | STRING { STRING } | FSTRING | "True" | "False" | "None"
+            | "(" [ exprs ] ")" | "[" [ exprs | expr "for" targets "in" or_expr [ "if" or_expr ] ] "]"
+            | "{" [ expr ":" expr { "," expr ":" expr } ] "}" ;
 ```
 
-## 19. Examples
+## 21. Examples
 
-### 19.1 Count pallets at a photocell
+### 21.1 Count pallets at a photocell
 
-```intrascript
-// Counted is a variable object (integer) next to this code block.
-on Photoeye1.detected rises
-  Counted += 1
-end
+```python
+counted = 0
+
+@on_rise(Photoeye1.detected)
+def count():
+    global counted
+    counted += 1
 ```
 
-### 19.2 Destinations from an order table
+### 21.2 Destinations from a weighted list
 
-```intrascript
-// Orders: columns "destination" (text) and "weight" (real). Each new pallet gets a destination
-// drawn with the weights of the table.
-pallet attribute destination: text := ""
+```python
+DESTINATIONS = [("A", 0.5), ("B", 0.3), ("C", 0.2)]
 
-on create Source1
-  var row: integer := random.row(Orders, "weight")
-  pallet.destination := Orders[row, "destination"]
-end
+def draw_destination():
+    """A destination drawn with the weights of DESTINATIONS."""
+    u = random.random()
+    for name, weight in DESTINATIONS:
+        if u < weight:
+            return name
+        u -= weight
+    return DESTINATIONS[-1][0]
+
+@on_create(Infeed)
+def tag(pallet):
+    pallet.destination = draw_destination()
 ```
 
-### 19.3 Zone logic over a whole area
+### 21.3 Zone logic without pressure
 
-```intrascript
-// Each zone of this area runs only while the next zone is free (no pressure between pallets).
-// A scan every 0.5 s, like a PLC cycle: one handler serves however many zones the area has.
-method isFree(zone: object) -> boolean
-  return zone = none or not zone.occupied
-end
+```python
+ZONES = [Roller1, Roller2, Roller3, Roller4]
 
-on every 0.5 s from 0 s
-  for each zone in parent.objects(conveyor)
-    zone.run := isFree(zone.next)
-  end
-end
+@every(0.5 * s, start=0 * s)
+def scan():
+    """Each zone runs only while the next one is free, like a PLC scan."""
+    for here, ahead in zip(ZONES, ZONES[1:]):
+        here.run = not ahead.occupied
 ```
 
-### 19.4 Limit the pallets in a section
+### 21.4 Limit the pallets in a section
 
-```intrascript
-const MAX_IN_LINE: integer := 6
+```python
+MAX_IN_LINE = 6
+SECTION = [Roller1, Roller2, Roller3]
 
-on enter Roller1
-  if LineA.pallets.count >= MAX_IN_LINE
-    Source1.enable := false
-    wait until LineA.pallets.count < MAX_IN_LINE
-    Source1.enable := true
-  end
-end
+@on_enter(Roller1)
+def limit(pallet):
+    if sum([z.count for z in SECTION]) >= MAX_IN_LINE:
+        Infeed.enable = False
+        wait_until(sum([z.count for z in SECTION]) < MAX_IN_LINE)
+        Infeed.enable = True
 ```
 
-### 19.5 Hourly report into a table
+Write the brackets: `sum(z.count for z in SECTION)` without them is a generator, left out of 1.0.
 
-```intrascript
-on every 1 h
-  Report.addRow(now, Sink1.stats.palletsReceived, Station1.stats.utilization)
-end
+### 21.5 Hourly report
+
+```python
+@every(1 * h)
+def report():
+    done = Sink1.stats["pallets_received"]
+    busy = Station1.stats["utilization"]
+    print(f"{now()}: {done:.0f} pallets, station busy {busy:.1%}")
 ```
 
-### 19.6 Shortcut with a direct move
+### 21.6 Time between pallets at a sink
 
-```intrascript
-// Rejected pallets jump to the rework line (not physical: see §11.1).
-on enter Inspection
-  if random.chance(0.02)
-    if not pallet.move(Rework1)
-      warn("Rework line full; pallet ", pallet.id, " stays on the main line")
-    end
-  end
-end
+```python
+last = None
+gaps = []
+
+@on_enter(Sink1)
+def arrived(pallet):
+    global last
+    if last is not None:
+        gaps.append(now() - last)
+    last = now()
+
+@on_finish
+def summary():
+    if gaps:
+        print(f"mean gap {sum(gaps) / len(gaps):.1f}, longest {max(gaps):.1f}")
 ```
 
-## 20. Not included yet
+## 22. Not included yet
 
-User-defined record types and classes, dictionaries (tables with a key column cover lookups), reading or writing files during the run, a step-by-step debugger with breakpoints (planned with the editor), a visual block editor that writes IntraScript, changing variables of a running model from the editor, and code that runs inside a physics step.
+| What                                                                             | Where it stands                                                              |
+| -------------------------------------------------------------------------------- | ---------------------------------------------------------------------------- |
+| Code in the Physics simulation module                                            | Planned (§16.3)                                                              |
+| `pallet.move(target)`, `Source.create()`, `pallet.delete()`                      | Specified (ADR-0018, teleport in 3D); to be built                            |
+| Variable, table and list objects on the plan ([[S18 Variable]]–[[S20 List]])     | Specified; until then, block variables, lists and dictionaries hold the data |
+| Areas and paths ([[S22 Area]])                                                   | Specified                                                                    |
+| Writing other signals (`reverse`, `turnTo`) and choosing exits of other stations | Need their 2D behaviour first                                                |
+| Breakpoints, stepping, watch expressions                                         | The variables list of the run is the first step                              |
+| Classes, `lambda`, exceptions, generators                                        | Left out on purpose (§18.1); may come when models need them                  |
+| A visual block editor that writes IntraScript                                    | Not planned                                                                  |
 
-## 21. Implementation
+## 23. Implementation
 
-Steps and status: [[A12 Roadmap]] (IntraScript section). The language core is a separate package (`packages/script`) without dependencies on React, the DOM or the engines; the engines provide it with a description of the model (names, kinds, members and their types) and carry out what the code asks.
+The crate `intracraft-script` (`platform/sim/script`, safe Rust, no dependencies) holds the language; it knows nothing of
+conveyors. An engine describes its objects (`host::ModelInfo`) and answers the program (`host::Host`).
+
+| File                    | What it does                                                                    |
+| ----------------------- | ------------------------------------------------------------------------------- |
+| `lexer.rs`              | Text to tokens: indentation, texts, f-strings, numbers                          |
+| `parser.rs`             | Tokens to statements and expressions, Python's grammar; left-out features named |
+| `compile.rs`            | The checker (§15.1) and the instructions; events from decorators                |
+| `complete.rs`           | Completion: the names that fit at the cursor, without needing the code to parse |
+| `vm.rs`                 | The runtime: activations, waits, timers, exit decisions, console, limits (§16)  |
+| `ops.rs`                | Arithmetic, comparisons, indexing and formats, with units                       |
+| `builtins.rs`           | Built-in functions, `math`, `random`, methods                                   |
+| `units.rs`, `value.rs`  | Dimensions and units; values, dictionaries                                      |
+| `python/intrascript.py` | The names for Python editors (§18.2)                                            |
+
+The 2D engine's side is `intracraft-des`'s `flow/sim/script.rs` (events, members, exit decisions); the editor and the run
+panel are `apps/intracraft/src/code.rs`, its text operations (indent, comment, find, templates) `code/edit.rs`; the
+command line is `apps/intracraft-cli/src/code.rs`. Tests: the language's
+own (`cargo test -p intracraft-script`), the reference scenarios IS-1 to IS-3 in the 2D engine (`cargo test -p
+intracraft-des intrascript`) and the editor driven as a user does (`cargo test -p intracraft`).
 
 ## Related
 
-[[ADR-0018 IntraScript Scripting Language]] · [[A08 Controller]] · [[T07 Control Logic and Signals]] · [[S21 Code Block]] · [[S22 Area]]
+[[ADR-0018 IntraScript Scripting Language]] · [[ADR-0027 IntraScript in Python Syntax with Its Own Interpreter]] ·
+[[A20 IntraScript Tutorial]] · [[S21 Code Block]] · [[A08 Controller]] · [[T07 Control Logic and Signals]]

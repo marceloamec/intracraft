@@ -1,0 +1,243 @@
+{
+  "id": "storage.aisle",
+  "version": "0.1.0",
+  "category": "storage",
+  "name": { "en": "Storage aisle", "es": "Pasillo de almacén", "de": "Lagergasse" },
+  "description": {
+    "en": "One aisle of a high-bay warehouse for pallets (S26): a rack row on each side and a stacker crane between them. The crane lifts pallets with its forks off the end of an infeed chain conveyor, stores them, and later sets them down on the start of an outfeed chain conveyor. Values are indicative.",
+    "es": "Un pasillo de un almacén de gran altura para pallets (S26): una fila de estantería a cada lado y un transelevador entre ellas. El transelevador levanta los pallets con las horquillas del final de un transportador de cadenas de entrada, los almacena y más tarde los deposita al inicio de un transportador de cadenas de salida. Valores orientativos.",
+    "de": "Eine Gasse eines Paletten-Hochregallagers (S26): je eine Regalzeile links und rechts und ein Regalbediengerät dazwischen. Das Gerät hebt Paletten mit der Gabel vom Ende eines Zuführ-Kettenförderers ab, lagert sie ein und setzt sie später auf den Anfang eines Abführ-Kettenförderers. Richtwerte."
+  },
+  "parameters": [
+    {
+      "key": "bays", "type": "integer",
+      "default": 20, "min": 1, "max": 150, "group": "rack", "affects": "both",
+      "label": { "en": "Bays", "es": "Módulos", "de": "Felder" },
+      "description": { "en": "Pallet positions along the aisle, per row and level", "es": "Posiciones de pallet a lo largo del pasillo, por fila y nivel" }
+    },
+    {
+      "key": "levels", "type": "integer",
+      "default": 8, "min": 1, "max": 25, "group": "rack", "affects": "both",
+      "label": { "en": "Levels", "es": "Niveles", "de": "Ebenen" },
+      "description": { "en": "Storage levels", "es": "Niveles de almacenaje" }
+    },
+    {
+      "key": "deep", "type": "integer", "choices": [1, 2],
+      "default": 1, "min": 1, "max": 2, "group": "rack", "affects": "both",
+      "label": { "en": "Pallets deep", "es": "Pallets de fondo", "de": "Paletten tief" },
+      "description": { "en": "Pallets deep on each side of the aisle: 1 (single deep) or 2 (double deep)", "es": "Pallets de fondo a cada lado del pasillo: 1 (simple profundidad) o 2 (doble profundidad)" }
+    },
+    {
+      "key": "bayPitch", "type": "number", "unit": "m", "displayUnit": "mm",
+      "default": 1.0, "min": 0.9, "max": 1.6, "group": "rack", "affects": "both",
+      "label": { "en": "Bay pitch", "es": "Paso de módulo", "de": "Feldteilung" },
+      "description": { "en": "Distance between bay centres (EUR 800 mm + clearance and upright)", "es": "Distancia entre centros de módulo (EUR 800 mm + holgura y puntal)" }
+    },
+    {
+      "key": "levelPitch", "type": "number", "unit": "m", "displayUnit": "mm",
+      "default": 1.8, "min": 0.6, "max": 3.0, "group": "rack", "affects": "both",
+      "label": { "en": "Level pitch", "es": "Paso de nivel", "de": "Ebenenteilung" },
+      "description": { "en": "Distance between levels (pallet + load + clearance + beam)", "es": "Distancia entre niveles (pallet + carga + holgura + larguero)" }
+    },
+    {
+      "key": "firstLevelHeight", "type": "number", "unit": "m", "displayUnit": "mm",
+      "default": 0.6, "min": 0.2, "max": 3.0, "group": "rack", "affects": "both",
+      "label": { "en": "First level height", "es": "Altura del primer nivel", "de": "Höhe der ersten Ebene" },
+      "description": { "en": "Height at which a pallet stands on the first level", "es": "Altura a la que queda un pallet en el primer nivel" }
+    },
+    {
+      "key": "aisleWidth", "type": "number", "unit": "m", "displayUnit": "mm",
+      "default": 1.5, "min": 1.4, "max": 2.5, "group": "rack", "affects": "both",
+      "label": { "en": "Aisle width", "es": "Ancho de pasillo", "de": "Gassenbreite" },
+      "description": { "en": "Clear width between the two rack rows", "es": "Ancho libre entre las dos filas de estantería" }
+    },
+    {
+      "key": "positionDepth", "type": "number", "unit": "m", "displayUnit": "mm",
+      "default": 1.3, "min": 1.25, "max": 1.6, "group": "rack", "affects": "both",
+      "label": { "en": "Position depth", "es": "Fondo de la posición", "de": "Platztiefe" },
+      "description": { "en": "Depth of one pallet position (EUR 1200 mm + clearance)", "es": "Fondo de una posición de pallet (EUR 1200 mm + holgura)" }
+    },
+    {
+      "key": "rackLength", "type": "number", "unit": "m", "displayUnit": "mm",
+      "group": "rack", "affects": "geometry", "derived": true, "formula": "bays * bayPitch",
+      "label": { "en": "Rack length", "es": "Longitud de la estantería", "de": "Regallänge" },
+      "description": { "en": "Length of the rack along the aisle", "es": "Longitud de la estantería a lo largo del pasillo" }
+    },
+    {
+      "key": "rackHeight", "type": "number", "unit": "m", "displayUnit": "mm",
+      "group": "rack", "affects": "geometry", "derived": true, "formula": "firstLevelHeight + levels * levelPitch",
+      "label": { "en": "Rack height", "es": "Altura de la estantería", "de": "Regalhöhe" },
+      "description": { "en": "Height of the rack's top", "es": "Altura de la parte superior de la estantería" }
+    },
+    {
+      "key": "moduleWidth", "type": "number", "unit": "m", "displayUnit": "mm",
+      "group": "rack", "affects": "geometry", "derived": true, "formula": "aisleWidth + 2 * deep * positionDepth",
+      "label": { "en": "Module width", "es": "Ancho del módulo", "de": "Modulbreite" },
+      "description": { "en": "Width of the aisle with its two rack rows", "es": "Ancho del pasillo con sus dos filas de estantería" }
+    },
+    {
+      "key": "positions", "type": "integer",
+      "group": "rack", "affects": "geometry", "derived": true, "formula": "bays * levels * 2 * deep",
+      "label": { "en": "Storage positions", "es": "Posiciones de almacenaje", "de": "Lagerplätze" },
+      "description": { "en": "Pallet positions of the aisle", "es": "Posiciones de pallet del pasillo" }
+    },
+    {
+      "key": "travelSpeed", "type": "number", "unit": "m/s", "displayUnit": "m/s",
+      "default": 3.0, "min": 0.5, "max": 5.0, "group": "crane", "affects": "both",
+      "label": { "en": "Travel speed", "es": "Velocidad de traslación", "de": "Fahrgeschwindigkeit" },
+      "description": { "en": "Stacker crane speed along the aisle", "es": "Velocidad del transelevador a lo largo del pasillo" }
+    },
+    {
+      "key": "travelAccel", "type": "number", "unit": "m/s²", "displayUnit": "m/s²",
+      "default": 0.5, "min": 0.1, "max": 2.0, "group": "crane", "affects": "both",
+      "label": { "en": "Travel acceleration", "es": "Aceleración de traslación", "de": "Fahrbeschleunigung" },
+      "description": { "en": "Start and stop along the aisle", "es": "Arranque y parada a lo largo del pasillo" }
+    },
+    {
+      "key": "liftSpeed", "type": "number", "unit": "m/s", "displayUnit": "m/s",
+      "default": 1.0, "min": 0.1, "max": 2.0, "group": "crane", "affects": "both",
+      "label": { "en": "Lift speed", "es": "Velocidad de elevación", "de": "Hubgeschwindigkeit" },
+      "description": { "en": "Speed of the lifting carriage, up and down", "es": "Velocidad del carro de elevación, subiendo y bajando" }
+    },
+    {
+      "key": "liftAccel", "type": "number", "unit": "m/s²", "displayUnit": "m/s²",
+      "default": 0.5, "min": 0.1, "max": 2.0, "group": "crane", "affects": "both",
+      "label": { "en": "Lift acceleration", "es": "Aceleración de elevación", "de": "Hubbeschleunigung" },
+      "description": { "en": "Start and stop of the lifting carriage", "es": "Arranque y parada del carro de elevación" }
+    },
+    {
+      "key": "forkTime", "type": "number", "unit": "s", "displayUnit": "s",
+      "default": 8, "min": 2, "max": 60, "group": "crane", "affects": "both",
+      "label": { "en": "Fork cycle time", "es": "Tiempo de ciclo de horquilla", "de": "Gabelspielzeit" },
+      "description": { "en": "One fork cycle at a front position or a station: out, lift or lower, back", "es": "Un ciclo de horquilla en una posición delantera o en una cabecera: salir, subir o bajar, volver" }
+    },
+    {
+      "key": "forkTimeDouble", "type": "number", "unit": "s", "displayUnit": "s",
+      "default": 12, "min": 2, "max": 90, "group": "crane", "affects": "both", "dependsOn": "deep=2",
+      "label": { "en": "Fork cycle time, rear position", "es": "Tiempo de ciclo de horquilla, posición trasera", "de": "Gabelspielzeit, hinterer Platz" },
+      "description": { "en": "One fork cycle at a rear position (double deep only)", "es": "Un ciclo de horquilla en una posición trasera (solo doble profundidad)" }
+    },
+    {
+      "key": "dwellPoint", "type": "enum", "options": ["last", "front"],
+      "default": "last", "group": "crane", "affects": "both",
+      "label": { "en": "Idle position", "es": "Posición de reposo", "de": "Ruheposition" },
+      "optionLabels": {
+        "last": { "en": "Where it finished", "es": "Donde terminó", "de": "Wo es fertig wurde" },
+        "front": { "en": "At the lowest station", "es": "En la cabecera más baja", "de": "An der untersten Station" }
+      },
+      "description": { "en": "Where an idle crane waits", "es": "Dónde espera el transelevador sin trabajo" }
+    },
+    {
+      "key": "pdLevels", "type": "integer",
+      "default": 1, "min": 1, "max": 3, "group": "stations", "affects": "both",
+      "label": { "en": "Station heights", "es": "Alturas de cabecera", "de": "Stationshöhen" },
+      "description": { "en": "Number of heights with pick-up and deposit stations", "es": "Número de alturas con cabeceras de recogida y entrega" }
+    },
+    {
+      "key": "pdHeight1", "type": "number", "unit": "m", "displayUnit": "mm",
+      "default": 0.6, "min": 0.2, "max": 40, "group": "stations", "affects": "both",
+      "label": { "en": "Station height 1", "es": "Altura de cabecera 1", "de": "Stationshöhe 1" },
+      "description": { "en": "Conveying height of the chain conveyors of the first height", "es": "Altura de transporte de los transportadores de cadenas de la primera altura" }
+    },
+    {
+      "key": "pdHeight2", "type": "number", "unit": "m", "displayUnit": "mm",
+      "default": 4.6, "min": 0.2, "max": 40, "group": "stations", "affects": "both", "dependsOn": "pdLevels!=1",
+      "label": { "en": "Station height 2", "es": "Altura de cabecera 2", "de": "Stationshöhe 2" },
+      "description": { "en": "Conveying height of the second height", "es": "Altura de transporte de la segunda altura" }
+    },
+    {
+      "key": "pdHeight3", "type": "number", "unit": "m", "displayUnit": "mm",
+      "default": 8.6, "min": 0.2, "max": 40, "group": "stations", "affects": "both", "dependsOn": "pdLevels=3",
+      "label": { "en": "Station height 3", "es": "Altura de cabecera 3", "de": "Stationshöhe 3" },
+      "description": { "en": "Conveying height of the third height", "es": "Altura de transporte de la tercera altura" }
+    },
+    {
+      "key": "storageStrategy", "type": "enum", "options": ["nearest", "random"],
+      "default": "nearest", "group": "operation", "affects": "both",
+      "label": { "en": "Storage strategy", "es": "Estrategia de almacenaje", "de": "Einlagerstrategie" },
+      "optionLabels": {
+        "nearest": { "en": "Nearest free position", "es": "Posición libre más cercana", "de": "Nächster freier Platz" },
+        "random": { "en": "Random free position", "es": "Posición libre aleatoria", "de": "Zufälliger freier Platz" }
+      },
+      "description": { "en": "Which free position a new pallet gets", "es": "Qué posición libre recibe un pallet nuevo" }
+    },
+    {
+      "key": "retrievalMode", "type": "enum", "options": ["none", "dwell", "interval"],
+      "default": "dwell", "group": "operation", "affects": "both",
+      "label": { "en": "Retrieval", "es": "Salidas", "de": "Auslagerung" },
+      "optionLabels": {
+        "none": { "en": "None: pallets stay", "es": "Ninguna: los pallets se quedan", "de": "Keine: Paletten bleiben" },
+        "dwell": { "en": "After a dwell time", "es": "Tras un tiempo de permanencia", "de": "Nach einer Verweilzeit" },
+        "interval": { "en": "Orders at an interval", "es": "Pedidos a intervalo", "de": "Aufträge im Takt" }
+      },
+      "description": { "en": "What makes a pallet leave the rack", "es": "Qué hace que un pallet salga de la estantería" }
+    },
+    {
+      "key": "dwellTime", "type": "number", "unit": "s", "displayUnit": "s",
+      "default": 3600, "min": 1, "max": 2592000, "group": "operation", "affects": "both", "dependsOn": "retrievalMode=dwell",
+      "label": { "en": "Dwell time", "es": "Tiempo de permanencia", "de": "Verweilzeit" },
+      "description": { "en": "Time a pallet stays stored (mean)", "es": "Tiempo que un pallet permanece almacenado (media)" }
+    },
+    {
+      "key": "retrievalInterval", "type": "number", "unit": "s", "displayUnit": "s",
+      "default": 120, "min": 1, "max": 86400, "group": "operation", "affects": "both", "dependsOn": "retrievalMode=interval",
+      "label": { "en": "Retrieval interval", "es": "Intervalo de salidas", "de": "Auslagertakt" },
+      "description": { "en": "Time between two retrieval orders (mean)", "es": "Tiempo entre dos pedidos de salida (media)" }
+    },
+    {
+      "key": "timeDistribution", "type": "enum", "options": ["fixed", "exponential"],
+      "default": "fixed", "group": "operation", "affects": "both", "dependsOn": "retrievalMode!=none",
+      "label": { "en": "Time distribution", "es": "Distribución de tiempos", "de": "Zeitverteilung" },
+      "optionLabels": {
+        "fixed": { "en": "Fixed", "es": "Fijo", "de": "Fest" },
+        "exponential": { "en": "Exponential", "es": "Exponencial", "de": "Exponentiell" }
+      },
+      "description": { "en": "Whether the dwell time and the retrieval interval are exact or random about their mean", "es": "Si el tiempo de permanencia y el intervalo de salidas son exactos o aleatorios en torno a su media" }
+    },
+    {
+      "key": "retrievalOrder", "type": "enum", "options": ["fifo", "random"],
+      "default": "fifo", "group": "operation", "affects": "both", "dependsOn": "retrievalMode=interval",
+      "label": { "en": "Retrieval order", "es": "Orden de salida", "de": "Auslagerreihenfolge" },
+      "optionLabels": {
+        "fifo": { "en": "Oldest first (FIFO)", "es": "El más antiguo primero (FIFO)", "de": "Älteste zuerst (FIFO)" },
+        "random": { "en": "Random", "es": "Aleatorio", "de": "Zufällig" }
+      },
+      "description": { "en": "Which stored pallet an order takes", "es": "Qué pallet almacenado toma un pedido" }
+    },
+    {
+      "key": "initialFill", "type": "number",
+      "default": 0.5, "min": 0, "max": 1, "step": 0.05, "group": "operation", "affects": "both",
+      "label": { "en": "Initial fill", "es": "Llenado inicial", "de": "Anfangsfüllgrad" },
+      "description": { "en": "Share of the positions occupied when the run starts (0 to 1)", "es": "Parte de las posiciones ocupadas al empezar la simulación (0 a 1)" }
+    },
+    {
+      "key": "initialLoadHeight", "type": "number", "unit": "m", "displayUnit": "mm",
+      "default": 1.2, "min": 0, "max": 2.5, "group": "operation", "affects": "both", "advanced": true,
+      "label": { "en": "Initial load height", "es": "Altura de carga inicial", "de": "Anfangs-Ladehöhe" },
+      "description": { "en": "Load height of the pallets of the initial stock (EUR, block load)", "es": "Altura de carga de los pallets del stock inicial (EUR, carga en bloque)" }
+    },
+    {
+      "key": "initialLoadMass", "type": "number", "unit": "kg", "displayUnit": "kg",
+      "default": 600, "min": 0, "max": 1500, "group": "operation", "affects": "both", "advanced": true,
+      "label": { "en": "Initial load mass", "es": "Masa de carga inicial", "de": "Anfangs-Lademasse" },
+      "description": { "en": "Load mass of the pallets of the initial stock", "es": "Masa de carga de los pallets del stock inicial" }
+    }
+  ],
+  "ports": [
+    { "id": "IN1", "direction": "in", "facing": "-x", "local": { "x": 0, "y": "pdHeight1", "z": [{ "param": "aisleWidth", "factor": -0.5 }, { "param": "positionDepth", "factor": -0.5 }] } },
+    { "id": "OUT1", "direction": "out", "facing": "-x", "local": { "x": 0, "y": "pdHeight1", "z": [{ "param": "aisleWidth", "factor": 0.5 }, { "param": "positionDepth", "factor": 0.5 }] } },
+    { "id": "IN2", "direction": "in", "facing": "-x", "local": { "x": 0, "y": "pdHeight2", "z": [{ "param": "aisleWidth", "factor": -0.5 }, { "param": "positionDepth", "factor": -0.5 }] } },
+    { "id": "OUT2", "direction": "out", "facing": "-x", "local": { "x": 0, "y": "pdHeight2", "z": [{ "param": "aisleWidth", "factor": 0.5 }, { "param": "positionDepth", "factor": 0.5 }] } },
+    { "id": "IN3", "direction": "in", "facing": "-x", "local": { "x": 0, "y": "pdHeight3", "z": [{ "param": "aisleWidth", "factor": -0.5 }, { "param": "positionDepth", "factor": -0.5 }] } },
+    { "id": "OUT3", "direction": "out", "facing": "-x", "local": { "x": 0, "y": "pdHeight3", "z": [{ "param": "aisleWidth", "factor": 0.5 }, { "param": "positionDepth", "factor": 0.5 }] } }
+  ],
+  "signals": { "inputs": [], "outputs": [] },
+  "statistics": ["utilization", "blockedShare", "idleShare", "palletsStored", "palletsRetrieved", "relocations", "ordersMissed", "meanCycleTime", "combinedShare", "meanWaitAtEntry", "stock", "fillLevel"],
+  "geometry": "geom.storage_aisle",
+  "behaviors": { "des": "des.storage_aisle", "physics": "phys.storage_aisle" },
+  "validationRules": ["stationAboveRack"],
+  "presets": [
+    { "name": { "en": "Single deep", "es": "Simple profundidad", "de": "Einfachtief" }, "values": { "deep": 1 } },
+    { "name": { "en": "Double deep", "es": "Doble profundidad", "de": "Doppeltief" }, "values": { "deep": 2 } }
+  ]
+}

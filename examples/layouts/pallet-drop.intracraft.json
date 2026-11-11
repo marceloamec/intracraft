@@ -1,0 +1,129 @@
+{
+  "schemaVersion": 1,
+  "name": "Example: pallets running off open ends and falling (no sinks)",
+  "seed": 19,
+  "layout": {
+    "instances": [
+      {
+        "id": "source1",
+        "definitionId": "flow.source",
+        "definitionVersion": "0.1.0",
+        "name": "High infeed (drums)",
+        "position": {
+          "x": -0.42,
+          "y": 0.0,
+          "z": 0.0
+        },
+        "yaw": 0.0,
+        "params": {
+          "interval": 18,
+          "surfaceHeight": 1.5,
+          "palletType": "eur",
+          "loadKind": "asset",
+          "loadAsset": "asset.drums.drum_steel_a01",
+          "loadHeight": 0.9,
+          "loadMass": 800
+        },
+        "attributes": {}
+      },
+      {
+        "id": "roller1",
+        "definitionId": "conveyor.roller",
+        "definitionVersion": "0.1.0",
+        "name": "Roller conveyor at 1.5 m, runs off",
+        "position": {
+          "x": 0.0,
+          "y": 0.0,
+          "z": 0.0
+        },
+        "yaw": 0.0,
+        "params": {
+          "length": 4.0,
+          "surfaceHeight": 1.5,
+          "openEnd": "runOff"
+        },
+        "attributes": {}
+      },
+      {
+        "id": "source2",
+        "definitionId": "flow.source",
+        "definitionVersion": "0.1.0",
+        "name": "Chain infeed (crates)",
+        "position": {
+          "x": -0.42,
+          "y": 0.0,
+          "z": -4.0
+        },
+        "yaw": 0.0,
+        "params": {
+          "interval": 22,
+          "surfaceHeight": 1.2,
+          "palletType": "gma",
+          "orientation": "short",
+          "loadKind": "asset",
+          "loadAsset": "asset.containers.crate_blue_a01",
+          "loadHeight": 1.0,
+          "loadMass": 400
+        },
+        "attributes": {}
+      },
+      {
+        "id": "chain1",
+        "definitionId": "conveyor.chain",
+        "definitionVersion": "0.1.0",
+        "name": "Chain conveyor at 1.2 m, runs off",
+        "position": {
+          "x": 0.0,
+          "y": 0.0,
+          "z": -4.0
+        },
+        "yaw": 0.0,
+        "params": {
+          "length": 4.0,
+          "surfaceHeight": 1.2,
+          "openEnd": "runOff"
+        },
+        "attributes": {}
+      },
+      {
+        "id": "source3",
+        "definitionId": "flow.source",
+        "definitionVersion": "0.1.0",
+        "name": "Low infeed (cartons)",
+        "position": {
+          "x": -0.42,
+          "y": 0.0,
+          "z": -8.0
+        },
+        "yaw": 0.0,
+        "params": {
+          "interval": 25,
+          "maxPallets": 3,
+          "palletType": "eur",
+          "loadKind": "block",
+          "loadHeight": 1.2,
+          "loadMass": 600
+        },
+        "attributes": {}
+      },
+      {
+        "id": "roller2",
+        "definitionId": "conveyor.roller",
+        "definitionVersion": "0.1.0",
+        "name": "Roller conveyor at 0.6 m, runs off",
+        "position": {
+          "x": 0.0,
+          "y": 0.0,
+          "z": -8.0
+        },
+        "yaw": 0.0,
+        "params": {
+          "openEnd": "runOff"
+        },
+        "attributes": {}
+      }
+    ],
+    "connections": [],
+    "rules": []
+  }
+}

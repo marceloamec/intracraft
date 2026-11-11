@@ -3,11 +3,13 @@ title: S19 Table
 lang: en
 tags: [spec, information, scripting]
 library-id: info.table
-status: proposed — waiting for the owner's confirmation
+status: specified — not built yet (after IntraScript 1.0)
 updated: 2026-10-31
 ---
 
 # S19 Table (`info.table`)
+
+> **IntraScript 1.0 (2026-11-09, [[ADR-0027 IntraScript in Python Syntax with Its Own Interpreter]]):** code is written in Python's syntax (snake_case members, counting from 0, `=` to assign) and this object is not built yet; until it is, lists of tuples and dictionaries in a code block hold the tables (A17 §21.2). When it is built, the members below take Python's form; the behaviour stays as specified.
 
 A **grid of typed columns** on the 2D plan: order lists, destination shares, processing times by pallet type, hourly reports. Code reads and writes it ([[A17 IntraScript Language]]); the editor edits it like a spreadsheet and imports or exports CSV. Decision: [[ADR-0018 IntraScript Scripting Language]].
 
@@ -68,7 +70,7 @@ A small grid icon with the name and, when `showOnPlan`, its size in rows × colu
 | `T.find(column, value)`                         | First row whose cell equals `value`, or 0                                    |
 | `T.column(column)`                              | The column as a `list` (a copy)                                              |
 | `T.sum(c)`, `T.min(c)`, `T.max(c)`, `T.mean(c)` | Over a numeric or quantity column                                            |
-| `T.sort(column, descending := false)`           | Sorts the rows; equal cells keep their order                                 |
+| `T.sort(column, reverse=False)`                 | Sorts the rows; equal cells keep their order                                 |
 | `random.row(T, weightColumn)`                   | A row drawn with probability proportional to the column (A17 §12)            |
 
 A cell with a constant column has the column's type (`Orders[i, "gap"]` is a `length`); a column chosen at run time gives an `any` value (A17 §10.6). An index outside the table stops the run with `indexOutOfRange`.
@@ -114,4 +116,4 @@ Since 2026-10-31 IntraCraft is built in Rust on BIMCraft with three modules ([[A
 | Discrete simulation | Read and written by IntraScript code and the controller during the run, as this spec says                                                           |
 | Physics simulation  | The same as in the Discrete simulation module (information objects have no body)                                                                    |
 
-The behaviour above does not change. **Rust status:** not ported yet (R10, after the owner answers Q20 of [[A19 Rust Implementation Plan]]); the tests of this spec are the expected values of the port.
+The behaviour above does not change. **Rust status:** not built yet; IntraScript 1.0 and the code block came first (R10 of [[A19 Rust Implementation Plan]], [[ADR-0027 IntraScript in Python Syntax with Its Own Interpreter]]); the tests of this spec are the expected values of the port.

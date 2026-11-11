@@ -167,10 +167,16 @@ Each question states **what must be decided**, **why it matters** (which result 
 | i   | Reset                     | Variables, tables and lists start every run with their initial content           | Keep the content between runs by default                                                     |
 | j   | Area membership           | Explicit (`layout.setParent`); the editor offers it when dropping inside an area | Purely by position inside the rectangle                                                      |
 
-- **Assumed:** as written in A17 and S18–S22 until the owner answers.
+- **Answered (2026-11-09):** the owner asked to build the language without further questions, based on Python. Python's syntax decides a–c (case-sensitive, counting from 0, `=` / `==` / `!=`); d, e, g, h and i as written; f and j wait for direct moves and areas. See [[ADR-0027 IntraScript in Python Syntax with Its Own Interpreter]] and [[A17 IntraScript Language]].
 
 ### Q21. Pivot to a simulation module on BIMCraft (Rust)
 - **Decide:** whether IntraCraft becomes a simulation module of a fork of BIMCraft, rewritten in Rust ([[ADR-0020 Rust Platform on BIMCraft with Three Modules]]).
 - **Why:** it changes the language, the physics engine (Rapier instead of Jolt), the editor and the order of work ([[A19 Rust Implementation Plan]]); specifications, theory and tests are kept.
 - **Specific questions:** see ADR-0020 §6 (fork or upstream contribution, name, physics engine, budget in scope, inheritance by default, when to freeze the TypeScript editor).
 - **Answered (2026-10-31):** yes. Rust inside BIMCraft, brought into this repository with every library vendored; three modules (Design, Discrete simulation, Physics simulation); any Rust game or physics engine allowed; the TypeScript code kept frozen as the reference ([[ADR-0020 Rust Platform on BIMCraft with Three Modules]] §7). Still open: the product name (IntraCraft assumed), budgets in scope, inheritance by default (assumed yes).
+
+### Q22. Stacker crane and rack values of the high-bay warehouse
+- **Decide:** real speeds, fork times and rack measures of [[S26 Storage Aisle]], and how pallets are asked out of the warehouse.
+- **Why:** they set the crane's cycle time, so the pallets per hour of each aisle, and the number of positions that fit in a given building.
+- **Specific questions:** (a) Travel and lift speed and acceleration of a typical pallet stacker crane? (b) Time of one fork cycle, single and double deep? (c) Bay pitch, level pitch and aisle width for EUR pallets with the usual load heights? (d) Do the cranes also serve stations at the rear end of the aisle? (e) Is a crane ever shared by several aisles? (f) How do retrieval orders arrive in the plants you simulate: by dwell time, at a rate, or from a list of orders?
+- **Assumed:** 3 m/s and 0.5 m/s² along the aisle, 1 m/s and 0.5 m/s² lifting, 8 s per fork cycle (12 s double deep); bays every 1.0 m, levels every 1.8 m, aisle 1.5 m; stations at the front only; one crane per aisle; pallets leave after a dwell time or at a fixed rate ([[ADR-0033 Scope Extension High-Bay Warehouse and Stacker Cranes]]).

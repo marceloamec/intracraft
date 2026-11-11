@@ -49,12 +49,13 @@ pub fn panel(
         });
         ui.label(egui::RichText::new(run.clock()).monospace().size(20.0));
         let stats = run.statistics();
-        let delivered: f64 = objects
+        let delivered = objects
             .0
             .iter()
             .filter(|o| o.definition == "flow.sink")
             .filter_map(|o| stats.get(&o.id).and_then(|s| s.get("palletsReceived")))
-            .sum();
+            .sum::<f64>()
+            .max(0.0);
         egui::Grid::new("counts").num_columns(2).show(ui, |ui| {
             ui.label("Pallets in the plant");
             ui.label(latest.0.pallets.len().to_string());
@@ -62,11 +63,9 @@ pub fn panel(
             ui.label("Pallets delivered");
             ui.label(format!("{delivered:.0}"));
             ui.end_row();
-            if let Some(fallen) = run.fallen() {
-                ui.label("Pallets fallen");
-                ui.label(fallen.to_string());
-                ui.end_row();
-            }
+            ui.label("Pallets fallen");
+            ui.label(run.fallen().to_string());
+            ui.end_row();
         });
         ui.checkbox(&mut show.0, "State colours under the objects");
         if let Some(e) = &run.error {

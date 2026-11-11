@@ -1,0 +1,1 @@
+{"nodes": [{"id": "pkg_intracraft_script", "label": "intracraft-script", "file_type": "code", "type": "package", "ecosystem": "cargo", "source_file": "platform/sim/script/Cargo.toml", "source_location": "L1", "version": "0.1.0"}], "edges": []}

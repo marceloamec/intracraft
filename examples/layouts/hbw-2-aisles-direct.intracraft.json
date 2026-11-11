@@ -1,0 +1,202 @@
+{
+  "schemaVersion": 1,
+  "name": "Example: high-bay warehouse with two aisles, single deep",
+  "seed": 1,
+  "layout": {
+    "instances": [
+      {
+        "id": "aisle01",
+        "definitionId": "storage.aisle",
+        "definitionVersion": "0.1.0",
+        "name": "Aisle 01",
+        "position": {
+          "x": 0.0,
+          "y": 0.0,
+          "z": 0.0
+        },
+        "yaw": 0.0,
+        "params": {
+          "bays": 24.0,
+          "deep": 1.0,
+          "dwellTime": 900.0,
+          "initialFill": 0.4,
+          "levelPitch": 1.6,
+          "levels": 7.0,
+          "pdHeight1": 0.6,
+          "pdLevels": 1.0
+        },
+        "attributes": {
+          "section": "HBW"
+        }
+      },
+      {
+        "id": "aisle01_in1",
+        "definitionId": "conveyor.chain",
+        "definitionVersion": "0.1.0",
+        "name": "Aisle 01 in 1",
+        "position": {
+          "x": -2.42,
+          "y": 0.0,
+          "z": -1.4
+        },
+        "yaw": 0.0,
+        "params": {
+          "length": 2.4
+        },
+        "attributes": {
+          "section": "HBW"
+        }
+      },
+      {
+        "id": "aisle01_out1",
+        "definitionId": "conveyor.chain",
+        "definitionVersion": "0.1.0",
+        "name": "Aisle 01 out 1",
+        "position": {
+          "x": -0.02,
+          "y": 0.0,
+          "z": 1.4
+        },
+        "yaw": 3.141592653589793,
+        "params": {
+          "length": 2.4
+        },
+        "attributes": {
+          "section": "HBW"
+        }
+      },
+      {
+        "id": "aisle02",
+        "definitionId": "storage.aisle",
+        "definitionVersion": "0.1.0",
+        "name": "Aisle 02",
+        "position": {
+          "x": 0.0,
+          "y": 0.0,
+          "z": 4.3
+        },
+        "yaw": 0.0,
+        "params": {
+          "bays": 24.0,
+          "deep": 1.0,
+          "dwellTime": 900.0,
+          "initialFill": 0.4,
+          "levelPitch": 1.6,
+          "levels": 7.0,
+          "pdHeight1": 0.6,
+          "pdLevels": 1.0
+        },
+        "attributes": {
+          "section": "HBW"
+        }
+      },
+      {
+        "id": "aisle02_in1",
+        "definitionId": "conveyor.chain",
+        "definitionVersion": "0.1.0",
+        "name": "Aisle 02 in 1",
+        "position": {
+          "x": -2.42,
+          "y": 0.0,
+          "z": 2.9
+        },
+        "yaw": 0.0,
+        "params": {
+          "length": 2.4
+        },
+        "attributes": {
+          "section": "HBW"
+        }
+      },
+      {
+        "id": "aisle02_out1",
+        "definitionId": "conveyor.chain",
+        "definitionVersion": "0.1.0",
+        "name": "Aisle 02 out 1",
+        "position": {
+          "x": -0.02,
+          "y": 0.0,
+          "z": 5.699999999999999
+        },
+        "yaw": 3.141592653589793,
+        "params": {
+          "length": 2.4
+        },
+        "attributes": {
+          "section": "HBW"
+        }
+      },
+      {
+        "id": "aisle01_in1_source",
+        "definitionId": "flow.source",
+        "definitionVersion": "0.1.0",
+        "name": "Aisle 01 in 1 source",
+        "position": {
+          "x": -2.84,
+          "y": 0.0,
+          "z": -1.4
+        },
+        "yaw": 0.0,
+        "params": {
+          "interval": 60.0,
+          "orientation": "short"
+        },
+        "attributes": {
+          "section": "HBW"
+        }
+      },
+      {
+        "id": "aisle01_out1_sink",
+        "definitionId": "flow.sink",
+        "definitionVersion": "0.1.0",
+        "name": "Aisle 01 out 1 sink",
+        "position": {
+          "x": -2.44,
+          "y": 0.0,
+          "z": 1.4
+        },
+        "yaw": 3.141592653589793,
+        "params": {},
+        "attributes": {
+          "section": "HBW"
+        }
+      },
+      {
+        "id": "aisle02_in1_source",
+        "definitionId": "flow.source",
+        "definitionVersion": "0.1.0",
+        "name": "Aisle 02 in 1 source",
+        "position": {
+          "x": -2.84,
+          "y": 0.0,
+          "z": 2.9
+        },
+        "yaw": 0.0,
+        "params": {
+          "interval": 60.0,
+          "orientation": "short"
+        },
+        "attributes": {
+          "section": "HBW"
+        }
+      },
+      {
+        "id": "aisle02_out1_sink",
+        "definitionId": "flow.sink",
+        "definitionVersion": "0.1.0",
+        "name": "Aisle 02 out 1 sink",
+        "position": {
+          "x": -2.44,
+          "y": 0.0,
+          "z": 5.699999999999999
+        },
+        "yaw": 3.141592653589793,
+        "params": {},
+        "attributes": {
+          "section": "HBW"
+        }
+      }
+    ],
+    "connections": []
+  }
+}

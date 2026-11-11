@@ -39,6 +39,15 @@ impl LoadKind {
         }
     }
 
+    /// The same load once a stretch wrapper has wrapped it (S25): cartons get their film; drums and crates keep their
+    /// look until load recipes say how each is wrapped (A21).
+    pub fn wrapped(self) -> LoadKind {
+        match self {
+            LoadKind::Cartons => LoadKind::WrappedCartons,
+            other => other,
+        }
+    }
+
     /// The load a source's choice stands for: `block` is a wrapped block of cartons (S09 §1.1); an asset of the catalogue
     /// by its category; `none` is none.
     pub fn of_source(load_kind: &str, load_asset: &str) -> Option<LoadKind> {
@@ -154,6 +163,8 @@ mod tests {
     fn a_source_s_choice_picks_its_load() {
         assert_eq!(LoadKind::of_source("block", ""), Some(LoadKind::WrappedCartons));
         assert_eq!(LoadKind::of_source("none", ""), None);
+        assert_eq!(LoadKind::Cartons.wrapped(), LoadKind::WrappedCartons);
+        assert_eq!(LoadKind::Drums.wrapped(), LoadKind::Drums);
         assert_eq!(LoadKind::of_source("asset", "asset.drums.drum_steel_a01"), Some(LoadKind::Drums));
         assert_eq!(LoadKind::of_source("asset", "asset.containers.crate_blue_a01"), Some(LoadKind::Crates));
         assert_eq!(LoadKind::of_source("asset", "asset.boxes.box_cardboard_a01"), Some(LoadKind::Cartons));

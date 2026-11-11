@@ -3,7 +3,7 @@
 //! pallets with their loads (the own glTF models), each object's state as a colour under it.
 //!
 //! `intracraft-viewer FILE.intracraft.json [--module discrete|physics] [--play] [--frames N [--screenshot FILE.png]]`:
-//! `--play` starts the run at once; `--frames N` closes the window after N frames and prints what was on show (a check
+//! `--play` starts the run at once, `--speed N` at one of its speeds (×1, ×2, ×5 physics; ×1 to ×10 000 discrete); `--frames N` closes the window after N frames and prints what was on show (a check
 //! that it runs), with `--screenshot` saving a picture of the window first.
 
 // Bevy's systems are spelled as functions of many queries; that is how the engine is used (ADR-0026).
@@ -48,7 +48,7 @@ fn start() -> Result<AppExit, String> {
     };
     let frames = option("--frames").and_then(|n| n.parse::<u64>().ok());
     let screenshot = option("--screenshot").map(PathBuf::from);
-    let valued = ["--module", "--frames", "--screenshot"];
+    let valued = ["--module", "--frames", "--screenshot", "--speed"];
     let file = args
         .iter()
         .enumerate()
@@ -64,6 +64,9 @@ fn start() -> Result<AppExit, String> {
     let (lo, hi) = intracraft_scene::bounds(&objects).unwrap_or(([-5.0, 0.0, -5.0], [5.0, 2.0, 5.0]));
     let mut run = Run::start(module, project.layout.clone(), project.seed, library.clone())?;
     run.playing = args.iter().any(|a| a == "--play");
+    if let Some(speed) = option("--speed").and_then(|s| s.parse::<f64>().ok()).filter(|s| run.speeds().contains(s)) {
+        run.speed = speed;
+    }
     let name = path.file_name().map(|n| n.to_string_lossy().into_owned()).unwrap_or(file);
 
     let mut app = App::new();

@@ -1,0 +1,87 @@
+{
+  "schemaVersion": 1,
+  "name": "Example: a stretch wrapper between two roller conveyors",
+  "seed": 3,
+  "layout": {
+    "instances": [
+      {
+        "id": "source1",
+        "definitionId": "flow.source",
+        "definitionVersion": "0.1.0",
+        "name": "Loose cartons",
+        "position": {
+          "x": -0.42,
+          "y": 0.0,
+          "z": 0.0
+        },
+        "yaw": 0.0,
+        "params": {
+          "interval": 50,
+          "palletType": "eur",
+          "loadKind": "asset",
+          "loadAsset": "asset.boxes.box_cardboard_a01",
+          "loadMass": 300
+        },
+        "attributes": {}
+      },
+      {
+        "id": "roller1",
+        "definitionId": "conveyor.roller",
+        "definitionVersion": "0.1.0",
+        "name": "Infeed",
+        "position": {
+          "x": 0.0,
+          "y": 0.0,
+          "z": 0.0
+        },
+        "yaw": 0.0,
+        "params": {},
+        "attributes": {}
+      },
+      {
+        "id": "wrapper1",
+        "definitionId": "flow.stretch_wrapper",
+        "definitionVersion": "0.1.0",
+        "name": "Stretch wrapper",
+        "position": {
+          "x": 3.02,
+          "y": 0.0,
+          "z": 0.0
+        },
+        "yaw": 0.0,
+        "params": {},
+        "attributes": {}
+      },
+      {
+        "id": "roller2",
+        "definitionId": "conveyor.roller",
+        "definitionVersion": "0.1.0",
+        "name": "Outfeed",
+        "position": {
+          "x": 4.84,
+          "y": 0.0,
+          "z": 0.0
+        },
+        "yaw": 0.0,
+        "params": {},
+        "attributes": {}
+      },
+      {
+        "id": "sink1",
+        "definitionId": "flow.sink",
+        "definitionVersion": "0.1.0",
+        "name": "Wrapped pallets",
+        "position": {
+          "x": 7.86,
+          "y": 0.0,
+          "z": 0.0
+        },
+        "yaw": 0.0,
+        "params": {},
+        "attributes": {}
+      }
+    ],
+    "connections": [],
+    "rules": []
+  }
+}

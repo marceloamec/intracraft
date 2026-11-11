@@ -1,19 +1,23 @@
 //! The 3D behaviour of the stations with one deck on a kinematic platform (the reference's `station.ts`): the manual lift
 //! table, the scissor lift table and the pallet elevator (S12–S14) and the process station (S11). The same cycle as in 2D
 //! (ADR-0013): receive and centre the pallet, lift or process it, discharge it through the exit port, return empty. The
-//! platform carries the pallet up and down by contact.
+//! platform carries the pallet up and down by contact. A stretch wrapper (S25) is a process station whose platform turns
+//! about the table's centre while it wraps, along the 2D programme; the pallet turns with it by friction alone.
 
 use std::collections::BTreeMap;
 
 use crate::bench::BodyId;
 use intracraft_des::flow::network::{LiftPort, ProcessData};
 use intracraft_des::flow::processing_time;
+use intracraft_des::flow::wrap::Programme;
 use intracraft_des::kinematics::{MoveProfile, profile_position_at, profile_time};
 use intracraft_des::rng::Pcg32;
-use intracraft_des::time::{SimTime, US_PER_S};
+use intracraft_des::time::{SimTime, US_PER_S, from_seconds};
+use intracraft_library::ports::rotate_y;
 
 use crate::bench::{DT, PhysicsBench};
 use crate::flow::deck::{Deck, Exit, Pallets, Status};
+use crate::frame::Frame;
 
 /// A centred pallet slower than this has come to rest on the deck, m/s.
 const REST_SPEED: f64 = 0.005;
@@ -53,6 +57,18 @@ struct Stats {
     cycle_sum: SimTime,
     done: u64,
     processing_sum: SimTime,
+    /// A stretch wrapper's pallets wrapped, turns, film laid (m) and loads too tall (S25 §5).
+    wrapped: u64,
+    turns: u64,
+    film: f64,
+    too_tall: u64,
+}
+
+/// A wrap in progress: when the processing started (s) and the programme.
+#[derive(Clone, Copy, Debug)]
+struct Wrapping {
+    start: f64,
+    programme: Programme,
 }
 
 pub struct Station3D {
@@ -72,6 +88,9 @@ pub struct Station3D {
     wait_until: Option<SimTime>,
     cycle_start: SimTime,
     stats: Stats,
+    wrapping: Option<Wrapping>,
+    /// A wrapper's deck frame with the table in line (its angle 0).
+    home: Option<Frame>,
 }
 
 impl Station3D {
@@ -91,7 +110,22 @@ impl Station3D {
             wait_until: None,
             cycle_start: 0,
             stats: Stats::default(),
+            wrapping: None,
+            home: None,
         }
+    }
+
+    /// A stretch wrapper's table turns; its deck frame with the table in line is `home`.
+    pub fn with_home(mut self, home: Frame) -> Station3D {
+        self.home = Some(home);
+        self
+    }
+
+    /// A stretch wrapper's table angle (rad, 0 in line), from its deck's frame.
+    pub fn table_angle(&self, frame: &Frame) -> Option<f64> {
+        let home = self.home.as_ref()?;
+        let angle = (frame.yaw - home.yaw).rem_euclid(std::f64::consts::TAU);
+        Some(if std::f64::consts::TAU - angle < 1e-9 { 0.0 } else { angle })
     }
 
     /// Its deck, if `port` is its entry.
@@ -122,7 +156,7 @@ impl Station3D {
     }
 
     /// Moves the cycle on at `now`.
-    pub fn step(&mut self, now: SimTime, deck: &mut Deck, pallets: &Pallets) {
+    pub fn step(&mut self, now: SimTime, deck: &mut Deck, pallets: &mut Pallets) {
         let t = now as f64 / US_PER_S as f64;
         match self.phase {
             Phase::Receiving => {
@@ -131,7 +165,22 @@ impl Station3D {
                 }
                 if let Kind::Process { data, rng } = &mut self.kind {
                     self.phase = Phase::Processing;
-                    let time = processing_time(data, rng);
+                    let time = match &data.wrap {
+                        Some(wrap) => {
+                            let pallet = deck.pallets.first().and_then(|id| pallets.get(id)).map(|p| &p.pallet);
+                            let (load, perimeter) = pallet.map_or((0.0, 0.0), |p| (p.load_height, 2.0 * (p.length + p.width)));
+                            let programme = wrap.programme(load);
+                            if programme.turns > 0 {
+                                self.stats.wrapped += 1;
+                                self.stats.turns += u64::from(programme.turns);
+                                self.stats.film += f64::from(programme.turns) * perimeter;
+                            }
+                            self.stats.too_tall += u64::from(programme.too_tall);
+                            self.wrapping = Some(Wrapping { start: t, programme });
+                            from_seconds(programme.processing_time)
+                        }
+                        None => processing_time(data, rng),
+                    };
                     self.stats.processing_sum += time;
                     self.wait_until = Some(now + time);
                 } else {
@@ -146,6 +195,18 @@ impl Station3D {
                 }
                 self.wait_until = None;
                 self.stats.done += 1;
+                // The film is cut: the pallet leaves wrapped, the table in line.
+                if let Some(w) = self.wrapping.take() {
+                    if w.programme.turns > 0
+                        && let Some(p) = deck.pallets.first().and_then(|id| pallets.get_mut(id))
+                    {
+                        p.pallet.wrapped = true;
+                    }
+                    if let Some(home) = &self.home {
+                        deck.frame.yaw = home.yaw;
+                        deck.frame.origin = [home.origin[0], deck.frame.origin[1], home.origin[2]];
+                    }
+                }
                 self.discharge(deck);
             }
             Phase::Moving => {
@@ -176,16 +237,34 @@ impl Station3D {
         }
     }
 
-    /// Sets the platform's vertical speed so that it follows the profile over the next step (`t` s).
+    /// Sets the platform's vertical speed, and a wrapper's turning speed, so that it follows its profile over the next
+    /// step (`t` s).
     pub fn drive_vertical(&self, bench: &mut dyn PhysicsBench, t: f64) {
         let vy = self.vertical.as_ref().map_or(0.0, |m| (height_on(m, t + DT) - self.height) / DT);
-        bench.set_velocity(self.platform, [0.0, vy, 0.0], [0.0; 3]);
+        let omega = match (&self.kind, &self.wrapping) {
+            (Kind::Process { data, .. }, Some(w)) => {
+                data.wrap.as_ref().map_or(0.0, |wrap| wrap.angular_speed_at(&w.programme, t - w.start, DT))
+            }
+            _ => 0.0,
+        };
+        bench.set_velocity(self.platform, [0.0, vy, 0.0], [0.0, omega, 0.0]);
     }
 
     /// Reads the platform's height after a step (`t` s) and moves the deck's frame with it.
     pub fn sync_height(&mut self, bench: &dyn PhysicsBench, t: f64, deck: &mut Deck) {
         self.height = bench.position(self.platform)[1] - self.base_y;
         deck.frame.origin[1] = self.base_y + self.height;
+        // A wrapper's deck turns with its table about the table's centre, its entry edge half a length behind it.
+        if let (Kind::Process { data, .. }, Some(w), Some(home)) = (&self.kind, &self.wrapping, &self.home) {
+            let angle = data.wrap.as_ref().map_or(0.0, |wrap| wrap.angle_at(&w.programme, t - w.start));
+            let half = deck.spec.length / 2.0;
+            let (cx, cz) = rotate_y((half, 0.0), home.yaw);
+            let centre = (home.origin[0] + cx, home.origin[2] + cz);
+            let yaw = home.yaw + angle;
+            let (dx, dz) = rotate_y((-half, 0.0), yaw);
+            deck.frame.yaw = yaw;
+            deck.frame.origin = [centre.0 + dx, deck.frame.origin[1], centre.1 + dz];
+        }
         if self.vertical.as_ref().is_some_and(|m| t >= m.start + m.duration - 1e-9) {
             self.vertical = None;
         }
@@ -227,6 +306,11 @@ impl Station3D {
         if matches!(self.kind, Kind::Process { .. }) {
             out.insert("palletsProcessed", s.done as f64);
             out.insert("meanProcessingTime", seconds(s.processing_sum, s.done));
+            if self.home.is_some() {
+                out.insert("meanTurns", if s.wrapped > 0 { s.turns as f64 / s.wrapped as f64 } else { 0.0 });
+                out.insert("filmUsed", s.film);
+                out.insert("tooTallPallets", s.too_tall as f64);
+            }
         } else {
             out.insert("palletsMoved", s.done as f64);
         }

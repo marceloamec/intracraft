@@ -1,0 +1,242 @@
+{
+  "id": "flow.stretch_wrapper",
+  "version": "0.1.0",
+  "category": "flow",
+  "name": { "en": "Stretch wrapper", "es": "Enfardadora", "de": "Stretchwickler" },
+  "description": {
+    "en": "Rotating roller table with a mast and a film carriage: one pallet at a time stops centred, is turned while film is laid round its load, and leaves wrapped. The time follows the load height and the wrap programme (S25).",
+    "es": "Mesa giratoria de rodillos con mástil y carro portabobinas: un pallet a la vez se detiene centrado, gira mientras el film envuelve su carga y sale enfardado. El tiempo depende de la altura de la carga y del programa de enfardado (S25).",
+    "de": "Rollendrehtisch mit Mast und Folienschlitten: jeweils eine Palette hält mittig an, wird gedreht, während die Folie um die Ladung gelegt wird, und fährt gewickelt aus. Die Zeit folgt aus Ladehöhe und Wickelprogramm (S25)."
+  },
+  "parameters": [
+    {
+      "key": "length", "type": "number", "unit": "m", "displayUnit": "mm",
+      "default": 1.8, "min": 1.5, "max": 2.4, "group": "geometry", "affects": "both",
+      "label": { "en": "Table diameter", "es": "Diámetro de la mesa", "de": "Tischdurchmesser" },
+      "description": {
+        "en": "Diameter of the rotating table and distance between the ports; the rollers lie inside the circle",
+        "es": "Diámetro de la mesa giratoria y distancia entre los puertos; los rodillos quedan dentro del círculo",
+        "de": "Durchmesser des Drehtischs und Abstand der Anschlüsse; die Rollen liegen innerhalb des Kreises"
+      }
+    },
+    {
+      "key": "usableWidth", "type": "number", "unit": "m", "displayUnit": "mm",
+      "default": 1.0, "min": 0.8, "max": 1.4, "group": "geometry", "affects": "both",
+      "label": { "en": "Usable width", "es": "Ancho útil", "de": "Nutzbreite" },
+      "description": {
+        "en": "Roller length at the centre of the table",
+        "es": "Longitud de los rodillos en el centro de la mesa",
+        "de": "Rollenlänge in der Tischmitte"
+      }
+    },
+    {
+      "key": "surfaceHeight", "type": "number", "unit": "m", "displayUnit": "mm",
+      "default": 0.6, "min": 0.2, "max": 1.5, "group": "geometry", "affects": "geometry",
+      "label": { "en": "Surface height", "es": "Altura de la superficie", "de": "Förderhöhe" },
+      "description": {
+        "en": "Height of the conveying surface and of both ports; match the conveyors",
+        "es": "Altura de la superficie de transporte y de ambos puertos; debe coincidir con los transportadores",
+        "de": "Höhe der Förderfläche und beider Anschlüsse; muss zu den Förderern passen"
+      }
+    },
+    {
+      "key": "palletSideAlongTravel", "type": "enum", "options": ["long", "short"], "default": "long",
+      "group": "geometry", "affects": "both",
+      "label": { "en": "Pallet side along travel", "es": "Lado del pallet paralelo al avance", "de": "Palettenseite in Förderrichtung" },
+      "description": {
+        "en": "Which pallet side is parallel to the direction of travel",
+        "es": "Qué lado del pallet queda paralelo al avance",
+        "de": "Welche Palettenseite parallel zur Förderrichtung liegt"
+      }
+    },
+    {
+      "key": "maxLoadHeight", "type": "number", "unit": "m", "displayUnit": "mm",
+      "default": 2.0, "min": 0.5, "max": 2.6, "group": "geometry", "affects": "both",
+      "label": { "en": "Max load height", "es": "Altura máxima de carga", "de": "Maximale Ladehöhe" },
+      "description": {
+        "en": "Highest load the film carriage reaches (mast height); above it no film is laid and the pallet is counted as too tall",
+        "es": "Carga más alta que alcanza el carro portabobinas (altura del mástil); por encima no se pone film y el pallet se cuenta como demasiado alto",
+        "de": "Höchste Ladung, die der Folienschlitten erreicht (Masthöhe); darüber wird keine Folie gelegt und die Palette als zu hoch gezählt"
+      }
+    },
+    {
+      "key": "nominalSpeed", "type": "number", "unit": "m/s", "displayUnit": "m/s",
+      "default": 0.25, "min": 0.05, "max": 1.0, "group": "motion", "affects": "both",
+      "label": { "en": "Roller speed", "es": "Velocidad de rodillos", "de": "Rollengeschwindigkeit" },
+      "description": {
+        "en": "Roller speed while a pallet runs in or out",
+        "es": "Velocidad de los rodillos mientras un pallet entra o sale",
+        "de": "Rollengeschwindigkeit beim Ein- und Ausfahren einer Palette"
+      }
+    },
+    {
+      "key": "accel", "type": "number", "unit": "m/s²", "displayUnit": "m/s²",
+      "default": 0.5, "min": 0.05, "max": 2.0, "group": "motion", "affects": "both",
+      "label": { "en": "Roller acceleration", "es": "Aceleración de rodillos", "de": "Rollenbeschleunigung" },
+      "description": {
+        "en": "Acceleration and deceleration of the rollers",
+        "es": "Aceleración y deceleración de los rodillos",
+        "de": "Beschleunigung und Verzögerung der Rollen"
+      }
+    },
+    {
+      "key": "rollerDiameter", "type": "number", "unit": "m", "displayUnit": "mm",
+      "default": 0.089, "choices": [0.076, 0.089], "group": "motion", "affects": "both", "advanced": true,
+      "label": { "en": "Roller diameter", "es": "Diámetro de rodillo", "de": "Rollendurchmesser" },
+      "description": {
+        "en": "Outer roller diameter, chosen from the standard list",
+        "es": "Diámetro exterior del rodillo, elegido de la lista estándar",
+        "de": "Rollenaußendurchmesser aus der Standardliste"
+      }
+    },
+    {
+      "key": "rollerPitch", "type": "number", "unit": "m", "displayUnit": "mm",
+      "default": 0.2063, "choices": [0.133, 0.2063], "group": "motion", "affects": "both", "advanced": true,
+      "label": { "en": "Roller pitch", "es": "Paso de rodillos", "de": "Rollenteilung" },
+      "description": {
+        "en": "Axis-to-axis distance, chosen from the standard list",
+        "es": "Distancia entre ejes, elegida de la lista estándar",
+        "de": "Achsabstand aus der Standardliste"
+      }
+    },
+    {
+      "key": "turnSpeed", "type": "number", "unit": "rad/s", "displayUnit": "rpm",
+      "default": 1.2566370614359172, "min": 0.41887902047863906, "max": 2.0943951023931953,
+      "group": "wrap", "affects": "both",
+      "label": { "en": "Turning speed", "es": "Velocidad de giro", "de": "Drehgeschwindigkeit" },
+      "description": {
+        "en": "Turning speed of the table while wrapping",
+        "es": "Velocidad de giro de la mesa durante el enfardado",
+        "de": "Drehgeschwindigkeit des Tischs beim Wickeln"
+      }
+    },
+    {
+      "key": "turnAccel", "type": "number", "unit": "rad/s²", "displayUnit": "°/s²",
+      "default": 0.6283185307179586, "min": 0.08726646259971647, "max": 3.141592653589793,
+      "group": "wrap", "affects": "both",
+      "label": { "en": "Turning acceleration", "es": "Aceleración de giro", "de": "Drehbeschleunigung" },
+      "description": {
+        "en": "Angular acceleration and deceleration of the table: soft start and stop",
+        "es": "Aceleración y deceleración angular de la mesa: arranque y parada suaves",
+        "de": "Winkelbeschleunigung und -verzögerung des Tischs: sanfter Anlauf und Halt"
+      }
+    },
+    {
+      "key": "bottomWraps", "type": "integer", "default": 2, "min": 0, "max": 10,
+      "group": "wrap", "affects": "both",
+      "label": { "en": "Bottom wraps", "es": "Vueltas abajo", "de": "Fußwicklungen" },
+      "description": {
+        "en": "Reinforcing turns at the bottom, before the carriage rises",
+        "es": "Vueltas de refuerzo en la base, antes de que suba el carro",
+        "de": "Verstärkungswicklungen unten, bevor der Schlitten hochfährt"
+      }
+    },
+    {
+      "key": "topWraps", "type": "integer", "default": 2, "min": 0, "max": 10,
+      "group": "wrap", "affects": "both",
+      "label": { "en": "Top wraps", "es": "Vueltas arriba", "de": "Kopfwicklungen" },
+      "description": {
+        "en": "Reinforcing turns at the top of the load",
+        "es": "Vueltas de refuerzo en la coronación de la carga",
+        "de": "Verstärkungswicklungen oben an der Ladung"
+      }
+    },
+    {
+      "key": "filmWidth", "type": "number", "unit": "m", "displayUnit": "mm",
+      "default": 0.5, "min": 0.25, "max": 1.0, "group": "wrap", "affects": "both",
+      "label": { "en": "Film width", "es": "Ancho de film", "de": "Folienbreite" },
+      "description": {
+        "en": "Width of the film roll",
+        "es": "Ancho de la bobina de film",
+        "de": "Breite der Folienrolle"
+      }
+    },
+    {
+      "key": "overlap", "type": "number", "unit": "ratio", "displayUnit": "%",
+      "default": 0.5, "min": 0, "max": 0.9, "group": "wrap", "affects": "both",
+      "label": { "en": "Overlap", "es": "Solape", "de": "Überlappung" },
+      "description": {
+        "en": "Share of the film width that each turn lays over the previous one; it sets how far the carriage moves per turn",
+        "es": "Parte del ancho de film que cada vuelta pone sobre la anterior; fija cuánto avanza el carro por vuelta",
+        "de": "Anteil der Folienbreite, den jede Windung über die vorige legt; bestimmt den Schlittenvorschub je Umdrehung"
+      }
+    },
+    {
+      "key": "passes", "type": "enum", "options": ["up", "upDown"], "default": "upDown",
+      "group": "wrap", "affects": "both",
+      "label": { "en": "Passes", "es": "Pasadas", "de": "Durchgänge" },
+      "optionLabels": {
+        "up": { "en": "Up only", "es": "Solo subida", "de": "Nur aufwärts" },
+        "upDown": { "en": "Up and down", "es": "Subida y bajada", "de": "Auf und ab" }
+      },
+      "description": {
+        "en": "The carriage wraps going up only, or going up and coming down (two layers of film)",
+        "es": "El carro enfarda solo al subir, o al subir y al bajar (dos capas de film)",
+        "de": "Der Schlitten wickelt nur aufwärts oder auf- und abwärts (zwei Folienlagen)"
+      }
+    },
+    {
+      "key": "attachTime", "type": "number", "unit": "s", "displayUnit": "s",
+      "default": 3, "min": 0, "max": 60, "group": "wrap", "affects": "both",
+      "label": { "en": "Film attach time", "es": "Tiempo de enganche", "de": "Anlegezeit" },
+      "description": {
+        "en": "Fixed time to clamp the film before the table turns",
+        "es": "Tiempo fijo para enganchar el film antes de girar la mesa",
+        "de": "Feste Zeit zum Anlegen der Folie vor dem Drehen"
+      }
+    },
+    {
+      "key": "cutTime", "type": "number", "unit": "s", "displayUnit": "s",
+      "default": 4, "min": 0, "max": 60, "group": "wrap", "affects": "both",
+      "label": { "en": "Film cut time", "es": "Tiempo de corte", "de": "Schneidzeit" },
+      "description": {
+        "en": "Fixed time to cut and seal the film after the table stops",
+        "es": "Tiempo fijo para cortar y sellar el film al parar la mesa",
+        "de": "Feste Zeit zum Schneiden und Anlegen der Folie nach dem Halt"
+      }
+    },
+    {
+      "key": "loadFriction", "type": "number", "default": 0.3, "min": 0.1, "max": 1.0,
+      "group": "wrap", "affects": "both", "advanced": true,
+      "label": { "en": "Load friction μ", "es": "Rozamiento de la carga μ", "de": "Reibung der Ladung μ" },
+      "description": {
+        "en": "Friction between the layers of the load, for the warning loadMayShift (indicative)",
+        "es": "Rozamiento entre las capas de la carga, para el aviso loadMayShift (orientativo)",
+        "de": "Reibung zwischen den Lagen der Ladung, für die Warnung loadMayShift (Richtwert)"
+      }
+    },
+    {
+      "key": "advancePerTurn", "type": "number", "unit": "m", "displayUnit": "mm",
+      "group": "wrap", "affects": "both", "derived": true, "formula": "filmWidth * (1 - overlap)",
+      "label": { "en": "Carriage advance per turn", "es": "Avance del carro por vuelta", "de": "Schlittenvorschub je Umdrehung" },
+      "description": {
+        "en": "Derived: film width × (1 − overlap)",
+        "es": "Derivado: ancho de film × (1 − solape)",
+        "de": "Abgeleitet: Folienbreite × (1 − Überlappung)"
+      }
+    },
+    {
+      "key": "carriageSpeed", "type": "number", "unit": "m/s", "displayUnit": "m/s",
+      "group": "wrap", "affects": "both", "derived": true, "formula": "advancePerTurn * turnSpeed / (2 * pi)",
+      "label": { "en": "Carriage speed", "es": "Velocidad del carro", "de": "Schlittengeschwindigkeit" },
+      "description": {
+        "en": "Derived: advance per turn × turns per second",
+        "es": "Derivado: avance por vuelta × vueltas por segundo",
+        "de": "Abgeleitet: Vorschub je Umdrehung × Umdrehungen je Sekunde"
+      }
+    }
+  ],
+  "ports": [
+    { "id": "IN", "direction": "in", "facing": "-x", "local": { "x": 0, "y": "surfaceHeight", "z": 0 } },
+    { "id": "OUT", "direction": "out", "facing": "+x", "local": { "x": "length", "y": "surfaceHeight", "z": 0 } }
+  ],
+  "signals": { "inputs": [], "outputs": [] },
+  "statistics": [
+    "utilization", "blockedShare", "idleShare", "palletsProcessed", "meanProcessingTime", "meanCycleTime",
+    "meanTurns", "filmUsed", "tooTallPallets"
+  ],
+  "geometry": "geom.stretch_wrapper",
+  "behaviors": { "des": "des.stretch_wrapper", "physics": "phys.stretch_wrapper" },
+  "validationRules": ["tableTooSmall", "loadMayShift"],
+  "presets": []
+}

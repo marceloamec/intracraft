@@ -7,6 +7,8 @@
 //! form a group that moves as one, at the pace of its slowest member. Then one wake-up is scheduled at the earliest
 //! predicted change.
 
+mod script;
+
 use std::collections::{BTreeMap, BTreeSet};
 
 use intracraft_control::{Signals, evaluate_rules};
@@ -17,6 +19,7 @@ use crate::flow::gravity::GravityLine;
 use crate::flow::network::{FlowIssue, FlowNetwork, FlowNode, Kind, LineData, Side};
 use crate::flow::parts::{Photoeye, Sink, Source};
 use crate::flow::station::{LiftStation, ProcessStation, Station, Transfer, Turntable};
+use crate::flow::storage::{AisleView, Request, StorageAisle};
 use crate::kinematics::{Segment, time_to_reach};
 use crate::queue::Simulator;
 use crate::time::{SimTime, US_PER_S, from_ms};
@@ -29,12 +32,16 @@ pub const EPS: f64 = 1e-6;
 /// Speed tolerance for "has reached the target speed", m/s.
 pub const SPEED_EPS: f64 = 1e-6;
 
+pub use script::{CodeBlocks, describe};
+
 /// A pallet in the 2D run: its front edge along the conveyor that carries it (the one under its tail), valid at that
 /// conveyor's last update.
 #[derive(Clone, Debug, PartialEq)]
 pub struct Pallet {
     pub id: u64,
     pub type_id: String,
+    /// The source that made it.
+    pub source: String,
     pub along: Side,
     pub length: f64,
     pub width: f64,
@@ -44,6 +51,8 @@ pub struct Pallet {
     pub created_at: SimTime,
     pub entered_at: SimTime,
     pub front: f64,
+    /// Its load was wrapped in film by a stretch wrapper (S25).
+    pub wrapped: bool,
 }
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
@@ -97,7 +106,7 @@ pub(crate) struct Line {
 
 /// A station deck: a short conveyor with one ramp for starting and stopping.
 fn deck_data(length: f64, speed: f64, accel: f64, side: Side) -> LineData {
-    LineData { length, nominal_speed: speed, accel, decel: accel, min_gap: 0.0, pallet_side_along_travel: side }
+    LineData { length, nominal_speed: speed, accel, decel: accel, min_gap: 0.0, pallet_side_along_travel: side, run_off: false }
 }
 
 impl Line {
@@ -186,6 +195,10 @@ enum Event {
     FlowMotion,
     StationDone(usize),
     GravityMotion(usize),
+    /// A storage aisle's next change: the end of a crane move or of half a fork cycle, or an order.
+    StorageWake(usize),
+    /// A timer of the code blocks (IntraScript's `wait`, `@every`, `@at`).
+    Script,
 }
 
 /// A pallet as a viewer draws it at the snapshot's time.
@@ -193,6 +206,8 @@ enum Event {
 pub struct PalletView {
     pub id: u64,
     pub type_id: String,
+    /// The source that made it.
+    pub source: String,
     /// The conveyor or station carrying it.
     pub carrier: String,
     /// Its front edge along the carrier's path, m from its start.
@@ -210,6 +225,8 @@ pub struct PalletView {
     pub width: f64,
     pub height: f64,
     pub load_height: f64,
+    /// Its load is wrapped in film (S25).
+    pub wrapped: bool,
 }
 
 #[derive(Clone, Debug, PartialEq)]
@@ -223,6 +240,8 @@ pub struct Snapshot {
     pub angles: BTreeMap<String, f64>,
     /// The deck height of every lift table and elevator (m above its base), following the vertical move.
     pub heights: BTreeMap<String, f64>,
+    /// Every storage aisle's crane, the pallet on its forks and the pallets in its rack (S26).
+    pub storage: BTreeMap<String, AisleView>,
 }
 
 /// Statistics per instance id, keyed as the definition's `statistics` list says (times in s).
@@ -238,6 +257,9 @@ pub struct FlowSimulation {
     sensors: Vec<Photoeye>,
     stations: Vec<Station>,
     gravity: Vec<GravityLine>,
+    storages: Vec<StorageAisle>,
+    /// The wake-up scheduled for each storage aisle.
+    storage_tickets: Vec<Option<u64>>,
     /// The station each line is a deck of.
     deck_owner: Vec<Option<usize>>,
     rules: Vec<Rule>,
@@ -249,8 +271,16 @@ pub struct FlowSimulation {
     warned: BTreeSet<String>,
     motion_ticket: Option<u64>,
     next_pallet_id: u64,
+    /// Pallets that ran off an open end (`openEnd` = `runOff`) and fell.
+    fallen: u64,
     stats_time: SimTime,
     reference: Reference,
+    /// The layout's code blocks (IntraScript), when it has any.
+    scripting: Option<Box<script::Scripting>>,
+    /// An error of the code found where it can't be returned at once (an exit decision).
+    script_fault: Option<String>,
+    /// Why the run ended early: `simulation.stop()` in the code.
+    stopped: Option<String>,
 }
 
 impl FlowSimulation {
@@ -265,6 +295,8 @@ impl FlowSimulation {
             sensors: Vec::new(),
             stations: Vec::new(),
             gravity: Vec::new(),
+            storages: Vec::new(),
+            storage_tickets: Vec::new(),
             deck_owner: Vec::new(),
             rules: network.rules,
             signals: Signals::new(),
@@ -274,8 +306,12 @@ impl FlowSimulation {
             warned: BTreeSet::new(),
             motion_ticket: None,
             next_pallet_id: 1,
+            fallen: 0,
             stats_time: 0,
             reference: reference.clone(),
+            scripting: None,
+            script_fault: None,
+            stopped: None,
         };
         for (index, node) in network.nodes.iter().enumerate() {
             let b = &node.base;
@@ -340,9 +376,11 @@ impl FlowSimulation {
                 )),
                 Kind::Sink(data) => f.sinks.push(Sink::new(&b.id, data.clone())),
                 Kind::Sensor(data) => f.sensors.push(Photoeye::new(&b.id, data.clone())),
+                Kind::Storage(data) => f.storages.push(StorageAisle::new(&b.id, (**data).clone(), reference, seed, index as u64 + 1)),
                 Kind::Inert { .. } => {}
             }
         }
+        f.storage_tickets = vec![None; f.storages.len()];
         f.nodes = network.nodes;
         f.deck_owner = vec![None; f.lines.len()];
         for (k, st) in f.stations.iter().enumerate() {
@@ -365,6 +403,8 @@ impl FlowSimulation {
                 f.sim.schedule(0, Event::SourceArrival(i), 0);
             }
         }
+        // An aisle's first order may be the plant's first event.
+        f.schedule_storages(0);
         f
     }
 
@@ -395,9 +435,15 @@ impl FlowSimulation {
                     self.signals.insert(signal, value);
                 }
                 Event::FlowMotion => self.motion_ticket = None,
+                Event::Script => {}
                 Event::GravityMotion(k) => {
                     if let Some(g) = self.gravity.get_mut(k) {
                         g.ticket = None;
+                    }
+                }
+                Event::StorageWake(k) => {
+                    if let Some(t) = self.storage_tickets.get_mut(k) {
+                        *t = None;
                     }
                 }
                 Event::StationDone(k) => {
@@ -409,9 +455,22 @@ impl FlowSimulation {
                 }
             }
             self.settle()?;
+            if self.stopped.is_some() {
+                return Ok(());
+            }
         }
         self.sim.advance_to(time);
         Ok(())
+    }
+
+    /// Pallets that ran off an open end and fell, so far.
+    pub fn fallen_pallets(&self) -> u64 {
+        self.fallen
+    }
+
+    /// Why the code stopped the run (`simulation.stop()`), if it did; the run then goes no further.
+    pub fn stopped(&self) -> Option<&str> {
+        self.stopped.as_deref()
     }
 
     /// When the next event is due (the editor's "step"), if any.
@@ -430,6 +489,7 @@ impl FlowSimulation {
                 pallets.push(PalletView {
                     id: p.id,
                     type_id: p.type_id.clone(),
+                    source: p.source.clone(),
                     carrier: l.carrier.clone(),
                     front: l.front_at(p, t),
                     path_x: path.x,
@@ -442,6 +502,7 @@ impl FlowSimulation {
                     width: p.width,
                     height: p.height,
                     load_height: p.load_height,
+                    wrapped: p.wrapped,
                 });
             }
         }
@@ -450,6 +511,7 @@ impl FlowSimulation {
                 pallets.push(PalletView {
                     id: p.pallet.id,
                     type_id: p.pallet.type_id.clone(),
+                    source: p.pallet.source.clone(),
                     carrier: g.id.clone(),
                     front: g.front_at(p, t),
                     path_x: 0.0,
@@ -462,6 +524,7 @@ impl FlowSimulation {
                     width: p.pallet.width,
                     height: p.pallet.height,
                     load_height: p.pallet.load_height,
+                    wrapped: p.pallet.wrapped,
                 });
             }
         }
@@ -508,7 +571,12 @@ impl FlowSimulation {
                 heights.insert(st.id().to_string(), h);
             }
         }
-        Snapshot { time: now, pallets, status, signals: self.signals.clone(), angles, heights }
+        let mut storage = BTreeMap::new();
+        for s in &self.storages {
+            status.insert(s.id.clone(), s.status());
+            storage.insert(s.id.clone(), s.view(now));
+        }
+        Snapshot { time: now, pallets, status, signals: self.signals.clone(), angles, heights, storage }
     }
 
     pub fn statistics(&mut self) -> Statistics {
@@ -543,23 +611,38 @@ impl FlowSimulation {
         for g in &self.gravity {
             out.insert(g.id.clone(), g.statistics().into_iter().collect());
         }
+        for s in &self.storages {
+            out.insert(s.id.clone(), s.statistics().into_iter().collect());
+        }
         for s in &self.sensors {
             out.insert(s.id.clone(), s.statistics());
         }
         for s in &self.sinks {
             out.insert(s.id.clone(), s.statistics(hours));
         }
+        for (id, st, waiting) in self.script_statistics() {
+            out.insert(
+                id,
+                BTreeMap::from([("activations", st.activations as f64), ("steps", st.steps as f64), ("waiting", waiting as f64)]),
+            );
+        }
         out
     }
 
-    /// Settles the plant, then lets the controller react; its immediate writes settle the plant again.
+    /// Settles the plant, then lets the controller react, then the code (A17 §14.2); their immediate writes settle the
+    /// plant again.
     fn settle(&mut self) -> Result<(), String> {
         for pass in 0.. {
             if pass > MAX_CONTROL_PASSES {
-                return Err(format!("The controller rules keep changing signals at {} µs", self.sim.now()));
+                return Err(format!("The controller rules and the code keep changing signals at {} µs", self.sim.now()));
             }
             self.settle_plant()?;
-            if !self.control() {
+            if let Some(e) = self.script_fault.take() {
+                return Err(e);
+            }
+            let ruled = self.control();
+            let scripted = self.script()?;
+            if !ruled && !scripted {
                 break;
             }
         }
@@ -586,6 +669,7 @@ impl FlowSimulation {
             changed = self.decide(now) || changed;
             changed = self.advance_stations(now) || changed;
             changed = self.serve_gravity_lines(now) || changed;
+            changed = self.serve_storages(now) || changed;
             if !changed {
                 break;
             }
@@ -596,7 +680,99 @@ impl FlowSimulation {
         }
         self.schedule_motion();
         self.schedule_gravity(now);
+        self.schedule_storages(now);
         Ok(())
+    }
+
+    /// The storage aisles (S26): each sees the pallets resting at its entries, then goes on as far as it can; the run
+    /// takes a pallet off an entry's conveyor when the forks have lifted it, and sets one down at the start of an exit's
+    /// conveyor when they have lowered it.
+    fn serve_storages(&mut self, now: SimTime) -> bool {
+        let mut changed = false;
+        for k in 0..self.storages.len() {
+            for entry in 0..self.storages[k].entries.len() {
+                let resting = self.storage_entry_line(k, entry).and_then(|l| self.resting_at_end(l));
+                self.storages[k].see_entry(entry, resting, now);
+            }
+            loop {
+                match self.storages[k].next(now) {
+                    Request::Nothing | Request::Wait(_) => break,
+                    Request::Take { entry } => {
+                        let line = self.storage_entry_line(k, entry).filter(|&l| self.resting_at_end(l).is_some());
+                        let pallet = line.map(|l| {
+                            let line = &mut self.lines[l];
+                            let pallet = line.pallets.remove(0);
+                            line.holding = false;
+                            line.stats.processed += 1;
+                            line.stats.transit_sum += now - pallet.entered_at;
+                            pallet
+                        });
+                        self.storages[k].give(pallet, now);
+                    }
+                    Request::Room { exit, length } => {
+                        let line = self.storage_exit_line(k, exit);
+                        let free = line.is_some_and(|l| self.can_enter(l, length + self.lines[l].data.min_gap));
+                        self.storages[k].room(free, now);
+                        if !free {
+                            break;
+                        }
+                    }
+                    Request::Put { exit } => {
+                        let line = self.storage_exit_line(k, exit);
+                        if let (Some(mut pallet), Some(l)) = (self.storages[k].release(now), line) {
+                            pallet.front = pallet.length;
+                            pallet.entered_at = now;
+                            self.check_orientation(l, &pallet);
+                            self.lines[l].pallets.push(pallet);
+                        }
+                    }
+                }
+                changed = true;
+            }
+            for (rule, text) in std::mem::take(&mut self.storages[k].notes) {
+                let id = self.storages[k].id.clone();
+                if !self.warned.insert(format!("{id}:{rule}")) {
+                    continue;
+                }
+                let name = self.nodes.iter().find(|n| n.base.id == id).map(|n| n.base.name.clone()).filter(|n| !n.is_empty());
+                let who = name.unwrap_or_else(|| id.clone());
+                self.issues.push(FlowIssue { instance_id: id, rule, message: format!("{who}: {text}") });
+            }
+        }
+        changed
+    }
+
+    /// The conveyor that ends at entry `entry` of storage aisle `k`.
+    fn storage_entry_line(&self, k: usize, entry: usize) -> Option<usize> {
+        let aisle = &self.storages[k];
+        let feeder = aisle.data.feeders.get(&aisle.entries.get(entry)?.port_id)?;
+        self.lines.iter().position(|l| !l.deck && &l.id == feeder)
+    }
+
+    /// The conveyor that starts at exit `exit` of storage aisle `k`.
+    fn storage_exit_line(&self, k: usize, exit: usize) -> Option<usize> {
+        let aisle = &self.storages[k];
+        let to = aisle.data.exits.get(&aisle.exit_ports.get(exit)?.port_id)?;
+        self.line_after(Some(&to.target), Some(&to.port)).filter(|&l| !self.lines[l].deck)
+    }
+
+    /// The pallet standing still with its front at the end of conveyor `line`, held there: what a crane's forks take.
+    fn resting_at_end(&self, line: usize) -> Option<u64> {
+        let l = &self.lines[line];
+        let front = l.pallets.first()?;
+        let still = l.holding && l.outgoing.is_none() && l.speed <= SPEED_EPS;
+        (still && front.front >= l.end - 1e-3).then_some(front.id)
+    }
+
+    /// One wake-up per storage aisle at its next change.
+    fn schedule_storages(&mut self, now: SimTime) {
+        for k in 0..self.storages.len() {
+            if let Some(t) = self.storage_tickets[k].take() {
+                self.sim.cancel(t);
+            }
+            let Some(next) = self.storages[k].next_wake() else { continue };
+            self.storage_tickets[k] = Some(self.sim.schedule((next - now).max(1), Event::StorageWake(k), 0));
+        }
     }
 
     /// The operator (a sink) takes the pallet resting at a gravity line's end stop when free (S15 §2.5).
@@ -662,6 +838,9 @@ impl FlowSimulation {
                     let delay = sink.busy_until - now;
                     self.sim.schedule(delay, Event::SinkFree, 0);
                 }
+            } else if downstream.is_none() && self.lines[i].data.run_off {
+                // Off the open end: it falls, and leaves the plant.
+                self.fallen += 1;
             } else {
                 let target = self
                     .line_after(downstream.as_deref(), port.as_deref())
@@ -699,6 +878,7 @@ impl FlowSimulation {
                 let pallet = Pallet {
                     id: self.next_pallet_id,
                     type_id: s.data.pallet_type.id.clone(),
+                    source: s.id.clone(),
                     along: s.data.orientation,
                     length,
                     width: if s.data.orientation == Side::Long { item.short } else { item.long },
@@ -708,6 +888,7 @@ impl FlowSimulation {
                     created_at: now,
                     entered_at: now,
                     front: length,
+                    wrapped: false,
                 };
                 self.next_pallet_id += 1;
                 self.check_orientation(line, &pallet);
@@ -779,6 +960,11 @@ impl FlowSimulation {
                 return false;
             }
             self.sinks[k].incoming += 1;
+            self.lines[i].outgoing = Some(front_id);
+            return true;
+        }
+        if downstream.is_none() && self.lines[i].data.run_off {
+            // An open end that runs off: nothing to wait for, the pallet goes over the end.
             self.lines[i].outgoing = Some(front_id);
             return true;
         }
@@ -1022,6 +1208,14 @@ impl FlowSimulation {
                 return Some(s.along_length() + self.lines[line].data.min_gap);
             }
         }
+        // A crane waiting with its pallet at an exit of a storage aisle.
+        for k in 0..self.storages.len() {
+            if let Some((exit, length)) = self.storages[k].awaiting_room()
+                && self.storage_exit_line(k, exit) == Some(line)
+            {
+                return Some(length + self.lines[line].data.min_gap);
+            }
+        }
         let feeder = (0..self.lines.len()).find(|&l| {
             self.lines[l].outgoing.is_none()
                 && self.line_after(self.lines[l].downstream.as_deref(), self.lines[l].downstream_port.as_deref()) == Some(line)
@@ -1121,6 +1315,9 @@ impl FlowSimulation {
         for g in &mut self.gravity {
             g.accumulate(seconds);
         }
+        for s in &mut self.storages {
+            s.accumulate(seconds);
+        }
         for s in &mut self.sensors {
             s.accumulate(seconds);
         }
@@ -1157,6 +1354,7 @@ impl FlowSimulation {
 
     /// Stations move on: a centred pallet starts a turn, an emptied deck frees the station.
     fn advance_stations(&mut self, now: SimTime) -> bool {
+        self.ask_exits();
         let mut changed = false;
         for k in 0..self.stations.len() {
             let step = self.stations[k].step(now, &self.lines);

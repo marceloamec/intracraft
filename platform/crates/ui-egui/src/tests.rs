@@ -5848,6 +5848,53 @@ fn a_right_click_in_a_plan_opens_a_menu_of_what_the_view_and_the_selection_can_d
 }
 
 #[test]
+fn an_applications_move_snap_corrects_a_drag_and_says_what_it_lined_up() {
+    let mut h = app_at(COLUMNS, 0.05);
+    let a = ids(&h, "column")[0];
+    // The application keeps moves level: what it says of them goes to the status bar.
+    h.state_mut().move_snap = Some(Arc::new(|_, _, by| (P2(by.0, 0.0), Some("Lined up".into()))));
+    click(&mut h, P2(2000.0, 3000.0));
+    drag(&mut h, P2(2000.0, 3000.0), P2(3000.0, 3500.0));
+    assert_eq!(field(&h, a, "at"), json!([3000.0, 3000.0]));
+    assert_eq!(h.state().status.text, "Lined up");
+}
+
+#[test]
+fn a_right_click_picks_what_is_under_it_and_offers_the_applications_items() {
+    let mut h = app(COLUMNS);
+    let cols = ids(&h, "column");
+    click(&mut h, P2(2000.0, 3000.0));
+    h.state_mut().extension_actions = vec![
+        crate::ExtensionAction { id: "props".into(), label: "Properties…".into(), enabled: true },
+        crate::ExtensionAction { id: "never".into(), label: "Not now".into(), enabled: false },
+    ];
+    // On the other column: it is picked, and the menu is of it.
+    let at = h.state().screen(P2(6000.0, 3000.0));
+    assert_eq!(offered(&mut h, at, &["Properties…", "Not now", "Delete"]), ["Properties…", "Not now", "Delete"]);
+    assert_eq!(h.state().selection, [cols[1]]);
+    choose_item(&mut h, "Properties…");
+    assert_eq!(h.state().extension_chosen.as_deref(), Some("props"));
+}
+
+#[test]
+fn a_double_click_on_a_component_is_handed_to_the_application() {
+    let mut h = app_at(
+        &format!(
+            "{BOX}
+component {{\"family\": \"Table\", \"type\": \"1600 x 900\", \"at\": [3000, 2500]}}"
+        ),
+        0.05,
+    );
+    let table = ids(&h, "component")[0];
+    double_click(&mut h, P2(3800.0, 2500.0));
+    assert_eq!(h.state().double_clicked, Some(table));
+    // On a wall, BIMCraft has nothing to hand on.
+    h.state_mut().double_clicked = None;
+    double_click(&mut h, P2(4000.0, 0.0));
+    assert_eq!(h.state().double_clicked, None);
+}
+
+#[test]
 fn every_view_has_the_right_click_menu() {
     let mut h = app(&format!(
         "{BOX}\nsection {{\"start\": [-1000, 3000], \"end\": [9000, 3000]}}\nroom {{\"point\": [4000, 3000], \"name\": \"Hall\"}}"

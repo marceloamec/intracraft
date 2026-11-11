@@ -31,17 +31,20 @@ pub struct Group {
 }
 
 /// The groups of the tree, in the order a line is read: what feeds it, what carries, what senses, what processes,
-/// what takes away, and the scenery.
-pub const GROUPS: [&str; 7] = ["Sources", "Conveyors", "Turntables and transfers", "Lifts and stations", "Sensors", "Sinks", "Scenery"];
+/// what stores, what takes away, the code that drives them, and the scenery.
+pub const GROUPS: [&str; 9] =
+    ["Sources", "Conveyors", "Turntables and transfers", "Lifts and stations", "Sensors", "Storage", "Sinks", "Code blocks", "Scenery"];
 
 fn group_of(d: &Definition) -> &'static str {
     match d.behaviors.des.as_str() {
         "des.source" => "Sources",
         "des.sink" => "Sinks",
         "des.turntable" | "des.transfer_rc" => "Turntables and transfers",
-        "des.lift_station" | "des.process_station" => "Lifts and stations",
+        "des.lift_station" | "des.process_station" | "des.stretch_wrapper" => "Lifts and stations",
         "des.photoeye" => "Sensors",
+        "des.storage_aisle" => "Storage",
         "des.none" => "Scenery",
+        "des.script" => "Code blocks",
         _ => "Conveyors",
     }
 }

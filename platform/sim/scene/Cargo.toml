@@ -11,4 +11,5 @@ publish = false
 workspace = true
 
 [dependencies]
+intracraft-des = { path = "../des" }
 intracraft-library = { path = "../library" }

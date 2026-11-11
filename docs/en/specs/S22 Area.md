@@ -3,11 +3,13 @@ title: S22 Area
 lang: en
 tags: [spec, information, scripting, layout]
 library-id: info.area
-status: proposed — waiting for the owner's confirmation
+status: specified — not built yet (after IntraScript 1.0)
 updated: 2026-10-31
 ---
 
 # S22 Area (`info.area`)
+
+> **IntraScript 1.0 (2026-11-09, [[ADR-0027 IntraScript in Python Syntax with Its Own Interpreter]]):** code is written in Python's syntax (snake_case members, counting from 0, `=` to assign) and this object is not built yet; until it is, every object is named directly; paths such as `Hall1.LineA.Roller3` come with areas. When it is built, the members below take Python's form; the behaviour stays as specified.
 
 A **named rectangle on the 2D plan that contains objects**: a hall, a line, a loop, a pick station. Areas give the model its hierarchy (`root` → areas → objects) and its paths (`Hall1.LineA.Roller3`), and they let code use short names that keep working when an area is duplicated ([[A17 IntraScript Language]] §10). Decision: [[ADR-0018 IntraScript Scripting Language]].
 
@@ -101,4 +103,4 @@ Since 2026-10-31 IntraCraft is built in Rust on BIMCraft with three modules ([[A
 | Discrete simulation | Read and written by IntraScript code and the controller during the run, as this spec says                                                           |
 | Physics simulation  | The same as in the Discrete simulation module (information objects have no body)                                                                    |
 
-The behaviour above does not change. **Rust status:** not ported yet (R10, after the owner answers Q20 of [[A19 Rust Implementation Plan]]); the tests of this spec are the expected values of the port.
+The behaviour above does not change. **Rust status:** not built yet; IntraScript 1.0 and the code block came first (R10 of [[A19 Rust Implementation Plan]], [[ADR-0027 IntraScript in Python Syntax with Its Own Interpreter]]); the tests of this spec are the expected values of the port.

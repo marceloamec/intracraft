@@ -2,13 +2,13 @@
 title: ADR-0018 IntraScript Scripting Language
 lang: en
 tags: [decision, scripting, control, scope, clean-room]
-status: proposed
+status: accepted — syntax and interpreter amended by ADR-0027
 date: 2026-10-31
 ---
 
 # ADR-0018 IntraScript Scripting Language
 
-- **Status:** Proposed. On 2026-10-31 the owner asked for the language and chose its name, where information objects live and what code may do with pallets (§ Decision 1, 4 and 6). The language reference [[A17 IntraScript Language]] and the specifications [[S18 Variable]] to [[S22 Area]] wait for the owner's confirmation before any code is written; points to confirm are in [[Open Questions]] Q20. **Rust platform (2026-10-31):** the interpreter is written in Rust as `intracraft-script` (`platform/sim/script`, phase R10 of [[A19 Rust Implementation Plan]]) instead of a TypeScript package; the language itself does not change.
+- **Status:** Accepted (2026-11-09) with the syntax and interpreter of [[ADR-0027 IntraScript in Python Syntax with Its Own Interpreter]]: Python's syntax (decorators for events, `wait()`, units as values such as `150 * mm`) and IntraCraft's own Rust interpreter; points 3 (Pascal-like syntax), 4 (`content` field) and 9 (`script.*` commands) below are replaced there, the rest stands. Earlier: proposed. On 2026-10-31 the owner asked for the language and chose its name, where information objects live and what code may do with pallets (§ Decision 1, 4 and 6). The language reference [[A17 IntraScript Language]] and the specifications [[S18 Variable]] to [[S22 Area]] wait for the owner's confirmation before any code is written; points to confirm are in [[Open Questions]] Q20. **Rust platform (2026-10-31):** the interpreter is written in Rust as `intracraft-script` (`platform/sim/script`, phase R10 of [[A19 Rust Implementation Plan]]) instead of a TypeScript package; the language itself does not change.
 - **Date:** 2026-10-31
 
 ## Context

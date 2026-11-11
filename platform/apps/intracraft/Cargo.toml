@@ -18,9 +18,14 @@ egui = { workspace = true }
 intracraft-library = { path = "../../sim/library" }
 intracraft-model = { path = "../../sim/model" }
 intracraft-des = { path = "../../sim/des" }
+intracraft-script = { path = "../../sim/script" }
 intracraft-physics = { path = "../../sim/physics" }
+intracraft-avian = { path = "../../sim/avian" }
+intracraft-assets = { path = "../../sim/assets" }
+intracraft-scene = { path = "../../sim/scene" }
 
 serde_json = { workspace = true }
+tiny-skia = { workspace = true }
 
 [dev-dependencies]
 egui_kittest = { workspace = true }

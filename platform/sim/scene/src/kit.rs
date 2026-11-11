@@ -1,6 +1,7 @@
 //! The parts the objects are made of, laid out in an instance's own frame (x along the travel from its entry, y up from
 //! its base, z across) and placed in the world by its position and yaw.
 
+use intracraft_des::flow::storage::StorageData;
 use intracraft_library::params::{Values, num};
 
 use crate::{Paint, Part, Shape};
@@ -26,6 +27,16 @@ const PLATE_T: f64 = 0.01;
 const MAX_LEG_SPAN: f64 = 2.0;
 /// Legs this tall or more get a cross beam, m.
 const BEAM_FROM: f64 = 0.65;
+/// A rack's uprights, its beams' height and depth, and how far a beam lies from the edge of its position, m.
+const RACK_POST: f64 = 0.1;
+const RACK_BEAM_H: f64 = 0.1;
+const RACK_BEAM_D: f64 = 0.05;
+const RACK_BEAM_INSET: f64 = 0.15;
+/// A stacker crane's rails start this far in front of the rack; its masts stand this far before and behind its forks;
+/// its top beam runs this far above the rack, m.
+pub const CRANE_RAIL_FRONT: f64 = -2.2;
+const CRANE_MAST_AT: f64 = 1.0;
+const CRANE_OVER_RACK: f64 = 0.4;
 
 pub struct Kit {
     origin: [f64; 3],
@@ -137,6 +148,39 @@ impl Kit {
         self.drive([pivot[0] + 0.47, (ring_bottom * 0.55).max(0.15), pivot[2]]);
     }
 
+    /// A stretch wrapper (S25): its round table on a column and a floor plate, the rollers inside the circle and centred on
+    /// it as in the physics run (they turn with the table), and beside it the mast with the film carriage and its roll at
+    /// the bottom of their travel.
+    pub fn wrapper(&mut self, v: &Values) {
+        let (length, width, top) = (num(v, "length", 1.8), num(v, "usableWidth", 1.0), num(v, "surfaceHeight", 0.6));
+        let (r, cx) = (length / 2.0, length / 2.0);
+        let radius = num(v, "rollerDiameter", 0.089) / 2.0;
+        let disc_top = (top - 2.0 * radius - 0.02).max(0.12);
+        self.fixed(Shape::Post { radius: r - 0.1, height: 0.05 }, [cx, 0.025, 0.0], Paint::Base);
+        let column = (disc_top - 0.04 - 0.05).max(0.01);
+        self.fixed(Shape::Post { radius: 0.35, height: column }, [cx, 0.05 + column / 2.0, 0.0], Paint::Support);
+        self.moving(Shape::Post { radius: r, height: 0.04 }, [cx, disc_top - 0.02, 0.0], Paint::Deck);
+        let xs = roller_positions(length, num(v, "rollerPitch", 0.2063));
+        let shift = match (xs.first(), xs.last()) {
+            (Some(a), Some(b)) => cx - (a + b) / 2.0,
+            _ => 0.0,
+        };
+        for x in xs.into_iter().map(|x| x + shift) {
+            let half = (width / 2.0).min((r * r - (x - cx).powi(2)).max(0.0).sqrt());
+            if half >= 0.05 {
+                self.moving(Shape::Roller { radius, length: 2.0 * half }, [x, top - radius, 0.0], Paint::Roller);
+            }
+        }
+        // The mast beside the table, as high as the tallest load, its drive on top; the carriage and roll facing the load.
+        let (mast_z, mast_top) = (r + 0.25, top + num(v, "maxLoadHeight", 2.0) + 0.3);
+        self.fixed(Shape::Box([0.2, mast_top, 0.2]), [cx, mast_top / 2.0, mast_z], Paint::Guard);
+        self.fixed(Shape::Box([0.5, 0.015, 0.4]), [cx, 0.0075, mast_z], Paint::Base);
+        self.drive([cx, mast_top + 0.11, mast_z]);
+        let film = num(v, "filmWidth", 0.5);
+        self.fixed(Shape::Box([0.5, film, 0.09]), [cx, top + 0.1 + film / 2.0, r + 0.105], Paint::Frame);
+        self.fixed(Shape::Post { radius: 0.04, height: film }, [cx, top + 0.1 + film / 2.0, r + 0.02], Paint::Roller);
+    }
+
     /// The transfer table's chains, lowered in the gaps between its rollers, each on its track.
     pub fn transfer_chains(&mut self, length: f64, width: f64, top: f64, v: &Values) {
         let pitch = num(v, "rollerPitch", 0.2063);
@@ -209,6 +253,71 @@ impl Kit {
             }
         }
         self.fixed(Shape::Box([0.02, 0.15, width * 0.8]), [length + 0.01, top(length) + 0.045, 0.0], Paint::Brake);
+    }
+
+    /// A storage aisle's rack (S26 §1): uprights at every bay line, front and back of each position, and under every
+    /// level two beams along the rack per position; the crane's floor rail and its guide rail above the rack.
+    pub fn rack(&mut self, a: &StorageData) {
+        let (length, height) = (a.bays as f64 * a.bay_pitch, a.rack_height());
+        let inner = a.aisle_width / 2.0;
+        for side in [-1.0, 1.0] {
+            // The upright lines: the aisle side, the back, and between two positions when double deep.
+            for line in 0..=a.deep {
+                let inset = if line == 0 {
+                    RACK_POST / 2.0
+                } else if line == a.deep {
+                    -RACK_POST / 2.0
+                } else {
+                    0.0
+                };
+                let z = side * (inner + line as f64 * a.position_depth + inset);
+                for bay in 0..=a.bays {
+                    self.fixed(Shape::Box([RACK_POST, height, RACK_POST]), [bay as f64 * a.bay_pitch, height / 2.0, z], Paint::Frame);
+                }
+            }
+            for level in 0..a.levels {
+                let y = a.first_level_height + level as f64 * a.level_pitch - RACK_BEAM_H / 2.0;
+                for deep in 0..a.deep {
+                    let from = inner + deep as f64 * a.position_depth;
+                    for z in [from + RACK_BEAM_INSET, from + a.position_depth - RACK_BEAM_INSET] {
+                        self.fixed(Shape::Box([length, RACK_BEAM_H, RACK_BEAM_D]), [length / 2.0, y, side * z], Paint::Guard);
+                    }
+                }
+            }
+        }
+        let (from, to) = (CRANE_RAIL_FRONT, length + 0.5);
+        self.fixed(Shape::Box([to - from, 0.05, 0.1]), [(from + to) / 2.0, 0.025, 0.0], Paint::Support);
+        self.fixed(Shape::Box([to - from, 0.08, 0.1]), [(from + to) / 2.0, height + CRANE_OVER_RACK + 0.04, 0.0], Paint::Support);
+    }
+
+    /// The stacker crane's travelling frame as it stands with its forks at `x`: the base on the floor rail, a mast in
+    /// front of the forks and one behind, and the beam across their tops under the guide rail. All of it moves.
+    pub fn crane_mast(&mut self, a: &StorageData, x: f64) {
+        let top = a.rack_height() + CRANE_OVER_RACK;
+        self.moving(Shape::Box([2.0 * CRANE_MAST_AT + 0.6, 0.25, 0.5]), [x, 0.175, 0.0], Paint::Gantry);
+        for side in [-1.0, 1.0] {
+            let mast = Shape::Box([0.25, top - 0.3, 0.3]);
+            self.moving(mast, [x + side * CRANE_MAST_AT, 0.3 + (top - 0.3) / 2.0, 0.0], Paint::Support);
+        }
+        self.moving(Shape::Box([2.0 * CRANE_MAST_AT + 0.25, 0.2, 0.3]), [x, top - 0.1, 0.0], Paint::Gantry);
+        self.moving(Shape::Box([0.4, 0.4, 0.45]), [x - CRANE_MAST_AT - 0.3, 0.5, 0.0], Paint::Drive);
+    }
+
+    /// The crane's lifting carriage with the forks' level at `y`: the platform between the masts.
+    pub fn crane_carriage(&mut self, a: &StorageData, x: f64, y: f64) {
+        let width = (a.aisle_width - 0.2).max(0.4);
+        self.moving(Shape::Box([2.0 * CRANE_MAST_AT - 0.3, 0.12, width]), [x, y - 0.14, 0.0], Paint::Gantry);
+        for side in [-1.0, 1.0] {
+            self.moving(Shape::Box([0.08, 0.5, width]), [x + side * (CRANE_MAST_AT - 0.2), y + 0.11, 0.0], Paint::Guard);
+        }
+    }
+
+    /// The crane's two telescopic forks, drawn in under the pallet's place at height `y`.
+    pub fn crane_forks(&mut self, a: &StorageData, x: f64, y: f64) {
+        let length = (a.position_depth - 0.05).max(0.5);
+        for side in [-1.0, 1.0] {
+            self.moving(Shape::Box([0.14, 0.06, length]), [x + side * 0.22, y - 0.035, 0.0], Paint::Chain);
+        }
     }
 
     /// A source's or sink's stand: a plate at the conveying height, on four posts.

@@ -15,10 +15,11 @@ pub mod gravity;
 pub mod pallet;
 pub mod sensor;
 pub mod station;
+pub mod storage;
 pub mod transfer;
 pub mod turntable;
 
-use std::collections::{BTreeMap, HashSet};
+use std::collections::{BTreeMap, HashSet, VecDeque};
 
 use crate::bench::BodyId;
 use intracraft_control::{Signals, evaluate_rules};
@@ -42,6 +43,7 @@ use pallet::{WorldPallet, pallet_parts};
 use sensor::Sensor3D;
 pub use sensor::SensorEdge;
 use station::Station3D;
+use storage::Storage3D;
 use transfer::Transfer3D;
 use turntable::Turntable3D;
 
@@ -50,6 +52,8 @@ const CONTROL_PERIOD: SimTime = 10_000;
 /// Tolerance of measured positions, m.
 const POS_EPS: f64 = 5e-4;
 const SPEED_EPS: f64 = 1e-6;
+/// The most fallen pallets left lying where they fell; older ones are taken away.
+const MAX_FALLEN_ON_SHOW: usize = 12;
 /// A pallet whose underside drops this far below its deck has fallen off, m.
 const FALL_DEPTH: f64 = 0.25;
 const SINK_BED_LENGTH: f64 = 1.5;
@@ -61,10 +65,12 @@ const STRAND_HEIGHT: f64 = 0.03;
 /// A chain strand's edges are rounded this much, m: a pallet's edge running onto a strand at the same height slides over
 /// its end, as over a sprocket, instead of catching on it (ADR-0024).
 const STRAND_ROUNDING: f64 = 0.005;
+/// A roller of a round table shorter than twice this is left out, m.
+const MIN_ROLLER_HALF: f64 = 0.05;
 /// Lateral strand positions keep this far from the deck's edges, m (`chainLayout` of the reference's geometry).
 const CHAIN_EDGE_INSET: f64 = 0.1;
 /// A new pallet starts this far above the conveying surface, so it settles without overlapping, m.
-const SPAWN_LIFT: f64 = 0.002;
+pub(crate) const SPAWN_LIFT: f64 = 0.002;
 const FLOOR_HALF: [f64; 3] = [250.0, 0.05, 250.0];
 /// A gravity line's separator and end stop: plates this thick; the separator this high; the end stop's top above the
 /// rollers and its depth below them, m (the reference's).
@@ -162,7 +168,7 @@ impl Station {
         }
     }
 
-    fn step(&mut self, now: SimTime, decks: &mut [Deck], pallets: &Pallets) {
+    fn step(&mut self, now: SimTime, decks: &mut [Deck], pallets: &mut Pallets) {
         match self {
             Station::Platform(s) => {
                 let deck = s.deck;
@@ -256,6 +262,10 @@ pub struct PalletPose {
     pub axes: ([f64; 3], [f64; 3]),
     /// Its pallet type, as the library names it.
     pub type_id: String,
+    /// The source that made it.
+    pub source: String,
+    /// Its load is wrapped in film (S25).
+    pub wrapped: bool,
 }
 
 pub struct PhysicsFlow {
@@ -264,6 +274,7 @@ pub struct PhysicsFlow {
     decks: Vec<Deck>,
     stations: Vec<Station>,
     gravity: Vec<GravityLine3D>,
+    storages: Vec<Storage3D>,
     sources: Vec<Source3D>,
     sinks: Vec<Sink3D>,
     sensors: Vec<Sensor3D>,
@@ -279,6 +290,8 @@ pub struct PhysicsFlow {
     edges: Vec<SensorEdge>,
     fallen: u64,
     next_pallet_id: u64,
+    /// Pallets that fell, lying where they came to rest: bodies still, but no longer the plant's.
+    fallen_on_show: VecDeque<WorldPallet>,
 }
 
 impl PhysicsFlow {
@@ -299,6 +312,7 @@ impl PhysicsFlow {
             decks: Vec::new(),
             stations: Vec::new(),
             gravity: Vec::new(),
+            storages: Vec::new(),
             sources: Vec::new(),
             sinks: Vec::new(),
             sensors: Vec::new(),
@@ -314,6 +328,7 @@ impl PhysicsFlow {
             edges: Vec::new(),
             fallen: 0,
             next_pallet_id: 1,
+            fallen_on_show: VecDeque::new(),
         };
         f.bench.use_pairs(&library.reference.contact_pairs);
         let floor = Part { shape: Shape::Cuboid(FLOOR_HALF), offset: [0.0; 3], material: "concrete".into(), friction: None, mass: 0.0 };
@@ -351,6 +366,7 @@ impl PhysicsFlow {
                 Kind::Transfer(data) => f.add_transfer(b, data, &p),
                 Kind::Gravity(data) => f.add_gravity(b, data, &p),
                 Kind::Sensor(_) => {}
+                Kind::Storage(data) => f.add_storage(b, data, &library.reference, seed, index as u64 + 1),
                 Kind::Inert { .. } => f.issues.push(FlowIssue {
                     instance_id: b.id.clone(),
                     rule: "behaviorNotAvailable3D",
@@ -369,6 +385,7 @@ impl PhysicsFlow {
             }
         }
         f.connect(&network.nodes);
+        f.connect_storages();
         for d in f.decks.iter().filter(|d| d.station.is_none()) {
             f.signals.insert(format!("{}.run", d.spec.id), true);
         }
@@ -462,8 +479,24 @@ impl PhysicsFlow {
                     load_height: p.pallet.load_height,
                     axes: (p.x_axis, p.z_axis),
                     type_id: p.pallet.type_id.clone(),
+                    source: p.pallet.source.clone(),
+                    wrapped: p.pallet.wrapped,
                 }
             })
+            .chain(self.fallen_on_show.iter().map(|p| PalletPose {
+                id: p.pallet.id,
+                carrier: String::new(),
+                front: 0.0,
+                speed: 0.0,
+                centre: p.centre,
+                yaw: p.yaw(),
+                size: [p.pallet.length, p.pallet.height, p.pallet.width],
+                load_height: p.pallet.load_height,
+                axes: (p.x_axis, p.z_axis),
+                type_id: p.pallet.type_id.clone(),
+                source: p.pallet.source.clone(),
+                wrapped: p.pallet.wrapped,
+            }))
             .collect()
     }
 
@@ -489,6 +522,9 @@ impl PhysicsFlow {
         for g in &self.gravity {
             out.insert(g.id.clone(), g.status);
         }
+        for s in &self.storages {
+            out.insert(s.logic.id.clone(), s.logic.status());
+        }
         out
     }
 
@@ -497,12 +533,14 @@ impl PhysicsFlow {
         self.stations.iter().filter_map(|s| s.height().map(|h| (s.id().to_string(), h))).collect()
     }
 
-    /// The deck heading of every turntable, rad in its own frame (0 along its own +x), following the platform as it turns.
+    /// The deck heading of every turntable and stretch wrapper, rad in its own frame (0 along its own +x), following the
+    /// platform as it turns.
     pub fn angles(&self) -> BTreeMap<String, f64> {
         self.stations
             .iter()
             .filter_map(|s| match s {
                 Station::Turntable(t) => self.decks.get(t.deck).map(|d| (t.id.clone(), t.heading_of(&d.frame))),
+                Station::Platform(st) => self.decks.get(st.deck).and_then(|d| st.table_angle(&d.frame)).map(|a| (st.id.clone(), a)),
                 _ => None,
             })
             .collect()
@@ -542,6 +580,9 @@ impl PhysicsFlow {
         }
         for g in &self.gravity {
             out.insert(g.id.clone(), g.statistics());
+        }
+        for s in &self.storages {
+            out.insert(s.logic.id.clone(), s.logic.statistics().into_iter().collect());
         }
         for s in &self.sensors {
             out.insert(s.logic.id.clone(), s.logic.statistics());
@@ -609,7 +650,9 @@ impl PhysicsFlow {
                 .collect();
             Drive::Rollers { bodies, radius: diameter / 2.0 }
         };
-        self.decks.push(Deck::new(spec, frame, drive, &b.id, None));
+        let mut deck = Deck::new(spec, frame, drive, &b.id, None);
+        deck.run_off = data.run_off;
+        self.decks.push(deck);
     }
 
     /// Lift tables, the elevator and the process station: one deck on a kinematic platform (ADR-0016).
@@ -632,6 +675,13 @@ impl PhysicsFlow {
             min_gap: 0.0,
         };
         let frame = Frame { origin: [b.position.x, b.position.y + entry.height, b.position.z], yaw: b.yaw, slope: 0.0 };
+        // A stretch wrapper's table is round (S25 §1): each roller as long as the chord where it lies, so the table turns
+        // between its neighbours without sweeping into them.
+        let round = matches!(&kind, station::Kind::Process { data, .. } if data.wrap.is_some());
+        let roller_half = |x: f64| {
+            let half = spec.usable_width / 2.0;
+            if round { half.min(((length / 2.0).powi(2) - (x - length / 2.0).powi(2)).max(0.0).sqrt()) } else { half }
+        };
         let parts: Vec<Part> = if p.get("deckType").and_then(Value::text) == Some("chains") {
             let strand = num(p, "chainSupportWidth", 0.04);
             chain_layout(spec.usable_width, num(p, "chainCount", 3.0))
@@ -646,10 +696,19 @@ impl PhysicsFlow {
                 .collect()
         } else {
             let diameter = num(p, "rollerDiameter", 0.089);
-            roller_positions(length, num(p, "rollerPitch", 0.2063))
+            let positions = roller_positions(length, num(p, "rollerPitch", 0.2063));
+            // A round table's rollers are centred on it, so that it turns about its centre (the engine turns a body
+            // about its centre of mass).
+            let shift = match (round, positions.first(), positions.last()) {
+                (true, Some(first), Some(last)) => length / 2.0 - (first + last) / 2.0,
+                _ => 0.0,
+            };
+            positions
                 .into_iter()
+                .map(|x| x + shift)
+                .filter(|x| roller_half(*x) >= MIN_ROLLER_HALF)
                 .map(|x| Part {
-                    shape: Shape::Cylinder { radius: diameter / 2.0, half_length: spec.usable_width / 2.0 },
+                    shape: Shape::Cylinder { radius: diameter / 2.0, half_length: roller_half(x) },
                     offset: [x - length / 2.0, -diameter / 2.0, 0.0],
                     material: "steel-zinc".into(),
                     friction: None,
@@ -659,7 +718,10 @@ impl PhysicsFlow {
         };
         let (platform, colliders) = self.bench.body(Motion::Kinematic, frame.to_world([length / 2.0, 0.0, 0.0]), frame.yaw, 0.0, &parts);
         let surface = self.bench.surface(&colliders);
-        let station = Station3D::new(&b.id, self.decks.len(), platform, b.position.y, kind, entry, exit_ports);
+        let mut station = Station3D::new(&b.id, self.decks.len(), platform, b.position.y, kind, entry, exit_ports);
+        if round {
+            station = station.with_home(frame);
+        }
         let mut deck = Deck::new(spec, frame, Drive::Surface(surface), &b.id, Some(self.stations.len()));
         deck.direction = station.entry_direction();
         self.decks.push(deck);
@@ -966,13 +1028,14 @@ impl PhysicsFlow {
     fn settle(&mut self, now: SimTime) {
         self.complete_crossings(now);
         for s in &mut self.stations {
-            s.step(now, &mut self.decks, &self.pallets);
+            s.step(now, &mut self.decks, &mut self.pallets);
         }
         let t = now as f64 / US_PER_S as f64;
         for g in &mut self.gravity {
             g.update(t, &self.pallets);
         }
         self.serve_gravity(now);
+        self.serve_storages(now);
         self.feed_sources(now);
         self.decide(now);
     }
@@ -980,13 +1043,19 @@ impl PhysicsFlow {
     /// Pallets whose tail cleared their deck's end now belong to the next object.
     fn complete_crossings(&mut self, now: SimTime) {
         for i in 0..self.decks.len() {
-            let (Some(id), Some(exit)) = (self.decks[i].outgoing, self.decks[i].exit.clone()) else { continue };
+            let Some(id) = self.decks[i].outgoing else { continue };
             let Some(p) = self.pallets.get(&id) else { continue };
             if self.decks[i].extent(p).rear < self.decks[i].spec.length {
                 continue;
             }
             let entered = p.pallet.entered_at;
             self.decks[i].release(id, entered, now);
+            let Some(exit) = self.decks[i].exit.clone() else {
+                // Off a run-off end: it falls, and leaves the plant (as in 2D).
+                self.fallen += 1;
+                self.lay_down(id);
+                continue;
+            };
             match exit {
                 Exit::Deck { deck, .. } => {
                     let carrier = self.decks[deck].carrier.clone();
@@ -1070,6 +1139,7 @@ impl PhysicsFlow {
         let pallet = Pallet {
             id: self.next_pallet_id,
             type_id: data.pallet_type.id.clone(),
+            source: self.sources[k].logic.id.clone(),
             along: data.orientation,
             length,
             width: if data.orientation == Side::Long { item.short } else { item.long },
@@ -1079,6 +1149,7 @@ impl PhysicsFlow {
             created_at: now,
             entered_at: now,
             front: length,
+            wrapped: false,
         };
         let d = &self.decks[deck];
         let x = if d.direction > 0.0 { length / 2.0 } else { d.spec.length - length / 2.0 };
@@ -1120,7 +1191,13 @@ impl PhysicsFlow {
     }
 
     fn reserve(&mut self, i: usize, lead: u64, now: SimTime) -> bool {
-        let Some(exit) = self.decks[i].exit.clone() else { return false };
+        let Some(exit) = self.decks[i].exit.clone() else {
+            // An open end that runs off: nothing to wait for, the pallet goes over the end.
+            if self.decks[i].run_off {
+                self.decks[i].outgoing = Some(lead);
+            }
+            return self.decks[i].run_off;
+        };
         match exit {
             Exit::Gravity { line, gap } => {
                 let Some(p) = self.pallets.get(&lead) else { return false };
@@ -1348,7 +1425,7 @@ impl PhysicsFlow {
 
     /// Reads every pallet's pose and velocity; pallets that dropped off their deck are taken out.
     fn observe(&mut self, now: SimTime) {
-        for p in self.pallets.values_mut() {
+        for p in self.pallets.values_mut().chain(self.fallen_on_show.iter_mut()) {
             p.centre = self.bench.position(p.body);
             (p.x_axis, p.z_axis) = self.bench.axes(p.body);
             p.velocity = self.bench.velocity(p.body);
@@ -1361,24 +1438,46 @@ impl PhysicsFlow {
             .collect();
         for (id, carrier) in fallen {
             self.fallen += 1;
-            self.issues.push(FlowIssue {
-                instance_id: carrier.clone(),
-                rule: "palletFell",
-                message: format!("pallet {id} fell off {carrier} at {:.2} s", now as f64 / US_PER_S as f64),
-            });
-            for g in &mut self.gravity {
-                g.forget(id);
-            }
-            for d in &mut self.decks {
-                d.pallets.retain(|&p| p != id);
-                if d.incoming == Some(id) {
-                    d.incoming = None;
+            // Off a run-off end it was meant to go: it leaves its conveyor as over any end. Anywhere else it is a warning.
+            let meant = self.decks.iter().position(|d| d.run_off && d.outgoing == Some(id));
+            match meant {
+                Some(d) => {
+                    let entered = self.pallets.get(&id).map_or(now, |p| p.pallet.entered_at);
+                    self.decks[d].release(id, entered, now);
                 }
-                if d.outgoing == Some(id) {
-                    d.outgoing = None;
-                }
+                None => self.issues.push(FlowIssue {
+                    instance_id: carrier.clone(),
+                    rule: "palletFell",
+                    message: format!("pallet {id} fell off {carrier} at {:.2} s", now as f64 / US_PER_S as f64),
+                }),
             }
-            self.remove_pallet(id);
+            self.lay_down(id);
+        }
+    }
+
+    /// A pallet that fell: no object carries it any more, and it lies where it comes to rest, a body still. Only the
+    /// last few are kept.
+    fn lay_down(&mut self, id: u64) {
+        for g in &mut self.gravity {
+            g.forget(id);
+        }
+        for d in &mut self.decks {
+            d.pallets.retain(|&p| p != id);
+            if d.incoming == Some(id) {
+                d.incoming = None;
+            }
+            if d.outgoing == Some(id) {
+                d.outgoing = None;
+            }
+        }
+        if let Some(p) = self.pallets.remove(&id) {
+            self.fallen_on_show.push_back(p);
+        }
+        while self.fallen_on_show.len() > MAX_FALLEN_ON_SHOW {
+            if let Some(old) = self.fallen_on_show.pop_front() {
+                self.bench.remove(old.body);
+                self.bodies.remove(&old.body);
+            }
         }
     }
 
@@ -1401,6 +1500,9 @@ impl PhysicsFlow {
         }
         for g in &mut self.gravity {
             g.accumulate(seconds, &self.pallets);
+        }
+        for s in &mut self.storages {
+            s.logic.accumulate(seconds);
         }
     }
 }

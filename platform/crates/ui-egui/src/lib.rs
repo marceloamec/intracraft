@@ -110,6 +110,37 @@ pub enum Sheet {
     Table(Id),
 }
 
+/// Who the window is: the name and the line under it on the start page, its logo there, the source code's page, and the
+/// kind of file Save As makes a project into. BIMCraft's own ([`Brand::BIMCRAFT`]) unless an application built on it gives
+/// its own. File > Open takes the brand's files and BIMCraft's alike: the file is the same project either way.
+#[derive(Clone, Copy)]
+pub struct Brand {
+    pub name: &'static str,
+    /// In English; the interface translates it where its catalogs have it.
+    pub tagline: &'static str,
+    /// What the file dialogs call a project file, and its extension, without the dot.
+    pub project: &'static str,
+    pub extension: &'static str,
+    pub source: &'static str,
+    /// Draws the logo into the square it's given.
+    pub logo: fn(&egui::Painter, Rect),
+}
+
+impl Brand {
+    pub const BIMCRAFT: Brand = Brand {
+        name: "BIMCraft",
+        tagline: msg!("Building information modelling, open and free."),
+        project: msg!("BIMCraft project"),
+        extension: "bimcraft",
+        source: start::SOURCE,
+        logo: start::logo,
+    };
+
+    fn own(&self) -> bool {
+        self.extension == Brand::BIMCRAFT.extension
+    }
+}
+
 /// What an application built on BIMCraft adds to its window: tabs on the ribbon after BIMCraft's own, whose tools it
 /// draws, and what it draws over the active view (IntraCraft adds its simulation modules so). BIMCraft alone has none.
 pub trait Extension {
@@ -130,6 +161,13 @@ pub trait Extension {
     fn hides_tab(&self, _name: &str) -> bool {
         false
     }
+    /// Whether it shows a view of its own beside the active one, the window's view area split in two: the active view
+    /// on the left, its own on the right (IntraCraft's 3D run beside the floor plan). None by default.
+    fn splits_view(&self, _app: &BimApp) -> bool {
+        false
+    }
+    /// Draws its own view, filling `ui`, when [`Extension::splits_view`] says so.
+    fn split_view(&mut self, _ui: &mut Ui, _app: &mut BimApp) {}
 }
 
 /// BIMCraft alone: no tabs of anyone else's, nothing over its views.
@@ -451,8 +489,32 @@ fn import_note(file: &str, reply: &Value) -> String {
     text
 }
 
+/// What an application makes of a drag of the selection by `by` (mm, plan): how far it really moves, and a word for the
+/// status bar when it lines something up (IntraCraft snaps a conveyor onto another's end). See [`BimApp::move_snap`].
+pub type MoveSnap = std::sync::Arc<dyn Fn(&bimcraft_core::model::Model, &[Id], P2) -> (P2, Option<String>) + Send + Sync>;
+
+/// An item an application adds to the right-click menu of the views, over BIMCraft's own: its id (handed back in
+/// [`BimApp::extension_chosen`]), its label (as shown: the application translates it) and whether it can be chosen now.
+#[derive(Clone, Debug, PartialEq, Eq)]
+pub struct ExtensionAction {
+    pub id: String,
+    pub label: String,
+    pub enabled: bool,
+}
+
 pub struct BimApp {
     pub session: Session,
+    /// Whose window this is: BIMCraft's, or the application's built on it.
+    pub brand: Brand,
+    /// How a drag or the Move tool moves the selection, when an application corrects it (snapping); none by default.
+    pub move_snap: Option<MoveSnap>,
+    /// What an application adds to the right-click menu for the selection now: it sets them every frame before the views
+    /// draw (from its ribbon). The id of the one chosen waits in `extension_chosen` until the application takes it.
+    pub extension_actions: Vec<ExtensionAction>,
+    pub extension_chosen: Option<String>,
+    /// The element last double-clicked in a view where BIMCraft does nothing of its own with it (a component): an
+    /// application opens its properties. It waits here until taken.
+    pub double_clicked: Option<Id>,
     /// The system's requests since the last frame, read once a frame. None where it sends none.
     pub os_events: Option<Box<dyn FnMut() -> Vec<OsEvent>>>,
     /// The window draws its own title bar (`titlebar.rs`): the desktop's `main` says so where the system lets it (Windows and
@@ -999,6 +1061,11 @@ impl BimApp {
             project: session.model.uid,
             autosave: autosave::State::default(),
             session,
+            brand: Brand::BIMCRAFT,
+            move_snap: None,
+            extension_actions: Vec::new(),
+            extension_chosen: None,
+            double_clicked: None,
             os_events: None,
             own_title_bar: false,
             system_title_bar: false,
@@ -1433,6 +1500,16 @@ impl BimApp {
                 ui.label(egui::RichText::new(title).font(style::semibold(13.0)));
                 ui.separator();
                 extension.panel(ui, self);
+            });
+        }
+        if extension.splits_view(self) {
+            // The view area split in two: the extension's view takes the right half, resizable, the active view the rest.
+            let half = (ui.available_width() / 2.0).max(320.0);
+            let card = style::card([true, true, true, true]).inner_margin(Margin::same(2));
+            let panel = Panel::right("extension-split-view").frame(card).show_separator_line(false).resizable(true);
+            panel.default_size(half).min_size(240.0).show(ui, |ui| {
+                ui.set_min_size(ui.available_size());
+                extension.split_view(ui, self);
             });
         }
         CentralPanel::default().frame(Frame::NONE).show(ui, |ui| {
@@ -2583,7 +2660,8 @@ impl BimApp {
 
     fn save_as(&mut self, ctx: &Context, then: Option<Pending>) {
         let later = ctx.clone();
-        self.ask_path(ctx, msg!("BIMCraft project"), "bimcraft", move |app, p| {
+        let Brand { project, extension, .. } = self.brand;
+        self.ask_path(ctx, project, extension, move |app, p| {
             if app.save_to(&p)
                 && let Some(then) = then
             {
@@ -2606,6 +2684,15 @@ impl BimApp {
         self.ask_file(ctx, dialog, true, move |app, p| {
             then(app, if p.extension().is_some_and(|e| e.eq_ignore_ascii_case(&ext)) { p } else { p.with_extension(&ext) });
         });
+    }
+
+    /// The extensions File > Open takes: the brand's projects first, then BIMCraft's own list.
+    pub fn open_extensions(&self) -> Vec<&'static str> {
+        let mut extensions = revit::open_extensions(self.revit.is_some());
+        if !extensions.contains(&self.brand.extension) {
+            extensions.insert(0, self.brand.extension);
+        }
+        extensions
     }
 
     /// Open a project, or import an IFC file and say what came in and what was left out.
@@ -2713,8 +2800,11 @@ impl BimApp {
             }
             Pending::Open => {
                 let revit = self.revit.is_some();
-                let name = t(if revit { msg!("BIMCraft project, IFC or Revit") } else { "BIMCraft project or IFC" });
-                let dialog = rfd::AsyncFileDialog::new().add_filter(name, &revit::open_extensions(revit));
+                let mut name = t(if revit { msg!("BIMCraft project, IFC or Revit") } else { "BIMCraft project or IFC" }).to_string();
+                if !self.brand.own() {
+                    name = format!("{} · {name}", t(self.brand.project));
+                }
+                let dialog = rfd::AsyncFileDialog::new().add_filter(name, &self.open_extensions());
                 self.ask_file(ctx, dialog, false, |app, path| {
                     app.open_path(&path);
                 });
@@ -4500,7 +4590,7 @@ impl BimApp {
         Frame::new().fill(pal().surface).inner_margin(16.0).show(ui, |ui| {
             ui.set_min_size(ui.available_size());
             let ground = ui.interact(ui.max_rect(), ui.id().with("schedule menu"), egui::Sense::click());
-            context::menu(&ground, &groups, &mut chosen);
+            context::menu(&ground, &groups, &self.extension_actions, &mut chosen);
             let name = self.view_name(self.sheet);
             ui.label(RichText::new(&name).heading());
             ui.add_space(8.0);
@@ -4544,7 +4634,7 @@ impl BimApp {
                                     if r.clicked() {
                                         picked = Some((ids.clone(), ui.input(|i| i.modifiers)));
                                     }
-                                    context::menu(&r, &groups, &mut chosen);
+                                    context::menu(&r, &groups, &self.extension_actions, &mut chosen);
                                 }
                                 ui.end_row();
                             }

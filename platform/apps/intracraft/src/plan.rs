@@ -1,11 +1,9 @@
 //! What the simulation modules draw over BIMCraft's views, in plan metres (x east, y north): each object's footprint and
-//! each pallet's outline and height at a snapshot, and a pallet as a box of model points for the 3D view. Pure geometry,
-//! so it is tested without a window.
-
-use std::collections::BTreeMap;
+//! each pallet's outline at a snapshot (the 3D run is the 3D window's, `intracraft-viewer`). Pure geometry, so it is tested
+//! without a window.
 
 use intracraft_des::flow::PalletView;
-use intracraft_library::definition::Value;
+use intracraft_des::flow::storage::AisleView;
 use intracraft_library::layout::{Instance, Layout};
 use intracraft_library::params::num;
 use intracraft_library::ports::rotate_y;
@@ -35,6 +33,11 @@ fn extent(i: &Instance) -> (f64, f64, f64) {
         "sensor.photoeye" => (-0.05, 0.05, 0.05),
         "scenery.asset" => (-0.25, 0.25, 0.25),
         "flow.process_station" => (0.0, num(p, "length", 1.6), 0.5),
+        // The round table: its diameter both ways.
+        "flow.stretch_wrapper" => {
+            let d = num(p, "length", 1.8);
+            (0.0, d, d / 2.0)
+        }
         _ => (0.0, num(p, "length", 1.0), half),
     }
 }
@@ -72,6 +75,19 @@ pub fn pallet_outline(layout: &Layout, p: &PalletView) -> Option<[Point; 4]> {
     Some([at(rear, -half), at(p.front, -half), at(p.front, half), at(rear, half)])
 }
 
+/// The stacker crane of every storage aisle on the plan: its lifting carriage, 2 m along the aisle and 1.2 m across,
+/// where its forks are (S26).
+pub fn crane_outlines(layout: &Layout, storage: &std::collections::BTreeMap<String, AisleView>) -> Vec<[Point; 4]> {
+    storage
+        .iter()
+        .filter_map(|(id, view)| {
+            let i = layout.instance(id)?;
+            let at = |x: f64, z: f64| to_plan(i, view.crane[0] + x, z);
+            Some([at(-1.0, -0.6), at(1.0, -0.6), at(1.0, 0.6), at(-1.0, 0.6)])
+        })
+        .collect()
+}
+
 /// A pallet of the 3D run on the plan: its centre, its turn about +y and its sizes (along its own x, z).
 pub fn body_outline(centre: [f64; 3], yaw: f64, size: [f64; 3]) -> [Point; 4] {
     let (hx, hz) = (size[0] / 2.0, size[2] / 2.0);
@@ -81,31 +97,6 @@ pub fn body_outline(centre: [f64; 3], yaw: f64, size: [f64; 3]) -> [Point; 4] {
     };
     [at(-hx, -hz), at(hx, -hz), at(hx, hz), at(-hx, hz)]
 }
-
-/// The height a pallet of the discrete run rides at, m above the floor: its carrier's conveying surface; a lift station's
-/// deck at the height the run reports (`heights`), a gravity line's falling with its slope.
-pub fn ride_height(layout: &Layout, p: &PalletView, heights: &BTreeMap<String, f64>) -> f64 {
-    let Some(i) = layout.instance(&p.carrier) else { return 0.0 };
-    let v = &i.params;
-    let surface = match heights.get(&p.carrier) {
-        Some(h) => *h,
-        None if p.slope != 0.0 => num(v, "exitHeight", 0.1) + p.slope * (num(v, "length", 0.0) - (p.front - p.length / 2.0)),
-        None => ["surfaceHeight", "conveyorHeight", "entryHeight"].iter().find_map(|k| v.get(*k).and_then(Value::number)).unwrap_or(0.6),
-    };
-    i.position.y + surface
-}
-
-/// A box standing on a plan outline (m) from `z0` to `z1` (m), as model points (mm): its bottom's corners counter-clockwise
-/// seen from above, then its top's.
-pub fn solid(outline: [Point; 4], z0: f64, z1: f64) -> [[f64; 3]; 8] {
-    let area: f64 = (0..4).map(|k| outline[k].0 * outline[(k + 1) % 4].1 - outline[(k + 1) % 4].0 * outline[k].1).sum();
-    let ring = if area < 0.0 { [outline[3], outline[2], outline[1], outline[0]] } else { outline };
-    let at = |k: usize, z: f64| [ring[k].0 * 1000.0, ring[k].1 * 1000.0, z * 1000.0];
-    [at(0, z0), at(1, z0), at(2, z0), at(3, z0), at(0, z1), at(1, z1), at(2, z1), at(3, z1)]
-}
-
-/// The faces of a [`solid`], each counter-clockwise seen from outside: the top, the bottom, the four sides.
-pub const FACES: [[usize; 4]; 6] = [[4, 5, 6, 7], [3, 2, 1, 0], [0, 1, 5, 4], [1, 2, 6, 5], [2, 3, 7, 6], [3, 0, 4, 7]];
 
 #[cfg(test)]
 mod tests {
@@ -147,6 +138,7 @@ mod tests {
         let p = PalletView {
             id: 1,
             type_id: "eur".into(),
+            source: String::new(),
             carrier: "7".into(),
             front: 2.0,
             path_x: 0.0,
@@ -159,6 +151,7 @@ mod tests {
             width: 0.8,
             height: 0.144,
             load_height: 1.0,
+            wrapped: false,
         };
         let o = pallet_outline(&layout, &p).unwrap();
         assert!(close(o[0], (0.8, 0.4)) && close(o[2], (2.0, -0.4)));
@@ -173,6 +166,7 @@ mod tests {
         let p = PalletView {
             id: 1,
             type_id: "eur".into(),
+            source: String::new(),
             carrier: "9".into(),
             front: 1.3,
             path_x: -0.7 * h.cos(),
@@ -185,6 +179,7 @@ mod tests {
             width: 0.8,
             height: 0.144,
             load_height: 1.0,
+            wrapped: false,
         };
         let o = pallet_outline(&layout, &p).unwrap();
         let centre = ((o[0].0 + o[2].0) / 2.0, (o[0].1 + o[2].1) / 2.0);
@@ -200,39 +195,5 @@ mod tests {
         let centre = ((o[0].0 + o[2].0) / 2.0, (o[0].1 + o[2].1) / 2.0);
         assert!(close(centre, (1.0, 2.0)));
         assert!(((o[1].1 - o[0].1).abs() - 1.2).abs() < 1e-9);
-    }
-
-    #[test]
-    fn a_box_on_a_clockwise_outline_turns_its_bottom_counter_clockwise() {
-        let cw = [(0.0, 0.0), (0.0, 1.0), (2.0, 1.0), (2.0, 0.0)];
-        let b = solid(cw, 0.6, 0.744);
-        let area: f64 = (0..4).map(|k| b[k][0] * b[(k + 1) % 4][1] - b[(k + 1) % 4][0] * b[k][1]).sum();
-        assert!(area > 0.0);
-        assert_eq!((b[0][2], b[4][2]), (600.0, 744.0));
-    }
-
-    #[test]
-    fn a_pallet_rides_on_its_carriers_surface_or_its_lift_deck() {
-        let mut i = instance("7", "conveyor.roller", Vec3::new(0.0, 4.0, 0.0), 0.0);
-        i.params.insert("surfaceHeight".into(), Value::Number(0.8));
-        let layout = Layout { instances: vec![i], ..Layout::default() };
-        let p = PalletView {
-            id: 1,
-            type_id: "eur".into(),
-            carrier: "7".into(),
-            front: 2.0,
-            path_x: 0.0,
-            path_z: 0.0,
-            heading: 0.0,
-            slope: 0.0,
-            speed: 0.0,
-            accel: 0.0,
-            length: 1.2,
-            width: 0.8,
-            height: 0.144,
-            load_height: 1.0,
-        };
-        assert!((ride_height(&layout, &p, &BTreeMap::new()) - 4.8).abs() < 1e-12);
-        assert!((ride_height(&layout, &p, &BTreeMap::from([("7".to_string(), 2.0)])) - 6.0).abs() < 1e-12);
     }
 }

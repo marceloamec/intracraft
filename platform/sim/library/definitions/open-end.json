@@ -1,0 +1,18 @@
+{
+  "key": "openEnd",
+  "type": "enum",
+  "options": ["stop", "runOff"],
+  "default": "stop",
+  "group": "control",
+  "affects": "both",
+  "label": {
+    "en": "Open end",
+    "es": "Final abierto",
+    "de": "Offenes Ende"
+  },
+  "description": {
+    "en": "What happens at an output that is not connected: stop, the conveyor stops each pallet with its front at its end (warning openEnd); runOff, the conveyor keeps running and pallets run off its end and fall (counted as fallen). Rust platform only (ADR-0026).",
+    "es": "Qué pasa en una salida sin conectar: stop, el transportador para cada pallet con su frente en el extremo (aviso openEnd); runOff, el transportador sigue en marcha y los pallets salen por el extremo y caen (se cuentan como caídos). Solo en la plataforma Rust (ADR-0026).",
+    "de": "Was an einem nicht verbundenen Ausgang geschieht: stop, der Förderer hält jede Palette mit ihrer Vorderkante am Ende an (Warnung openEnd); runOff, der Förderer läuft weiter und die Paletten laufen über das Ende hinaus und fallen (als gefallen gezählt). Nur auf der Rust-Plattform (ADR-0026)."
+  }
+}

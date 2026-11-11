@@ -3,11 +3,13 @@ title: S20 List
 lang: en
 tags: [spec, information, scripting]
 library-id: info.list
-status: proposed — waiting for the owner's confirmation
+status: specified — not built yet (after IntraScript 1.0)
 updated: 2026-10-31
 ---
 
 # S20 List (`info.list`)
+
+> **IntraScript 1.0 (2026-11-09, [[ADR-0027 IntraScript in Python Syntax with Its Own Interpreter]]):** code is written in Python's syntax (snake_case members, counting from 0, `=` to assign) and this object is not built yet; until it is, Python lists in a code block hold the queues (`waiting.append(pallet)`, `waiting.pop(0)`). When it is built, the members below take Python's form; the behaviour stays as specified.
 
 A **list object** on the 2D plan: a queue of pallets waiting for a lift, a stack of empty pallets, the list of destinations still open. It is a single typed column with queue or stack behaviour and its own statistics. Inside code, lists can also be plain values (`list of T`, [[A17 IntraScript Language]] §4.4); the object is for lists that several code blocks share or that should show statistics. Decision: [[ADR-0018 IntraScript Scripting Language]].
 
@@ -43,17 +45,16 @@ A small icon with three stacked bars, the name and, when `showOnPlan`, the numbe
 
 Also: `count`, `isEmpty`, `isFull`, `[i]`, `first`, `last`, `add`, `insert`, `removeAt`, `remove`, `contains`, `indexOf`, `clear`, `sort`, `toList()` (a copy as a list value), and `stats.<key>`. `pop` or `peek` on an empty list stops the run with `emptyList`; `push` on a full list with `listFull` — check `isEmpty` and `isFull` first. Every change raises `on <name> changes` (A17 §9).
 
-```intrascript
-on enter LiftInfeed
-  Waiting.push(pallet)
-end
+```python
+@on_enter(LiftInfeed)
+def queue(pallet):
+    Waiting.push(pallet)
 
-on Lift1.atStation rises
-  if not Waiting.isEmpty
-    var next: pallet := Waiting.pop()
-    ...
-  end
-end
+@on_rise(Lift1.at_station)
+def serve():
+    if not Waiting.is_empty:
+        following = Waiting.pop()
+        print("next:", following.id)
 ```
 
 A pallet that leaves the model (sink or `delete()`) is removed from every list object at that moment, so a list never holds pallets that no longer exist.
@@ -100,4 +101,4 @@ Since 2026-10-31 IntraCraft is built in Rust on BIMCraft with three modules ([[A
 | Discrete simulation | Read and written by IntraScript code and the controller during the run, as this spec says                                                           |
 | Physics simulation  | The same as in the Discrete simulation module (information objects have no body)                                                                    |
 
-The behaviour above does not change. **Rust status:** not ported yet (R10, after the owner answers Q20 of [[A19 Rust Implementation Plan]]); the tests of this spec are the expected values of the port.
+The behaviour above does not change. **Rust status:** not built yet; IntraScript 1.0 and the code block came first (R10 of [[A19 Rust Implementation Plan]], [[ADR-0027 IntraScript in Python Syntax with Its Own Interpreter]]); the tests of this spec are the expected values of the port.

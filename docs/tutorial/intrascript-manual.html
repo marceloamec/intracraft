@@ -1,0 +1,1281 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Manual de IntraScript</title>
+<style>
+  :root {
+    --bg: #f7f7f5; --panel: #ffffff; --ink: #1d2025; --muted: #5d646e; --line: #d9dce1;
+    --accent: #6a3fb0; --accent-soft: #efe9f8; --code-bg: #f1f2f4; --ok: #2d7a46; --warn: #a86a12; --bad: #b43a32;
+    --kw: #8c2fa8; --ev: #0b7d88; --obj: #8a5a00; --fn: #1b5fc1; --num: #2e7d3a; --str: #a33d2a; --com: #6b7682;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root:not([data-theme="light"]) {
+      --bg: #17191d; --panel: #1f2227; --ink: #e6e8eb; --muted: #9aa3ad; --line: #353a42;
+      --accent: #b392ea; --accent-soft: #2b2538; --code-bg: #14161a; --ok: #6cc38a; --warn: #e2b064; --bad: #ef7b72;
+      --kw: #d187e6; --ev: #5cc7d3; --obj: #e5c07b; --fn: #7fb6f2; --num: #9bd28b; --str: #f0a489; --com: #7f8a96;
+    }
+  }
+  :root[data-theme="dark"] {
+    --bg: #17191d; --panel: #1f2227; --ink: #e6e8eb; --muted: #9aa3ad; --line: #353a42;
+    --accent: #b392ea; --accent-soft: #2b2538; --code-bg: #14161a; --ok: #6cc38a; --warn: #e2b064; --bad: #ef7b72;
+    --kw: #d187e6; --ev: #5cc7d3; --obj: #e5c07b; --fn: #7fb6f2; --num: #9bd28b; --str: #f0a489; --com: #7f8a96;
+  }
+  * { box-sizing: border-box; }
+  html { scroll-behavior: smooth; }
+  body { margin: 0; background: var(--bg); color: var(--ink); font: 16px/1.6 system-ui, "Segoe UI", Roboto, sans-serif; }
+  .layout { display: grid; grid-template-columns: 260px minmax(0, 1fr); max-width: 1180px; margin: 0 auto; }
+  nav.toc { position: sticky; top: 0; align-self: start; height: 100vh; overflow-y: auto; padding: 24px 16px; border-right: 1px solid var(--line); background: var(--panel); }
+  nav.toc h2 { font-size: 15px; margin: 0 0 8px; color: var(--muted); text-transform: uppercase; letter-spacing: .06em; }
+  nav.toc ol { list-style: none; margin: 0 0 16px; padding: 0; }
+  nav.toc li a { display: block; padding: 4px 8px; border-radius: 6px; color: var(--ink); text-decoration: none; font-size: 14px; }
+  nav.toc li a:hover { background: var(--accent-soft); }
+  main { padding: 32px 40px 80px; min-width: 0; }
+  h1 { font-size: 34px; line-height: 1.2; margin: 0 0 8px; }
+  h2 { font-size: 26px; margin: 48px 0 12px; padding-top: 12px; border-top: 1px solid var(--line); }
+  h3 { font-size: 19px; margin: 28px 0 8px; color: var(--accent); }
+  p, li { max-width: 72ch; }
+  .lead { font-size: 18px; color: var(--muted); }
+  a { color: var(--accent); }
+  code { font: 14px/1.4 ui-monospace, "Cascadia Code", Consolas, monospace; background: var(--code-bg); padding: 1px 5px; border-radius: 4px; }
+  pre { background: var(--code-bg); padding: 16px 18px; border-radius: 10px; overflow-x: auto; border: 1px solid var(--line); }
+  pre code { background: none; padding: 0; font-size: 14px; }
+  pre.prog { border-left: 4px solid var(--accent); }
+  pre.out { border-left: 4px solid var(--ok); }
+  pre.err { border-left: 4px solid var(--bad); }
+  pre.shell { border-left: 4px solid var(--com); }
+  figure { margin: 18px 0; }
+  figcaption { font-size: 14px; color: var(--muted); margin-top: 6px; }
+  table { width: 100%; border-collapse: collapse; margin: 14px 0 22px; font-size: 15px; display: block; overflow-x: auto; }
+  th, td { text-align: left; padding: 8px 10px; border-bottom: 1px solid var(--line); vertical-align: top; }
+  th { color: var(--muted); font-weight: 600; font-size: 13px; text-transform: uppercase; letter-spacing: .04em; }
+  .note { border-left: 4px solid var(--accent); background: var(--accent-soft); padding: 12px 16px; border-radius: 8px; margin: 18px 0; max-width: 72ch; }
+  .tip { border-left-color: var(--ok); background: transparent; border: 1px solid var(--line); border-left: 4px solid var(--ok); }
+  .warn { border-left-color: var(--warn); background: transparent; border: 1px solid var(--line); border-left: 4px solid var(--warn); }
+  .steps { counter-reset: step; list-style: none; padding-left: 0; }
+  .steps > li { counter-increment: step; position: relative; padding-left: 44px; margin-bottom: 14px; }
+  .steps > li::before { content: counter(step); position: absolute; left: 0; top: 0; width: 30px; height: 30px; border-radius: 50%; background: var(--accent); color: #fff; text-align: center; line-height: 30px; font-weight: 700; }
+  .cards { display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 14px; margin: 18px 0; }
+  .card { background: var(--panel); border: 1px solid var(--line); border-radius: 12px; padding: 16px; }
+  .card h4 { margin: 0 0 6px; font-size: 16px; }
+  .card p { margin: 0; font-size: 15px; color: var(--muted); }
+  .k-kw { color: var(--kw); } .k-ev { color: var(--ev); } .k-obj { color: var(--obj); } .k-fn { color: var(--fn); }
+  .tag { display: inline-block; font-size: 12px; padding: 1px 8px; border-radius: 999px; border: 1px solid var(--line); color: var(--muted); margin-right: 4px; }
+  .ok-tag { color: var(--ok); border-color: var(--ok); }
+  footer { color: var(--muted); font-size: 14px; margin-top: 56px; border-top: 1px solid var(--line); padding-top: 16px; }
+  @media (max-width: 860px) {
+    .layout { grid-template-columns: 1fr; }
+    nav.toc { position: static; height: auto; border-right: none; border-bottom: 1px solid var(--line); }
+    main { padding: 24px 16px 64px; }
+    h1 { font-size: 28px; }
+    h2 { font-size: 23px; }
+  }
+  .kbd { font: 13px ui-monospace, Consolas, monospace; border: 1px solid var(--line); border-bottom-width: 2px; border-radius: 5px; padding: 0 6px; background: var(--panel); white-space: nowrap; }
+  .obj-toc { columns: 3 220px; font-size: 14px; }
+  details.obj { border: 1px solid var(--line); border-radius: 10px; padding: 8px 14px; margin: 10px 0; background: var(--panel); }
+  details.obj summary { cursor: pointer; font-weight: 600; }
+  details.obj summary code { font-weight: 400; }
+  .small { font-size: 14px; color: var(--muted); }
+</style>
+</head>
+<body>
+<div class="layout">
+
+<nav class="toc" aria-label="Índice">
+  <h2>Manual de IntraScript</h2>
+  <ol>
+    <li><a href="#piezas">1. Las piezas</a></li>
+    <li><a href="#editor">2. El editor</a></li>
+    <li><a href="#primer">3. Primer programa</a></li>
+    <li><a href="#sintaxis">4. Sintaxis</a></li>
+    <li><a href="#valores">5. Valores y tipos</a></li>
+    <li><a href="#unidades">6. Unidades</a></li>
+    <li><a href="#variables">7. Variables</a></li>
+    <li><a href="#instrucciones">8. Instrucciones</a></li>
+    <li><a href="#operadores">9. Operadores</a></li>
+    <li><a href="#funciones">10. Funciones</a></li>
+    <li><a href="#eventos">11. Eventos</a></li>
+    <li><a href="#esperas">12. Esperas</a></li>
+    <li><a href="#direcciones">13. Objetos, secciones y direcciones</a></li>
+    <li><a href="#miembros">14. Miembros por tipo de objeto</a></li>
+    <li><a href="#palets">15. Palets (MU)</a></li>
+    <li><a href="#incorporadas">16. Funciones incorporadas</a></li>
+    <li><a href="#formatos">17. Formatos de texto</a></li>
+    <li><a href="#errores">18. Errores</a></li>
+    <li><a href="#ejecucion">19. Cómo se ejecuta</a></li>
+    <li><a href="#cli">20. Línea de comandos</a></li>
+    <li><a href="#python">21. Editores de Python</a></li>
+    <li><a href="#estilo">22. Guía de estilo</a></li>
+    <li><a href="#ejemplos">23. Ejemplos</a></li>
+    <li><a href="#limites">24. Lo que aún no existe</a></li>
+    <li><a href="#desarrollo">25. Para desarrolladores</a></li>
+    <li><a href="#glosario">26. Glosario</a></li>
+  </ol>
+</nav>
+
+<main>
+
+<h1>Manual de IntraScript</h1>
+<p class="lead">Todo lo que compone la programación en IntraCraft: el lenguaje, el editor, los objetos y sus miembros, los palets, las funciones, los errores, la ejecución y las herramientas. Para aprender desde cero, empieza por la <a href="intrascript-tutorial.html">guía</a>; este manual es la referencia completa.</p>
+<p class="small">Versión del lenguaje: 1. Las tablas de objetos y miembros están generadas con <code>intracraft-cli code names</code> a partir de la librería real, y los ejemplos se han ejecutado con <code>intracraft-cli code run</code>.</p>
+
+<h2 id="piezas">1. Las piezas</h2>
+<table>
+  <thead><tr><th>Pieza</th><th>Qué es</th><th>Dónde está</th></tr></thead>
+  <tbody>
+    <tr><td>Bloque de código</td><td>Objeto del plano (<code>info.code</code>) que guarda un programa en su atributo <code>source</code>; con <code>enabled</code> se activa o desactiva</td><td>Módulo Diseño, cinta Intralogistics, panel Logic</td></tr>
+    <tr><td>Editor</td><td>Ventana para escribir el programa: colores, comprobación, autocompletado, buscar, plantillas</td><td>Atributos del bloque, «Edit code…»</td></tr>
+    <tr><td>Lenguaje</td><td>IntraScript: sintaxis de Python con eventos, esperas, unidades y los objetos del layout por su nombre</td><td>Este manual; referencia técnica en <code>docs/en/app/A17 IntraScript Language.md</code></td></tr>
+    <tr><td>Comprobador</td><td>Revisa el programa contra el layout antes de simular; con un error no arranca la simulación</td><td>Editor, inicio de la simulación, <code>code check</code></td></tr>
+    <tr><td>Intérprete</td><td>Ejecuta el programa junto al motor de simulación discreta, de forma aislada y repetible</td><td><code>platform/sim/script</code></td></tr>
+    <tr><td>Panel de simulación</td><td>Error que paró la simulación, consola del programa, variables de cada bloque, palets con su dirección</td><td>Módulo Simulación discreta, panel lateral</td></tr>
+    <tr><td>Línea de comandos</td><td>Comprobar, ejecutar y listar nombres sin abrir la ventana</td><td><code>intracraft-cli code check|run|names</code></td></tr>
+    <tr><td>Módulo para editores de Python</td><td>Describe todos los nombres para que cualquier editor de Python complete y explique</td><td><code>platform/sim/script/python/intrascript.py</code></td></tr>
+  </tbody>
+</table>
+
+<h2 id="editor">2. El editor</h2>
+<p>Se abre con <strong>Edit code…</strong> en los atributos de un bloque de código. Es una ventana que se puede mover y cambiar de tamaño, con tres zonas: el código (con números de línea y una línea de estado debajo), la lista de problemas y, a la derecha, los nombres que el código puede usar.</p>
+
+<h3>Funciones del editor</h3>
+<table>
+  <thead><tr><th>Función</th><th>Cómo</th><th>Qué hace</th></tr></thead>
+  <tbody>
+    <tr><td>Guardar</td><td><span class="kbd">Ctrl+S</span> o «Save»</td><td>Guarda el código en el bloque. Es un paso de deshacer del modelo. Un punto «•» indica cambios sin guardar</td></tr>
+    <tr><td>Volver a lo guardado</td><td>«Revert»</td><td>Descarta lo escrito desde el último guardado</td></tr>
+    <tr><td>Colores</td><td>Automático</td><td>Palabras clave, eventos, objetos del layout y secciones, funciones incorporadas, unidades, números, textos y comentarios, cada uno con su color; en tema claro y oscuro</td></tr>
+    <tr><td>Comprobación</td><td>Automático, al escribir</td><td>Las líneas con error se subrayan en rojo, las de aviso en ámbar; la barra dice cuántos hay. Un clic en un problema lleva a su línea</td></tr>
+    <tr><td>Autocompletado</td><td>Al escribir <code>.</code> o <code>@</code>; en cualquier sitio con <span class="kbd">Ctrl+Espacio</span></td><td>Lista los nombres que encajan: tras <code>Roller3.</code> sus miembros; tras <code>@</code> los eventos; tras <code>pallet.</code>, <code>math.</code>, <code>random.</code>, <code>simulation.</code> sus nombres; tras una sección, sus objetos; tras otro bloque, sus funciones y variables. <span class="kbd">↑</span>/<span class="kbd">↓</span> eligen, <span class="kbd">Enter</span> o <span class="kbd">Tab</span> insertan, <span class="kbd">Esc</span> cierra</td></tr>
+    <tr><td>Sangría automática</td><td><span class="kbd">Enter</span></td><td>La línea nueva mantiene la sangría; tras una línea que acaba en <code>:</code> añade un nivel (cuatro espacios)</td></tr>
+    <tr><td>Sangrar y desangrar</td><td><span class="kbd">Tab</span>, <span class="kbd">Mayús+Tab</span></td><td>Con texto seleccionado, mueve todas las líneas un nivel; sin selección, <span class="kbd">Tab</span> escribe cuatro espacios</td></tr>
+    <tr><td>Comentar</td><td><span class="kbd">Ctrl+/</span> o «# Comment»</td><td>Pone o quita <code># </code> en las líneas seleccionadas</td></tr>
+    <tr><td>Buscar</td><td><span class="kbd">Ctrl+F</span> o «Find»</td><td>Barra de búsqueda con contador de coincidencias, «Previous» y «Next» (<span class="kbd">Enter</span>), y «Aa» para distinguir mayúsculas</td></tr>
+    <tr><td>Reemplazar</td><td><span class="kbd">Ctrl+H</span> o «Replace…»</td><td>Reemplaza la coincidencia seleccionada y pasa a la siguiente, o todas a la vez con «Replace all»</td></tr>
+    <tr><td>Ir a línea</td><td><span class="kbd">Ctrl+G</span> o «Go to line»</td><td>Selecciona la línea escrita</td></tr>
+    <tr><td>Plantillas</td><td>«Insert…»</td><td>Inserta en el cursor, con la sangría correcta, un manejador de cada evento o un trozo de código (retener un transportador, esperar con plazo, una función, una variable); deja seleccionada la palabra que hay que cambiar, como <code>OBJECT</code></td></tr>
+    <tr><td>Nombres que puedes usar</td><td>Panel de la derecha</td><td>Eventos, objetos con sus miembros (por dirección si tienen sección), miembros de los palets, funciones incorporadas y unidades; un clic los inserta en el cursor</td></tr>
+    <tr><td>Tamaño de letra</td><td><span class="kbd">Ctrl++</span>, <span class="kbd">Ctrl+-</span>, <span class="kbd">Ctrl+0</span> o «A−»/«A+»</td><td>Cambia el tamaño del código entre 9 y 28 puntos</td></tr>
+    <tr><td>Línea de estado</td><td>Debajo del código</td><td>Línea y columna del cursor, número de líneas, si está guardado y el tamaño</td></tr>
+    <tr><td>Deshacer al escribir</td><td><span class="kbd">Ctrl+Z</span>, <span class="kbd">Ctrl+Y</span></td><td>El deshacer propio del cuadro de texto, mientras está abierto</td></tr>
+  </tbody>
+</table>
+<div class="note tip">Un código con errores se puede guardar: no se pierde nada. Solo impide que arranque la simulación hasta corregirlo.</div>
+
+<h2 id="primer">3. Primer programa</h2>
+<pre class="prog"><code>"""Mi primer programa: avisa cuando empieza la simulación."""
+from intrascript import *
+
+
+@on_start
+def arranque():
+    print("La simulación empieza")
+</code></pre>
+<pre class="out"><code>0:00:00.000  Code: La simulación empieza</code></pre>
+<p>Cada línea de la consola lleva la hora de simulación y el nombre del bloque. <code>from intrascript import *</code> es opcional: solo ayuda a los editores de Python (sección 21).</p>
+
+<h2 id="sintaxis">4. Sintaxis</h2>
+<ul>
+  <li>La <strong>sangría</strong> forma los bloques: cuatro espacios por nivel. Los tabuladores no se admiten (el editor los convierte).</li>
+  <li>Una línea, una instrucción. <code>;</code> separa dos instrucciones en la misma línea; <code>\</code> al final continúa la línea. Dentro de paréntesis, corchetes y llaves se puede saltar de línea libremente.</li>
+  <li><code>#</code> empieza un comentario. Un texto justo debajo de <code>def …:</code> es la ayuda de la función.</li>
+  <li>Se distinguen <strong>mayúsculas y minúsculas</strong>. Las palabras clave de Python no pueden ser nombres.</li>
+  <li><code>=</code> asigna, <code>==</code> compara, <code>!=</code> es «distinto». <code>True</code>, <code>False</code>, <code>None</code>.</li>
+  <li>Se cuenta desde <strong>0</strong>: <code>lista[0]</code> es el primero, <code>lista[-1]</code> el último.</li>
+</ul>
+<h3>Literales</h3>
+<table>
+  <thead><tr><th>Tipo</th><th>Ejemplos</th><th>Nota</th></tr></thead>
+  <tbody>
+    <tr><td>Entero</td><td><code>12</code>, <code>-3</code>, <code>1_000_000</code>, <code>0x1F</code></td><td>Hasta ±9,2·10¹⁸</td></tr>
+    <tr><td>Decimal</td><td><code>0.25</code>, <code>1.5e3</code></td><td>Punto decimal</td></tr>
+    <tr><td>Cantidad</td><td><code>150 * mm</code>, <code>0.25 * m / s</code></td><td>Número por unidad; <code>150mm</code> es un error</td></tr>
+    <tr><td>Texto</td><td><code>"Línea A"</code>, <code>'B'</code>, <code>"""…"""</code></td><td>Escapes <code>\n</code>, <code>\t</code>, <code>\\</code>, <code>\"</code>, <code>\xHH</code>, <code>\uHHHH</code></td></tr>
+    <tr><td>Texto con formato</td><td><code>f"{n} palets, {gap:.1f}"</code></td><td>Sección 17</td></tr>
+    <tr><td>Lógico</td><td><code>True</code>, <code>False</code></td><td></td></tr>
+    <tr><td>Nada</td><td><code>None</code></td><td>Sin palet, sin objeto</td></tr>
+    <tr><td>Lista, tupla, diccionario</td><td><code>[1, 2]</code>, <code>(1, "A")</code>, <code>{"A": 0}</code></td><td>La lista y el diccionario se pueden cambiar; la tupla no</td></tr>
+  </tbody>
+</table>
+<h3>Lo que IntraScript deja fuera de Python</h3>
+<p>Clases, <code>lambda</code>, <code>try</code>/<code>except</code>/<code>raise</code> (se usa <code>error()</code>), <code>with</code>, generadores (<code>yield</code>), <code>async</code>/<code>await</code>, <code>del</code>, <code>nonlocal</code>, funciones dentro de funciones, <code>*args</code> y <code>**kwargs</code>, conjuntos, <code>:=</code>, <code>while … else</code> y <code>for … else</code>, comprensiones con más de un <code>for</code> o de diccionario, formato de texto con <code>%</code> e <code>import</code> de módulos que no sean <code>intrascript</code>, <code>math</code> o <code>random</code>. Cada uno da un error de sintaxis que lo nombra y dice qué usar.</p>
+
+<h2 id="valores">5. Valores y tipos</h2>
+<table>
+  <thead><tr><th>Tipo</th><th>Contiene</th><th>Es falso cuando</th></tr></thead>
+  <tbody>
+    <tr><td><code>int</code></td><td>Enteros</td><td>vale 0</td></tr>
+    <tr><td><code>float</code></td><td>Decimales (64 bits)</td><td>vale 0.0</td></tr>
+    <tr><td>Cantidad</td><td>Número con dimensión (sección 6)</td><td>vale 0</td></tr>
+    <tr><td><code>bool</code></td><td><code>True</code>, <code>False</code></td><td>es <code>False</code></td></tr>
+    <tr><td><code>str</code></td><td>Texto, hasta 100 000 caracteres</td><td>está vacío</td></tr>
+    <tr><td><code>list</code>, <code>tuple</code>, <code>dict</code></td><td>Colecciones, hasta 100 000 elementos</td><td>están vacías</td></tr>
+    <tr><td><code>range</code></td><td><code>range(10)</code>, <code>range(2, 20, 3)</code></td><td>no tiene números</td></tr>
+    <tr><td>Objeto</td><td>Un equipo del layout</td><td>nunca</td></tr>
+    <tr><td>Palet</td><td>Un palet (MU) de la simulación</td><td>nunca</td></tr>
+    <tr><td><code>None</code></td><td>Nada</td><td>siempre</td></tr>
+  </tbody>
+</table>
+<ul>
+  <li><code>int / int</code> da decimal (<code>7 / 2</code> es <code>3.5</code>); <code>//</code> y <code>%</code> redondean hacia menos infinito, como Python.</li>
+  <li>Claves de diccionario: números, textos, <code>None</code>, tuplas, objetos y palets. <code>1</code>, <code>1.0</code> y <code>True</code> son la misma clave.</li>
+  <li>Las listas y diccionarios se <strong>comparten</strong>: tras <code>b = a</code>, los dos nombres ven la misma lista; <code>a.copy()</code> hace otra.</li>
+  <li>Las anotaciones de tipo (<code>x: int = 3</code>) se admiten y solo documentan.</li>
+</ul>
+
+<h2 id="unidades">6. Unidades</h2>
+<p>Una cantidad es un número en unidades del SI con su dimensión. Los nombres de unidad son valores incorporados: <code>150 * mm</code> es 0,15 m, y una cantidad dividida por su unidad da un número: <code>gap / mm</code> es <code>150.0</code>.</p>
+<table>
+  <thead><tr><th>Nombre</th><th>Tamaño</th><th>Dimensión</th></tr></thead>
+  <tbody>
+    <tr><td><code>mm</code>, <code>cm</code>, <code>m</code>, <code>km</code></td><td>0,001 · 0,01 · 1 · 1000 m</td><td>longitud</td></tr>
+    <tr><td><code>ms</code>, <code>s</code>, <code>minute</code>, <code>h</code>, <code>day</code></td><td>0,001 · 1 · 60 · 3600 · 86 400 s</td><td>tiempo</td></tr>
+    <tr><td><code>g</code>, <code>kg</code>, <code>tonne</code></td><td>0,001 · 1 · 1000 kg</td><td>masa</td></tr>
+    <tr><td><code>deg</code>, <code>rad</code></td><td>π/180 · 1 rad</td><td>ángulo</td></tr>
+    <tr><td><code>rpm</code></td><td>2π/60 rad/s</td><td>velocidad angular</td></tr>
+    <tr><td><code>percent</code></td><td>0,01</td><td>sin dimensión</td></tr>
+  </tbody>
+</table>
+<ul>
+  <li><code>+</code>, <code>-</code>, las comparaciones, <code>//</code> y <code>%</code> necesitan la <strong>misma dimensión</strong>: <code>1 * m + 20 * mm</code> es 1,02 m; <code>1 * m + 2 * s</code> detiene la simulación con <code>unitMismatch</code>.</li>
+  <li><code>*</code> y <code>/</code> combinan dimensiones: <code>150 * mm / (0.25 * m / s)</code> es 0,6 s; longitud entre longitud es un número.</li>
+  <li><code>**</code> solo con exponente entero sobre cantidades: <code>0.5 * m / s**2</code> es una aceleración. <code>math.sqrt</code> conserva las dimensiones pares.</li>
+  <li><code>round</code>, <code>int</code> y <code>float</code> no aceptan cantidades: <code>round(gap / mm)</code>.</li>
+  <li>Al mostrarse: longitudes en mm, tiempos en s, velocidades en m/s, aceleraciones en m/s², masas en kg, ángulos en grados, frecuencias por hora. <code>print(Line_A.length)</code> escribe <code>3000 mm</code>.</li>
+  <li>Los minutos son <code>minute</code> porque <code>min</code> es la función mínimo; las toneladas son <code>tonne</code>.</li>
+</ul>
+
+<h2 id="variables">7. Variables</h2>
+<table>
+  <thead><tr><th>Dónde se asigna</th><th>Qué es</th><th>Cuánto dura</th></tr></thead>
+  <tbody>
+    <tr><td>Arriba del bloque</td><td>Variable del bloque</td><td>Toda la simulación; se reinicia en cada arranque</td></tr>
+    <tr><td>Dentro de una función</td><td>Variable local</td><td>Una llamada (se conserva mientras espera)</td></tr>
+    <tr><td>Dentro de una función, tras <code>global nombre</code></td><td>La variable del bloque</td><td>Toda la simulación</td></tr>
+    <tr><td><code>pallet.nombre = valor</code></td><td>Atributo del palet (sección 15)</td><td>Mientras el palet esté en el modelo</td></tr>
+    <tr><td><code>OtroBloque.nombre = valor</code></td><td>Variable de otro bloque</td><td>Toda la simulación</td></tr>
+  </tbody>
+</table>
+<p>Regla de Python: un nombre asignado dentro de una función es local. Para cambiar una variable del bloque se escribe <code>global nombre</code> al principio de la función; si falta, el editor avisa con <code>localShadowsGlobal</code> y la simulación se para con <code>unboundLocal</code> diciendo que falta <code>global</code>.</p>
+<p>Arriba del bloque solo van variables, funciones, importaciones y el texto de ayuda. El código que debe ejecutarse al empezar va en una función con <code>@on_start</code>.</p>
+
+<h2 id="instrucciones">8. Instrucciones</h2>
+<table>
+  <thead><tr><th>Instrucción</th><th>Nota</th></tr></thead>
+  <tbody>
+    <tr><td><code>x = valor</code>, <code>a = b = 0</code>, <code>a, b = t</code></td><td>También elementos (<code>d["A"] = 1</code>) y atributos (<code>Line_A.run = False</code>)</td></tr>
+    <tr><td><code>x += 1</code> (<code>-=</code>, <code>*=</code>, <code>/=</code>, <code>//=</code>, <code>%=</code>, <code>**=</code>)</td><td>Sobre nombres, elementos y atributos</td></tr>
+    <tr><td><code>if … elif … else</code></td><td></td></tr>
+    <tr><td><code>while condición:</code></td><td><code>break</code> y <code>continue</code> como en Python</td></tr>
+    <tr><td><code>for x in elementos:</code></td><td>Listas, tuplas, textos, diccionarios (sus claves), <code>range</code>, <code>enumerate</code>, <code>zip</code></td></tr>
+    <tr><td><code>return</code>, <code>return valor</code></td><td>Dentro de una función</td></tr>
+    <tr><td><code>pass</code></td><td>No hace nada</td></tr>
+    <tr><td><code>global a, b</code></td><td>Sección 7</td></tr>
+    <tr><td><code>assert condición, "mensaje"</code></td><td>Si es falsa, detiene la simulación con <code>assertionFailed</code></td></tr>
+    <tr><td><code>from intrascript import *</code>, <code>import math</code>, <code>import random</code></td><td>Admitidas e ignoradas: esos nombres ya existen</td></tr>
+  </tbody>
+</table>
+
+<h2 id="operadores">9. Operadores</h2>
+<table>
+  <thead><tr><th>De menor a mayor prioridad</th><th>Nota</th></tr></thead>
+  <tbody>
+    <tr><td><code>a if condición else b</code></td><td></td></tr>
+    <tr><td><code>or</code></td><td>Da el primer valor verdadero o el último</td></tr>
+    <tr><td><code>and</code></td><td>Da el primer valor falso o el último</td></tr>
+    <tr><td><code>not</code></td><td></td></tr>
+    <tr><td><code>==</code> <code>!=</code> <code>&lt;</code> <code>&lt;=</code> <code>&gt;</code> <code>&gt;=</code> <code>in</code> <code>not in</code> <code>is</code> <code>is not</code></td><td>Se encadenan: <code>0 &lt; n &lt;= 3</code></td></tr>
+    <tr><td><code>+</code> <code>-</code></td><td><code>+</code> también une textos, listas y tuplas</td></tr>
+    <tr><td><code>*</code> <code>/</code> <code>//</code> <code>%</code></td><td><code>*</code> también repite textos y listas</td></tr>
+    <tr><td><code>-x</code> <code>+x</code></td><td></td></tr>
+    <tr><td><code>**</code></td><td>De derecha a izquierda; <code>-2 ** 2</code> es −4</td></tr>
+    <tr><td><code>a.b</code> <code>a[i]</code> <code>a[i:j:k]</code> <code>f(x)</code></td><td>Miembro, elemento, trozo, llamada</td></tr>
+  </tbody>
+</table>
+<p>También hay listas por comprensión con un <code>for</code> y un <code>if</code> opcional: <code>[z for z in zonas if not z.occupied]</code>. Comparar cantidades de distinta dimensión es un error, nunca un simple <code>False</code>.</p>
+
+<h2 id="funciones">10. Funciones</h2>
+<pre class="prog"><code>def liberar(zona, pausa=2 * s):
+    """Pone la zona en marcha tras la pausa y dice si tenía un palet."""
+    wait(pausa)
+    zona.run = True
+    return zona.occupied</code></pre>
+<ul>
+  <li>Se definen arriba del bloque, nunca dentro de otra función. Se llaman con argumentos en orden o por nombre: <code>liberar(Line_A, pausa=5 * s)</code>.</li>
+  <li>Un valor por defecto es fijo: número, texto, cantidad como <code>2 * s</code>, <code>True</code>, <code>False</code> o <code>None</code>.</li>
+  <li>Una función que espera hace esperar a quien la llama.</li>
+  <li>Hasta 200 llamadas anidadas (<code>depthLimit</code>).</li>
+  <li>Las funciones y variables de <strong>otro bloque</strong> se alcanzan por su nombre: <code>Rutas.siguiente("B")</code>, <code>Rutas.enviados</code>.</li>
+  <li><code>sorted</code>, <code>min</code>, <code>max</code> y <code>list.sort</code> aceptan <code>key=</code> una función del bloque (no hay <code>lambda</code>).</li>
+</ul>
+
+<h2 id="eventos">11. Eventos</h2>
+<p>Una función se convierte en manejador de evento con un decorador. Cada vez que ocurre el evento empieza una <strong>activación</strong> nueva del manejador.</p>
+<table>
+  <thead><tr><th>Decorador</th><th>Cuándo</th><th>Objetos que lo admiten</th><th><code>pallet</code> / <code>sender</code></th></tr></thead>
+  <tbody>
+    <tr><td><code>@on_start</code></td><td>Al empezar, tras dar valor a las variables</td><td>—</td><td>— / —</td></tr>
+    <tr><td><code>@on_finish</code></td><td>Al terminar; no puede esperar</td><td>—</td><td>— / —</td></tr>
+    <tr><td><code>@on_create(X)</code></td><td>El origen crea un palet</td><td>Orígenes</td><td>el palet nuevo / el origen</td></tr>
+    <tr><td><code>@on_enter(X)</code></td><td>Un palet pasa a pertenecer a X</td><td>Los que llevan palets: transportadores, mesas, estaciones, elevadores, líneas de gravedad, sumideros</td><td>el palet / X</td></tr>
+    <tr><td><code>@on_leave(X)</code></td><td>Un palet deja de pertenecer a X</td><td>Los mismos</td><td>el palet / X</td></tr>
+    <tr><td><code>@on_rise(X.señal)</code></td><td>La señal pasa a <code>True</code></td><td>Los que tienen señales (<code>run</code>, <code>running</code>, <code>occupied</code>, <code>enable</code>, <code>detected</code>)</td><td>— / X</td></tr>
+    <tr><td><code>@on_fall(X.señal)</code></td><td>La señal pasa a <code>False</code></td><td>Los mismos</td><td>— / X</td></tr>
+    <tr><td><code>@on_change(X.señal)</code></td><td>La señal cambia</td><td>Los mismos</td><td>— / X</td></tr>
+    <tr><td><code>@every(t, start=…)</code></td><td>Cada <code>t</code>; la primera vez en <code>start</code> (por defecto, tras un intervalo)</td><td>—</td><td>— / —</td></tr>
+    <tr><td><code>@at(t)</code></td><td>Una vez, en <code>t</code></td><td>—</td><td>— / —</td></tr>
+    <tr><td><code>@choose_exit(X)</code></td><td>Un palet centrado en la mesa necesita salida; no puede esperar</td><td>Mesas giratorias</td><td>el palet / X</td></tr>
+  </tbody>
+</table>
+<ul>
+  <li><code>X</code> puede ser un nombre (<code>Line_A</code>), una dirección (<code>LineaA.Line_A</code>) o un texto con el nombre o el id del layout (<code>"Line A"</code>). Varios objetos a la vez: <code>@on_enter(Line_A, Line_B)</code>. Varios decoradores en una función la atan a todos.</li>
+  <li>Un manejador toma los parámetros que quiera entre <code>pallet</code> y <code>sender</code>, por esos nombres; otro parámetro necesita valor por defecto.</li>
+  <li><code>priority=5</code> en cualquier decorador: en el mismo instante, el de mayor prioridad va primero. A igual prioridad, por orden de bloques en el layout y luego por orden de escritura.</li>
+  <li><strong>Pertenecer</strong> (motor 2D): un palet pertenece al objeto donde está su cola; un transportador lo recibe cuando ha cruzado su entrada entera; un sumidero, cuando se lo lleva. El palet nuevo de un origen nace en su primer transportador: primero <code>@on_create</code>, luego <code>@on_enter</code>. Para el instante en que el frente pasa por un punto, se pone una fotocélula y se usa <code>@on_rise</code>.</li>
+  <li><strong>Decisiones de salida</strong>: <code>@choose_exit</code> devuelve uno de los objetos de <code>X.exits</code>, o <code>None</code> para que decida la regla propia de la mesa. Devolver otra cosa detiene la simulación (<code>notAnExit</code>).</li>
+</ul>
+
+<h2 id="esperas">12. Esperas</h2>
+<table>
+  <thead><tr><th>Llamada</th><th>Efecto</th></tr></thead>
+  <tbody>
+    <tr><td><code>wait(2 * s)</code></td><td>Pausa esta activación 2 s de tiempo simulado; la planta sigue</td></tr>
+    <tr><td><code>wait(0 * s)</code></td><td>Deja pasar primero lo que ya está previsto en este instante</td></tr>
+    <tr><td><code>wait(5)</code></td><td>Un número sin unidad cuenta como segundos</td></tr>
+    <tr><td><code>wait_until(condición)</code></td><td>Espera a que la condición sea cierta (si ya lo es, sigue); devuelve <code>True</code></td></tr>
+    <tr><td><code>wait_until(condición, timeout=30 * s)</code></td><td>Devuelve <code>False</code> si pasan 30 s antes</td></tr>
+  </tbody>
+</table>
+<p>La condición de <code>wait_until</code> se vuelve a mirar tras cada evento de la simulación y en su plazo, no una sola vez. Una activación en pausa conserva todo: bucles, llamadas y variables. No se puede esperar arriba del bloque, en <code>@on_finish</code> ni en <code>@choose_exit</code> (ni en lo que estas llamen). Una espera negativa detiene la simulación (<code>negativeWait</code>).</p>
+
+<h2 id="direcciones">13. Objetos, secciones y direcciones</h2>
+<h3>Nombres</h3>
+<p>Cada equipo del layout es un nombre en el código. El nombre en el layout es su parámetro de proyecto <code>Name</code>; sin él, su familia y su id (<code>Roller conveyor 100023</code>). El <strong>nombre de código</strong> es ese nombre si es un identificador; si no, se cambian los demás caracteres por <code>_</code>: «Line A» es <code>Line_A</code>, «Outfeed (15 s)» es <code>Outfeed_15_s</code>. Dos objetos con el mismo nombre de código: al segundo se le añade <code>_</code> y su id.</p>
+<h3>Secciones</h3>
+<p>Una sección es un grupo de objetos, como una capa: el parámetro de proyecto <code>Section</code> de cada componente. Normalmente está en un nivel, pero puede abarcar varios. En el módulo Diseño, el panel <strong>Section</strong> de la cinta pone la selección en una sección («Put in») o la saca («More» → «Take out»), y el panel <strong>Sections</strong> muestra u oculta cada sección en la vista activa (un filtro de vista «Section &lt;nombre&gt;»). Por nivel se oculta con las herramientas propias del editor.</p>
+<h3>Direcciones</h3>
+<table>
+  <thead><tr><th>Qué</th><th>Dirección</th></tr></thead>
+  <tbody>
+    <tr><td>Objeto en una sección</td><td><code>LineaA.Line_A</code></td></tr>
+    <tr><td>Objeto sin sección</td><td><code>Line_A</code></td></tr>
+    <tr><td>Palet sobre un objeto</td><td><code>LineaA.Line_A.MU3</code> (la dirección de su transportador y su nombre)</td></tr>
+    <tr><td>Palet fuera de la planta</td><td><code>MU3</code></td></tr>
+  </tbody>
+</table>
+<p>En el código, una dirección completa nombra el objeto: <code>LineaA.Line_A.run = False</code>, <code>@on_enter(LineaB.Line_B)</code>. Los nombres sin sección siguen valiendo. Dos objetos con la misma dirección se avisan al construir el layout. El número del palet (<code>MU3</code>) no cambia nunca; su dirección cambia cuando pasa al siguiente equipo.</p>
+
+<h2 id="miembros">14. Miembros por tipo de objeto</h2>
+<p>Lo que el código lee y escribe de cada tipo de objeto de la librería. Los parámetros se leen con su unidad y no se pueden cambiar durante la simulación (son datos de diseño). Las señales se escriben con <code>True</code> o <code>False</code>. Los nombres de la librería en camelCase se escriben en snake_case: <code>nominalSpeed</code> es <code>nominal_speed</code>.</p>
+<div class="obj-toc"><a href="#obj-conveyor-roller">Mesa de rodillos</a><br>
+<a href="#obj-conveyor-chain">Chain conveyor</a><br>
+<a href="#obj-conveyor-chain_turntable">Chain turntable</a><br>
+<a href="#obj-conveyor-roller_turntable">Roller turntable</a><br>
+<a href="#obj-conveyor-transfer_rc">Roller-to-chain transfer</a><br>
+<a href="#obj-conveyor-lift_table_manual">Mesa elevadora manual</a><br>
+<a href="#obj-conveyor-scissor_lift">Mesa de tijera</a><br>
+<a href="#obj-conveyor-elevator">Elevador de pallets</a><br>
+<a href="#obj-conveyor-gravity">Línea de rodillos por gravedad</a><br>
+<a href="#obj-flow-source">Generador de pallets</a><br>
+<a href="#obj-flow-sink">Sumidero de pallets</a><br>
+<a href="#obj-flow-process_station">Estación de proceso</a><br>
+<a href="#obj-sensor-photoeye">Fotocélula</a><br>
+<a href="#obj-scenery-asset">Objeto de escenario</a><br>
+<a href="#obj-info-code">Bloque de código</a><br></div>
+<details class="obj" id="obj-conveyor-roller">
+<summary>Mesa de rodillos <code>conveyor.roller</code></summary>
+<p>Eventos: <code>@on_enter, @on_leave</code></p>
+<table>
+  <thead><tr><th>Miembro</th><th>Acceso</th><th>Qué es</th></tr></thead>
+  <tbody>
+    <tr><td><code>.name</code></td><td>leer</td><td>Su nombre en el layout</td></tr>
+    <tr><td><code>.id</code></td><td>leer</td><td>Su id</td></tr>
+    <tr><td><code>.kind</code></td><td>leer</td><td>Su tipo en la librería</td></tr>
+    <tr><td><code>.run</code></td><td>señal · leer y escribir</td><td>Entrada: False para el transportador (frena), True lo pone en marcha</td></tr>
+    <tr><td><code>.running</code></td><td>señal · leer</td><td>Salida: el transportador se mueve</td></tr>
+    <tr><td><code>.occupied</code></td><td>señal · leer</td><td>Hay un palet encima</td></tr>
+    <tr><td><code>.count</code></td><td>leer</td><td>Palets encima ahora</td></tr>
+    <tr><td><code>.pallets</code></td><td>leer</td><td>Sus palets, el más adelantado primero</td></tr>
+    <tr><td><code>.next</code></td><td>leer</td><td>Objeto al que lleva su salida, o None</td></tr>
+    <tr><td><code>.stats</code></td><td>leer</td><td>Sus estadísticas ahora, un diccionario</td></tr>
+    <tr><td><code>.length</code></td><td>leer</td><td>Longitud</td></tr>
+    <tr><td><code>.usable_width</code></td><td>leer</td><td>Ancho útil</td></tr>
+    <tr><td><code>.surface_height</code></td><td>leer</td><td>Altura de superficie</td></tr>
+    <tr><td><code>.pallet_side_along_travel</code></td><td>leer</td><td>Lado del pallet paralelo al avance</td></tr>
+    <tr><td><code>.nominal_speed</code></td><td>leer</td><td>Velocidad nominal</td></tr>
+    <tr><td><code>.approach_speed</code></td><td>leer</td><td>Velocidad de aproximación</td></tr>
+    <tr><td><code>.accel</code></td><td>leer</td><td>Aceleración</td></tr>
+    <tr><td><code>.decel</code></td><td>leer</td><td>Deceleración</td></tr>
+    <tr><td><code>.direction</code></td><td>leer</td><td>Sentido</td></tr>
+    <tr><td><code>.max_pallet_load</code></td><td>leer</td><td>Carga máx. por pallet</td></tr>
+    <tr><td><code>.min_gap</code></td><td>leer</td><td>Separación mínima</td></tr>
+    <tr><td><code>.accumulation_mode</code></td><td>leer</td><td>Modo de acumulación</td></tr>
+    <tr><td><code>.roller_diameter</code></td><td>leer</td><td>Diámetro de rodillo</td></tr>
+    <tr><td><code>.roller_pitch</code></td><td>leer</td><td>Paso de rodillos</td></tr>
+    <tr><td><code>.roller_mu</code></td><td>leer</td><td>Rozamiento rodillo μ</td></tr>
+    <tr><td><code>.rolling_resistance</code></td><td>leer</td><td>Resistencia a la rodadura</td></tr>
+    <tr><td><code>.drive</code></td><td>leer</td><td>Accionamiento</td></tr>
+    <tr><td><code>.zone_length</code></td><td>leer</td><td>Longitud de zona</td></tr>
+    <tr><td><code>.roller_count</code></td><td>leer</td><td>Número de rodillos</td></tr>
+    <tr><td><code>.drive_side</code></td><td>leer</td><td>Lado del accionamiento</td></tr>
+    <tr><td><code>.drive_mounting</code></td><td>leer</td><td>Montaje del accionamiento</td></tr>
+    <tr><td><code>.runner_guide</code></td><td>leer</td><td>Guiado de patines</td></tr>
+    <tr><td><code>.end_stop</code></td><td>leer</td><td>Tope final</td></tr>
+    <tr><td><code>.open_end</code></td><td>leer</td><td>Final abierto</td></tr>
+  </tbody>
+</table>
+</details>
+<details class="obj" id="obj-conveyor-chain">
+<summary>Chain conveyor <code>conveyor.chain</code></summary>
+<p>Eventos: <code>@on_enter, @on_leave</code></p>
+<table>
+  <thead><tr><th>Miembro</th><th>Acceso</th><th>Qué es</th></tr></thead>
+  <tbody>
+    <tr><td><code>.name</code></td><td>leer</td><td>Su nombre en el layout</td></tr>
+    <tr><td><code>.id</code></td><td>leer</td><td>Su id</td></tr>
+    <tr><td><code>.kind</code></td><td>leer</td><td>Su tipo en la librería</td></tr>
+    <tr><td><code>.run</code></td><td>señal · leer y escribir</td><td>Entrada: False para el transportador (frena), True lo pone en marcha</td></tr>
+    <tr><td><code>.running</code></td><td>señal · leer</td><td>Salida: el transportador se mueve</td></tr>
+    <tr><td><code>.occupied</code></td><td>señal · leer</td><td>Hay un palet encima</td></tr>
+    <tr><td><code>.count</code></td><td>leer</td><td>Palets encima ahora</td></tr>
+    <tr><td><code>.pallets</code></td><td>leer</td><td>Sus palets, el más adelantado primero</td></tr>
+    <tr><td><code>.next</code></td><td>leer</td><td>Objeto al que lleva su salida, o None</td></tr>
+    <tr><td><code>.stats</code></td><td>leer</td><td>Sus estadísticas ahora, un diccionario</td></tr>
+    <tr><td><code>.length</code></td><td>leer</td><td>Length</td></tr>
+    <tr><td><code>.usable_width</code></td><td>leer</td><td>Usable width</td></tr>
+    <tr><td><code>.surface_height</code></td><td>leer</td><td>Surface height</td></tr>
+    <tr><td><code>.pallet_side_along_travel</code></td><td>leer</td><td>Pallet side along travel</td></tr>
+    <tr><td><code>.nominal_speed</code></td><td>leer</td><td>Nominal speed</td></tr>
+    <tr><td><code>.accel</code></td><td>leer</td><td>Acceleration</td></tr>
+    <tr><td><code>.decel</code></td><td>leer</td><td>Deceleration</td></tr>
+    <tr><td><code>.direction</code></td><td>leer</td><td>Direction</td></tr>
+    <tr><td><code>.chain_count</code></td><td>leer</td><td>Number of chain strands</td></tr>
+    <tr><td><code>.chain_support_width</code></td><td>leer</td><td>Chain support width</td></tr>
+    <tr><td><code>.chain_type</code></td><td>leer</td><td>Chain type</td></tr>
+    <tr><td><code>.chain_pitch</code></td><td>leer</td><td>Chain pitch</td></tr>
+    <tr><td><code>.chain_mu</code></td><td>leer</td><td>Chain friction μ</td></tr>
+    <tr><td><code>.accumulation_mode</code></td><td>leer</td><td>Accumulation mode</td></tr>
+    <tr><td><code>.min_gap</code></td><td>leer</td><td>Minimum gap</td></tr>
+    <tr><td><code>.zone_length</code></td><td>leer</td><td>Zone length</td></tr>
+    <tr><td><code>.stop_contact_time</code></td><td>leer</td><td>Stop contact time</td></tr>
+    <tr><td><code>.max_pallet_load</code></td><td>leer</td><td>Max pallet load</td></tr>
+    <tr><td><code>.drive_side</code></td><td>leer</td><td>Lado del accionamiento</td></tr>
+    <tr><td><code>.drive_position</code></td><td>leer</td><td>Posición del accionamiento</td></tr>
+    <tr><td><code>.side_guard</code></td><td>leer</td><td>Guía lateral de protección</td></tr>
+    <tr><td><code>.end_stop</code></td><td>leer</td><td>Tope final</td></tr>
+    <tr><td><code>.open_end</code></td><td>leer</td><td>Final abierto</td></tr>
+  </tbody>
+</table>
+</details>
+<details class="obj" id="obj-conveyor-chain_turntable">
+<summary>Chain turntable <code>conveyor.chain_turntable</code></summary>
+<p>Eventos: <code>@on_enter, @on_leave, @choose_exit</code></p>
+<table>
+  <thead><tr><th>Miembro</th><th>Acceso</th><th>Qué es</th></tr></thead>
+  <tbody>
+    <tr><td><code>.name</code></td><td>leer</td><td>Su nombre en el layout</td></tr>
+    <tr><td><code>.id</code></td><td>leer</td><td>Su id</td></tr>
+    <tr><td><code>.kind</code></td><td>leer</td><td>Su tipo en la librería</td></tr>
+    <tr><td><code>.occupied</code></td><td>leer</td><td>Hay un palet encima</td></tr>
+    <tr><td><code>.count</code></td><td>leer</td><td>Palets encima ahora</td></tr>
+    <tr><td><code>.pallets</code></td><td>leer</td><td>Sus palets, el más adelantado primero</td></tr>
+    <tr><td><code>.exits</code></td><td>leer</td><td>Objetos conectados a sus salidas</td></tr>
+    <tr><td><code>.next</code></td><td>leer</td><td>Objeto al que lleva su salida, o None</td></tr>
+    <tr><td><code>.stats</code></td><td>leer</td><td>Sus estadísticas ahora, un diccionario</td></tr>
+    <tr><td><code>.platform_length</code></td><td>leer</td><td>Platform length</td></tr>
+    <tr><td><code>.platform_width</code></td><td>leer</td><td>Platform width</td></tr>
+    <tr><td><code>.surface_height</code></td><td>leer</td><td>Surface height</td></tr>
+    <tr><td><code>.pivot_offset_x</code></td><td>leer</td><td>Pivot offset X</td></tr>
+    <tr><td><code>.pivot_offset_z</code></td><td>leer</td><td>Pivot offset Z</td></tr>
+    <tr><td><code>.turn_mode</code></td><td>leer</td><td>Turn mode</td></tr>
+    <tr><td><code>.stations</code></td><td>leer</td><td>Stations (°)</td></tr>
+    <tr><td><code>.angular_range</code></td><td>leer</td><td>Angular range</td></tr>
+    <tr><td><code>.shortest_path</code></td><td>leer</td><td>Shortest path</td></tr>
+    <tr><td><code>.max_angular_speed</code></td><td>leer</td><td>Max angular speed</td></tr>
+    <tr><td><code>.angular_accel</code></td><td>leer</td><td>Angular acceleration</td></tr>
+    <tr><td><code>.angular_decel</code></td><td>leer</td><td>Angular deceleration</td></tr>
+    <tr><td><code>.settle_time</code></td><td>leer</td><td>Settle time</td></tr>
+    <tr><td><code>.angular_precision</code></td><td>leer</td><td>Angular precision</td></tr>
+    <tr><td><code>.sweep_clearance</code></td><td>leer</td><td>Sweep clearance</td></tr>
+    <tr><td><code>.swept_radius</code></td><td>leer</td><td>Swept radius</td></tr>
+    <tr><td><code>.max_load</code></td><td>leer</td><td>Max load</td></tr>
+    <tr><td><code>.requires_centered_pallet</code></td><td>leer</td><td>Requires centred pallet</td></tr>
+    <tr><td><code>.centering_tolerance</code></td><td>leer</td><td>Centring tolerance</td></tr>
+    <tr><td><code>.motor_torque</code></td><td>leer</td><td>Motor torque</td></tr>
+    <tr><td><code>.bearing_friction_torque</code></td><td>leer</td><td>Bearing friction torque</td></tr>
+    <tr><td><code>.pallet_side_along_travel</code></td><td>leer</td><td>Pallet side along travel</td></tr>
+    <tr><td><code>.nominal_speed</code></td><td>leer</td><td>Chain speed</td></tr>
+    <tr><td><code>.accel</code></td><td>leer</td><td>Chain acceleration</td></tr>
+    <tr><td><code>.chain_count</code></td><td>leer</td><td>Number of chain strands</td></tr>
+    <tr><td><code>.chain_support_width</code></td><td>leer</td><td>Chain support width</td></tr>
+    <tr><td><code>.chain_type</code></td><td>leer</td><td>Chain type</td></tr>
+    <tr><td><code>.chain_pitch</code></td><td>leer</td><td>Chain pitch</td></tr>
+    <tr><td><code>.chain_mu</code></td><td>leer</td><td>Chain friction μ</td></tr>
+    <tr><td><code>.exit_rule</code></td><td>leer</td><td>Regla de salida</td></tr>
+  </tbody>
+</table>
+</details>
+<details class="obj" id="obj-conveyor-roller_turntable">
+<summary>Roller turntable <code>conveyor.roller_turntable</code></summary>
+<p>Eventos: <code>@on_enter, @on_leave, @choose_exit</code></p>
+<table>
+  <thead><tr><th>Miembro</th><th>Acceso</th><th>Qué es</th></tr></thead>
+  <tbody>
+    <tr><td><code>.name</code></td><td>leer</td><td>Su nombre en el layout</td></tr>
+    <tr><td><code>.id</code></td><td>leer</td><td>Su id</td></tr>
+    <tr><td><code>.kind</code></td><td>leer</td><td>Su tipo en la librería</td></tr>
+    <tr><td><code>.occupied</code></td><td>leer</td><td>Hay un palet encima</td></tr>
+    <tr><td><code>.count</code></td><td>leer</td><td>Palets encima ahora</td></tr>
+    <tr><td><code>.pallets</code></td><td>leer</td><td>Sus palets, el más adelantado primero</td></tr>
+    <tr><td><code>.exits</code></td><td>leer</td><td>Objetos conectados a sus salidas</td></tr>
+    <tr><td><code>.next</code></td><td>leer</td><td>Objeto al que lleva su salida, o None</td></tr>
+    <tr><td><code>.stats</code></td><td>leer</td><td>Sus estadísticas ahora, un diccionario</td></tr>
+    <tr><td><code>.platform_length</code></td><td>leer</td><td>Platform length</td></tr>
+    <tr><td><code>.platform_width</code></td><td>leer</td><td>Platform width</td></tr>
+    <tr><td><code>.surface_height</code></td><td>leer</td><td>Surface height</td></tr>
+    <tr><td><code>.pivot_offset_x</code></td><td>leer</td><td>Pivot offset X</td></tr>
+    <tr><td><code>.pivot_offset_z</code></td><td>leer</td><td>Pivot offset Z</td></tr>
+    <tr><td><code>.turn_mode</code></td><td>leer</td><td>Turn mode</td></tr>
+    <tr><td><code>.stations</code></td><td>leer</td><td>Stations (°)</td></tr>
+    <tr><td><code>.angular_range</code></td><td>leer</td><td>Angular range</td></tr>
+    <tr><td><code>.shortest_path</code></td><td>leer</td><td>Shortest path</td></tr>
+    <tr><td><code>.max_angular_speed</code></td><td>leer</td><td>Max angular speed</td></tr>
+    <tr><td><code>.angular_accel</code></td><td>leer</td><td>Angular acceleration</td></tr>
+    <tr><td><code>.angular_decel</code></td><td>leer</td><td>Angular deceleration</td></tr>
+    <tr><td><code>.settle_time</code></td><td>leer</td><td>Settle time</td></tr>
+    <tr><td><code>.angular_precision</code></td><td>leer</td><td>Angular precision</td></tr>
+    <tr><td><code>.sweep_clearance</code></td><td>leer</td><td>Sweep clearance</td></tr>
+    <tr><td><code>.swept_radius</code></td><td>leer</td><td>Swept radius</td></tr>
+    <tr><td><code>.max_load</code></td><td>leer</td><td>Max load</td></tr>
+    <tr><td><code>.requires_centered_pallet</code></td><td>leer</td><td>Requires centred pallet</td></tr>
+    <tr><td><code>.centering_tolerance</code></td><td>leer</td><td>Centring tolerance</td></tr>
+    <tr><td><code>.motor_torque</code></td><td>leer</td><td>Motor torque</td></tr>
+    <tr><td><code>.bearing_friction_torque</code></td><td>leer</td><td>Bearing friction torque</td></tr>
+    <tr><td><code>.pallet_side_along_travel</code></td><td>leer</td><td>Pallet side along travel</td></tr>
+    <tr><td><code>.load_speed</code></td><td>leer</td><td>Load speed</td></tr>
+    <tr><td><code>.accel</code></td><td>leer</td><td>Roller acceleration</td></tr>
+    <tr><td><code>.roller_diameter</code></td><td>leer</td><td>Roller diameter</td></tr>
+    <tr><td><code>.roller_pitch</code></td><td>leer</td><td>Roller pitch</td></tr>
+    <tr><td><code>.roller_mu</code></td><td>leer</td><td>Roller friction μ</td></tr>
+    <tr><td><code>.roller_count</code></td><td>leer</td><td>Number of rollers</td></tr>
+    <tr><td><code>.lock_rollers_during_turn</code></td><td>leer</td><td>Lock rollers during turn</td></tr>
+    <tr><td><code>.hold_during_turn</code></td><td>leer</td><td>Hold during turn</td></tr>
+    <tr><td><code>.exit_rule</code></td><td>leer</td><td>Regla de salida</td></tr>
+  </tbody>
+</table>
+</details>
+<details class="obj" id="obj-conveyor-transfer_rc">
+<summary>Roller-to-chain transfer <code>conveyor.transfer_rc</code></summary>
+<p>Eventos: <code>@on_enter, @on_leave</code></p>
+<table>
+  <thead><tr><th>Miembro</th><th>Acceso</th><th>Qué es</th></tr></thead>
+  <tbody>
+    <tr><td><code>.name</code></td><td>leer</td><td>Su nombre en el layout</td></tr>
+    <tr><td><code>.id</code></td><td>leer</td><td>Su id</td></tr>
+    <tr><td><code>.kind</code></td><td>leer</td><td>Su tipo en la librería</td></tr>
+    <tr><td><code>.occupied</code></td><td>leer</td><td>Hay un palet encima</td></tr>
+    <tr><td><code>.count</code></td><td>leer</td><td>Palets encima ahora</td></tr>
+    <tr><td><code>.pallets</code></td><td>leer</td><td>Sus palets, el más adelantado primero</td></tr>
+    <tr><td><code>.next</code></td><td>leer</td><td>Objeto al que lleva su salida, o None</td></tr>
+    <tr><td><code>.stats</code></td><td>leer</td><td>Sus estadísticas ahora, un diccionario</td></tr>
+    <tr><td><code>.length</code></td><td>leer</td><td>Length</td></tr>
+    <tr><td><code>.usable_width</code></td><td>leer</td><td>Usable width</td></tr>
+    <tr><td><code>.surface_height</code></td><td>leer</td><td>Surface height</td></tr>
+    <tr><td><code>.pallet_side_along_travel</code></td><td>leer</td><td>Pallet side along travel</td></tr>
+    <tr><td><code>.nominal_speed</code></td><td>leer</td><td>Nominal speed</td></tr>
+    <tr><td><code>.accel</code></td><td>leer</td><td>Acceleration</td></tr>
+    <tr><td><code>.decel</code></td><td>leer</td><td>Deceleration</td></tr>
+    <tr><td><code>.direction</code></td><td>leer</td><td>Direction</td></tr>
+    <tr><td><code>.roller_diameter</code></td><td>leer</td><td>Roller diameter</td></tr>
+    <tr><td><code>.roller_pitch</code></td><td>leer</td><td>Roller pitch</td></tr>
+    <tr><td><code>.roller_mu</code></td><td>leer</td><td>Roller friction μ</td></tr>
+    <tr><td><code>.roller_count</code></td><td>leer</td><td>Number of rollers</td></tr>
+    <tr><td><code>.transfer_chain_count</code></td><td>leer</td><td>Number of transfer chains</td></tr>
+    <tr><td><code>.transfer_chain_width</code></td><td>leer</td><td>Transfer chain width</td></tr>
+    <tr><td><code>.lift_stroke</code></td><td>leer</td><td>Lift stroke</td></tr>
+    <tr><td><code>.lower_clearance</code></td><td>leer</td><td>Lower clearance</td></tr>
+    <tr><td><code>.lift_time</code></td><td>leer</td><td>Lift time</td></tr>
+    <tr><td><code>.lower_time</code></td><td>leer</td><td>Lower time</td></tr>
+    <tr><td><code>.actuator</code></td><td>leer</td><td>Actuator</td></tr>
+    <tr><td><code>.transfer_speed</code></td><td>leer</td><td>Transfer speed</td></tr>
+    <tr><td><code>.transfer_accel</code></td><td>leer</td><td>Transfer acceleration</td></tr>
+    <tr><td><code>.transfer_direction</code></td><td>leer</td><td>Transfer direction</td></tr>
+    <tr><td><code>.operation_mode</code></td><td>leer</td><td>Operation mode</td></tr>
+    <tr><td><code>.position_tolerance</code></td><td>leer</td><td>Position tolerance</td></tr>
+    <tr><td><code>.requires_stop</code></td><td>leer</td><td>Positioning stop</td></tr>
+    <tr><td><code>.transfer_chain_mu</code></td><td>leer</td><td>Transfer chain friction μ</td></tr>
+    <tr><td><code>.max_pallet_load</code></td><td>leer</td><td>Max pallet load</td></tr>
+  </tbody>
+</table>
+</details>
+<details class="obj" id="obj-conveyor-lift_table_manual">
+<summary>Mesa elevadora manual <code>conveyor.lift_table_manual</code></summary>
+<p>Eventos: <code>@on_enter, @on_leave</code></p>
+<table>
+  <thead><tr><th>Miembro</th><th>Acceso</th><th>Qué es</th></tr></thead>
+  <tbody>
+    <tr><td><code>.name</code></td><td>leer</td><td>Su nombre en el layout</td></tr>
+    <tr><td><code>.id</code></td><td>leer</td><td>Su id</td></tr>
+    <tr><td><code>.kind</code></td><td>leer</td><td>Su tipo en la librería</td></tr>
+    <tr><td><code>.occupied</code></td><td>leer</td><td>Hay un palet encima</td></tr>
+    <tr><td><code>.count</code></td><td>leer</td><td>Palets encima ahora</td></tr>
+    <tr><td><code>.pallets</code></td><td>leer</td><td>Sus palets, el más adelantado primero</td></tr>
+    <tr><td><code>.next</code></td><td>leer</td><td>Objeto al que lleva su salida, o None</td></tr>
+    <tr><td><code>.stats</code></td><td>leer</td><td>Sus estadísticas ahora, un diccionario</td></tr>
+    <tr><td><code>.length</code></td><td>leer</td><td>Longitud</td></tr>
+    <tr><td><code>.usable_width</code></td><td>leer</td><td>Ancho útil</td></tr>
+    <tr><td><code>.pallet_side_along_travel</code></td><td>leer</td><td>Lado del pallet paralelo al avance</td></tr>
+    <tr><td><code>.roller_diameter</code></td><td>leer</td><td>Diámetro de rodillo</td></tr>
+    <tr><td><code>.roller_pitch</code></td><td>leer</td><td>Paso de rodillos</td></tr>
+    <tr><td><code>.nominal_speed</code></td><td>leer</td><td>Velocidad nominal</td></tr>
+    <tr><td><code>.accel</code></td><td>leer</td><td>Aceleración</td></tr>
+    <tr><td><code>.flow_direction</code></td><td>leer</td><td>Sentido del flujo</td></tr>
+    <tr><td><code>.low_height</code></td><td>leer</td><td>Altura baja</td></tr>
+    <tr><td><code>.conveyor_height</code></td><td>leer</td><td>Altura del transportador</td></tr>
+    <tr><td><code>.lift_speed</code></td><td>leer</td><td>Velocidad de subida</td></tr>
+    <tr><td><code>.lower_speed</code></td><td>leer</td><td>Velocidad de bajada</td></tr>
+    <tr><td><code>.vertical_accel</code></td><td>leer</td><td>Aceleración vertical</td></tr>
+  </tbody>
+</table>
+</details>
+<details class="obj" id="obj-conveyor-scissor_lift">
+<summary>Mesa de tijera <code>conveyor.scissor_lift</code></summary>
+<p>Eventos: <code>@on_enter, @on_leave</code></p>
+<table>
+  <thead><tr><th>Miembro</th><th>Acceso</th><th>Qué es</th></tr></thead>
+  <tbody>
+    <tr><td><code>.name</code></td><td>leer</td><td>Su nombre en el layout</td></tr>
+    <tr><td><code>.id</code></td><td>leer</td><td>Su id</td></tr>
+    <tr><td><code>.kind</code></td><td>leer</td><td>Su tipo en la librería</td></tr>
+    <tr><td><code>.occupied</code></td><td>leer</td><td>Hay un palet encima</td></tr>
+    <tr><td><code>.count</code></td><td>leer</td><td>Palets encima ahora</td></tr>
+    <tr><td><code>.pallets</code></td><td>leer</td><td>Sus palets, el más adelantado primero</td></tr>
+    <tr><td><code>.next</code></td><td>leer</td><td>Objeto al que lleva su salida, o None</td></tr>
+    <tr><td><code>.stats</code></td><td>leer</td><td>Sus estadísticas ahora, un diccionario</td></tr>
+    <tr><td><code>.length</code></td><td>leer</td><td>Longitud</td></tr>
+    <tr><td><code>.usable_width</code></td><td>leer</td><td>Ancho útil</td></tr>
+    <tr><td><code>.pallet_side_along_travel</code></td><td>leer</td><td>Lado del pallet paralelo al avance</td></tr>
+    <tr><td><code>.roller_diameter</code></td><td>leer</td><td>Diámetro de rodillo</td></tr>
+    <tr><td><code>.roller_pitch</code></td><td>leer</td><td>Paso de rodillos</td></tr>
+    <tr><td><code>.nominal_speed</code></td><td>leer</td><td>Velocidad nominal</td></tr>
+    <tr><td><code>.accel</code></td><td>leer</td><td>Aceleración</td></tr>
+    <tr><td><code>.entry_height</code></td><td>leer</td><td>Altura de entrada</td></tr>
+    <tr><td><code>.exit_height</code></td><td>leer</td><td>Altura de salida</td></tr>
+    <tr><td><code>.lift_speed</code></td><td>leer</td><td>Velocidad de subida</td></tr>
+    <tr><td><code>.lower_speed</code></td><td>leer</td><td>Velocidad de bajada</td></tr>
+    <tr><td><code>.vertical_accel</code></td><td>leer</td><td>Aceleración vertical</td></tr>
+  </tbody>
+</table>
+</details>
+<details class="obj" id="obj-conveyor-elevator">
+<summary>Elevador de pallets <code>conveyor.elevator</code></summary>
+<p>Eventos: <code>@on_enter, @on_leave</code></p>
+<table>
+  <thead><tr><th>Miembro</th><th>Acceso</th><th>Qué es</th></tr></thead>
+  <tbody>
+    <tr><td><code>.name</code></td><td>leer</td><td>Su nombre en el layout</td></tr>
+    <tr><td><code>.id</code></td><td>leer</td><td>Su id</td></tr>
+    <tr><td><code>.kind</code></td><td>leer</td><td>Su tipo en la librería</td></tr>
+    <tr><td><code>.occupied</code></td><td>leer</td><td>Hay un palet encima</td></tr>
+    <tr><td><code>.count</code></td><td>leer</td><td>Palets encima ahora</td></tr>
+    <tr><td><code>.pallets</code></td><td>leer</td><td>Sus palets, el más adelantado primero</td></tr>
+    <tr><td><code>.next</code></td><td>leer</td><td>Objeto al que lleva su salida, o None</td></tr>
+    <tr><td><code>.stats</code></td><td>leer</td><td>Sus estadísticas ahora, un diccionario</td></tr>
+    <tr><td><code>.deck_type</code></td><td>leer</td><td>Tipo de cubierta</td></tr>
+    <tr><td><code>.length</code></td><td>leer</td><td>Longitud</td></tr>
+    <tr><td><code>.usable_width</code></td><td>leer</td><td>Ancho útil</td></tr>
+    <tr><td><code>.pallet_side_along_travel</code></td><td>leer</td><td>Lado del pallet paralelo al avance</td></tr>
+    <tr><td><code>.roller_diameter</code></td><td>leer</td><td>Diámetro de rodillo</td></tr>
+    <tr><td><code>.roller_pitch</code></td><td>leer</td><td>Paso de rodillos</td></tr>
+    <tr><td><code>.nominal_speed</code></td><td>leer</td><td>Velocidad nominal</td></tr>
+    <tr><td><code>.accel</code></td><td>leer</td><td>Aceleración</td></tr>
+    <tr><td><code>.entry_height</code></td><td>leer</td><td>Altura de entrada</td></tr>
+    <tr><td><code>.exit_height</code></td><td>leer</td><td>Altura de salida</td></tr>
+    <tr><td><code>.vertical_speed</code></td><td>leer</td><td>Velocidad vertical</td></tr>
+    <tr><td><code>.vertical_accel</code></td><td>leer</td><td>Aceleración vertical</td></tr>
+  </tbody>
+</table>
+</details>
+<details class="obj" id="obj-conveyor-gravity">
+<summary>Línea de rodillos por gravedad <code>conveyor.gravity</code></summary>
+<p>Eventos: <code>@on_enter, @on_leave</code></p>
+<table>
+  <thead><tr><th>Miembro</th><th>Acceso</th><th>Qué es</th></tr></thead>
+  <tbody>
+    <tr><td><code>.name</code></td><td>leer</td><td>Su nombre en el layout</td></tr>
+    <tr><td><code>.id</code></td><td>leer</td><td>Su id</td></tr>
+    <tr><td><code>.kind</code></td><td>leer</td><td>Su tipo en la librería</td></tr>
+    <tr><td><code>.occupied</code></td><td>leer</td><td>Hay un palet encima</td></tr>
+    <tr><td><code>.count</code></td><td>leer</td><td>Palets encima ahora</td></tr>
+    <tr><td><code>.pallets</code></td><td>leer</td><td>Sus palets, el más adelantado primero</td></tr>
+    <tr><td><code>.next</code></td><td>leer</td><td>Objeto al que lleva su salida, o None</td></tr>
+    <tr><td><code>.stats</code></td><td>leer</td><td>Sus estadísticas ahora, un diccionario</td></tr>
+    <tr><td><code>.length</code></td><td>leer</td><td>Longitud</td></tr>
+    <tr><td><code>.usable_width</code></td><td>leer</td><td>Ancho útil</td></tr>
+    <tr><td><code>.pallet_side_along_travel</code></td><td>leer</td><td>Lado del pallet paralelo al avance</td></tr>
+    <tr><td><code>.slope</code></td><td>leer</td><td>Pendiente</td></tr>
+    <tr><td><code>.exit_height</code></td><td>leer</td><td>Altura de salida</td></tr>
+    <tr><td><code>.entry_height</code></td><td>leer</td><td>Altura de entrada</td></tr>
+    <tr><td><code>.roller_diameter</code></td><td>leer</td><td>Diámetro de rodillo</td></tr>
+    <tr><td><code>.roller_pitch</code></td><td>leer</td><td>Paso de rodillos</td></tr>
+    <tr><td><code>.brake_every</code></td><td>leer</td><td>Rodillo freno cada</td></tr>
+    <tr><td><code>.brake_speed</code></td><td>leer</td><td>Velocidad de freno</td></tr>
+    <tr><td><code>.rolling_resistance</code></td><td>leer</td><td>Resistencia a la rodadura</td></tr>
+    <tr><td><code>.start_delay</code></td><td>leer</td><td>Retardo de arranque</td></tr>
+    <tr><td><code>.pickup_length</code></td><td>leer</td><td>Longitud de recogida</td></tr>
+    <tr><td><code>.separator_time</code></td><td>leer</td><td>Retardo del separador</td></tr>
+  </tbody>
+</table>
+</details>
+<details class="obj" id="obj-flow-source">
+<summary>Generador de pallets <code>flow.source</code></summary>
+<p>Eventos: <code>@on_create</code></p>
+<table>
+  <thead><tr><th>Miembro</th><th>Acceso</th><th>Qué es</th></tr></thead>
+  <tbody>
+    <tr><td><code>.name</code></td><td>leer</td><td>Su nombre en el layout</td></tr>
+    <tr><td><code>.id</code></td><td>leer</td><td>Su id</td></tr>
+    <tr><td><code>.kind</code></td><td>leer</td><td>Su tipo en la librería</td></tr>
+    <tr><td><code>.enable</code></td><td>señal · leer y escribir</td><td>Entrada: False deja de crear palets</td></tr>
+    <tr><td><code>.next</code></td><td>leer</td><td>Objeto al que lleva su salida, o None</td></tr>
+    <tr><td><code>.stats</code></td><td>leer</td><td>Sus estadísticas ahora, un diccionario</td></tr>
+    <tr><td><code>.pallet_type</code></td><td>leer</td><td>Tipo de pallet</td></tr>
+    <tr><td><code>.orientation</code></td><td>leer</td><td>Lado del pallet paralelo al avance</td></tr>
+    <tr><td><code>.load_mass</code></td><td>leer</td><td>Masa de la carga</td></tr>
+    <tr><td><code>.load_height</code></td><td>leer</td><td>Altura de la carga</td></tr>
+    <tr><td><code>.pallet_model</code></td><td>leer</td><td>Modelo de pallet</td></tr>
+    <tr><td><code>.load_kind</code></td><td>leer</td><td>Carga</td></tr>
+    <tr><td><code>.load_asset</code></td><td>leer</td><td>Objeto de carga</td></tr>
+    <tr><td><code>.generation_mode</code></td><td>leer</td><td>Regla de llegadas</td></tr>
+    <tr><td><code>.interval</code></td><td>leer</td><td>Intervalo</td></tr>
+    <tr><td><code>.max_pallets</code></td><td>leer</td><td>Máx. pallets</td></tr>
+    <tr><td><code>.block_if_occupied</code></td><td>leer</td><td>Esperar si está ocupado</td></tr>
+    <tr><td><code>.surface_height</code></td><td>leer</td><td>Altura del puerto</td></tr>
+  </tbody>
+</table>
+</details>
+<details class="obj" id="obj-flow-sink">
+<summary>Sumidero de pallets <code>flow.sink</code></summary>
+<p>Eventos: <code>@on_enter, @on_leave</code></p>
+<table>
+  <thead><tr><th>Miembro</th><th>Acceso</th><th>Qué es</th></tr></thead>
+  <tbody>
+    <tr><td><code>.name</code></td><td>leer</td><td>Su nombre en el layout</td></tr>
+    <tr><td><code>.id</code></td><td>leer</td><td>Su id</td></tr>
+    <tr><td><code>.kind</code></td><td>leer</td><td>Su tipo en la librería</td></tr>
+    <tr><td><code>.occupied</code></td><td>leer</td><td>Hay un palet encima</td></tr>
+    <tr><td><code>.count</code></td><td>leer</td><td>Palets encima ahora</td></tr>
+    <tr><td><code>.pallets</code></td><td>leer</td><td>Sus palets, el más adelantado primero</td></tr>
+    <tr><td><code>.next</code></td><td>leer</td><td>Objeto al que lleva su salida, o None</td></tr>
+    <tr><td><code>.stats</code></td><td>leer</td><td>Sus estadísticas ahora, un diccionario</td></tr>
+    <tr><td><code>.removal_mode</code></td><td>leer</td><td>Retirada</td></tr>
+    <tr><td><code>.removal_time</code></td><td>leer</td><td>Tiempo de retirada</td></tr>
+    <tr><td><code>.surface_height</code></td><td>leer</td><td>Altura del puerto</td></tr>
+  </tbody>
+</table>
+</details>
+<details class="obj" id="obj-flow-process_station">
+<summary>Estación de proceso <code>flow.process_station</code></summary>
+<p>Eventos: <code>@on_enter, @on_leave</code></p>
+<table>
+  <thead><tr><th>Miembro</th><th>Acceso</th><th>Qué es</th></tr></thead>
+  <tbody>
+    <tr><td><code>.name</code></td><td>leer</td><td>Su nombre en el layout</td></tr>
+    <tr><td><code>.id</code></td><td>leer</td><td>Su id</td></tr>
+    <tr><td><code>.kind</code></td><td>leer</td><td>Su tipo en la librería</td></tr>
+    <tr><td><code>.occupied</code></td><td>leer</td><td>Hay un palet encima</td></tr>
+    <tr><td><code>.count</code></td><td>leer</td><td>Palets encima ahora</td></tr>
+    <tr><td><code>.pallets</code></td><td>leer</td><td>Sus palets, el más adelantado primero</td></tr>
+    <tr><td><code>.next</code></td><td>leer</td><td>Objeto al que lleva su salida, o None</td></tr>
+    <tr><td><code>.stats</code></td><td>leer</td><td>Sus estadísticas ahora, un diccionario</td></tr>
+    <tr><td><code>.length</code></td><td>leer</td><td>Longitud</td></tr>
+    <tr><td><code>.deck_type</code></td><td>leer</td><td>Tipo de cubierta</td></tr>
+    <tr><td><code>.pallet_side_along_travel</code></td><td>leer</td><td>Lado del pallet paralelo al avance</td></tr>
+    <tr><td><code>.surface_height</code></td><td>leer</td><td>Altura de la superficie</td></tr>
+    <tr><td><code>.nominal_speed</code></td><td>leer</td><td>Velocidad nominal</td></tr>
+    <tr><td><code>.accel</code></td><td>leer</td><td>Aceleración</td></tr>
+    <tr><td><code>.processing_mode</code></td><td>leer</td><td>Tiempo de proceso</td></tr>
+    <tr><td><code>.processing_time</code></td><td>leer</td><td>Tiempo de proceso medio</td></tr>
+    <tr><td><code>.processing_std_dev</code></td><td>leer</td><td>Desviación típica</td></tr>
+  </tbody>
+</table>
+</details>
+<details class="obj" id="obj-sensor-photoeye">
+<summary>Fotocélula <code>sensor.photoeye</code></summary>
+<p>Eventos: ninguno propio (sus señales sirven para <code>@on_rise</code>, <code>@on_fall</code> y <code>@on_change</code> si tiene).</p>
+<table>
+  <thead><tr><th>Miembro</th><th>Acceso</th><th>Qué es</th></tr></thead>
+  <tbody>
+    <tr><td><code>.name</code></td><td>leer</td><td>Su nombre en el layout</td></tr>
+    <tr><td><code>.id</code></td><td>leer</td><td>Su id</td></tr>
+    <tr><td><code>.kind</code></td><td>leer</td><td>Su tipo en la librería</td></tr>
+    <tr><td><code>.detected</code></td><td>señal · leer</td><td>Salida: el haz está interrumpido</td></tr>
+    <tr><td><code>.next</code></td><td>leer</td><td>Objeto al que lleva su salida, o None</td></tr>
+    <tr><td><code>.stats</code></td><td>leer</td><td>Sus estadísticas ahora, un diccionario</td></tr>
+    <tr><td><code>.type</code></td><td>leer</td><td>Tipo</td></tr>
+    <tr><td><code>.host</code></td><td>leer</td><td>Montada en</td></tr>
+    <tr><td><code>.sensor_s</code></td><td>leer</td><td>Posición del sensor</td></tr>
+    <tr><td><code>.sensor_lateral</code></td><td>leer</td><td>Posición lateral del sensor</td></tr>
+    <tr><td><code>.sensor_height</code></td><td>leer</td><td>Altura del sensor</td></tr>
+    <tr><td><code>.reflector_s</code></td><td>leer</td><td>Posición del reflector</td></tr>
+    <tr><td><code>.reflector_lateral</code></td><td>leer</td><td>Posición lateral del reflector</td></tr>
+    <tr><td><code>.reflector_height</code></td><td>leer</td><td>Altura del reflector</td></tr>
+    <tr><td><code>.range</code></td><td>leer</td><td>Alcance</td></tr>
+    <tr><td><code>.response_time</code></td><td>leer</td><td>Tiempo de respuesta</td></tr>
+    <tr><td><code>.filter</code></td><td>leer</td><td>Filtro</td></tr>
+    <tr><td><code>.polarity</code></td><td>leer</td><td>Polaridad</td></tr>
+    <tr><td><code>.output_signal</code></td><td>leer</td><td>Señal de salida</td></tr>
+    <tr><td><code>.show_beam</code></td><td>leer</td><td>Mostrar haz</td></tr>
+  </tbody>
+</table>
+</details>
+<details class="obj" id="obj-scenery-asset">
+<summary>Objeto de escenario <code>scenery.asset</code></summary>
+<p>Eventos: ninguno propio (sus señales sirven para <code>@on_rise</code>, <code>@on_fall</code> y <code>@on_change</code> si tiene).</p>
+<table>
+  <thead><tr><th>Miembro</th><th>Acceso</th><th>Qué es</th></tr></thead>
+  <tbody>
+    <tr><td><code>.name</code></td><td>leer</td><td>Su nombre en el layout</td></tr>
+    <tr><td><code>.id</code></td><td>leer</td><td>Su id</td></tr>
+    <tr><td><code>.kind</code></td><td>leer</td><td>Su tipo en la librería</td></tr>
+    <tr><td><code>.asset</code></td><td>leer</td><td>Modelo</td></tr>
+    <tr><td><code>.placement</code></td><td>leer</td><td>Colocación</td></tr>
+    <tr><td><code>.drop_height</code></td><td>leer</td><td>Altura de caída</td></tr>
+    <tr><td><code>.material</code></td><td>leer</td><td>Material de contacto</td></tr>
+  </tbody>
+</table>
+</details>
+<details class="obj" id="obj-info-code">
+<summary>Bloque de código <code>info.code</code></summary>
+<p>Eventos: ninguno propio (sus señales sirven para <code>@on_rise</code>, <code>@on_fall</code> y <code>@on_change</code> si tiene).</p>
+<table>
+  <thead><tr><th>Miembro</th><th>Acceso</th><th>Qué es</th></tr></thead>
+  <tbody>
+    <tr><td><code>.name</code></td><td>leer</td><td>Su nombre en el layout</td></tr>
+    <tr><td><code>.id</code></td><td>leer</td><td>Su id</td></tr>
+    <tr><td><code>.kind</code></td><td>leer</td><td>Su tipo en la librería</td></tr>
+  </tbody>
+</table>
+</details>
+<p class="small">Un bloque de código ofrece además sus variables y funciones de arriba: <code>Rutas.enviados</code>, <code>Rutas.siguiente("B")</code>.</p>
+
+<h2 id="palets">15. Palets (MU)</h2>
+<p>Un palet (unidad de carga, MU) es lo que crea un origen: un palet, un palet con carga o solo una carga. Recibe al nacer un número único en la simulación, en orden de creación.</p>
+<table>
+  <thead><tr><th>Miembro</th><th>Valor</th><th>Acceso</th></tr></thead>
+  <tbody>
+    <tr><td><code>id</code></td><td>Número único en la simulación</td><td>leer</td></tr>
+    <tr><td><code>name</code></td><td><code>MU</code> y su número: <code>MU3</code></td><td>leer</td></tr>
+    <tr><td><code>address</code></td><td>Dónde está: <code>LineaA.Line_A.MU3</code></td><td>leer</td></tr>
+    <tr><td><code>type</code></td><td>Tipo de palet (EUR, IND…)</td><td>leer</td></tr>
+    <tr><td><code>length</code>, <code>width</code>, <code>height</code></td><td>Largo en el avance, ancho, altura total</td><td>leer</td></tr>
+    <tr><td><code>load_mass</code></td><td>Masa de la carga</td><td>leer</td></tr>
+    <tr><td><code>created_at</code>, <code>age</code></td><td>Hora de creación, tiempo desde entonces</td><td>leer</td></tr>
+    <tr><td><code>location</code></td><td>Objeto que lo lleva ahora, o <code>None</code></td><td>leer</td></tr>
+    <tr><td><code>speed</code></td><td>Velocidad ahora</td><td>leer</td></tr>
+    <tr><td><code>attributes</code></td><td>Copia de sus atributos propios, como diccionario</td><td>leer</td></tr>
+    <tr><td>Cualquier otro nombre</td><td>Atributo propio que le da el código</td><td>leer y escribir</td></tr>
+  </tbody>
+</table>
+<p><code>pallet.destination = "B"</code> le da un atributo; vale cualquier valor, hasta 1000 atributos por palet. Leer uno que no tiene detiene la simulación (<code>unknownAttribute</code>); <code>pallet.attributes.get("destination")</code> lo lee o da <code>None</code>. En el módulo Simulación discreta, el panel <strong>Load units</strong> lista los palets con su nombre, dirección, tipo, tamaño y velocidad, y los atributos del que se elija.</p>
+
+<h2 id="incorporadas">16. Funciones incorporadas</h2>
+<h3>Generales</h3>
+<table>
+  <thead><tr><th>Función</th><th>Qué hace</th></tr></thead>
+  <tbody>
+    <tr><td><code>print(a, b, …)</code></td><td>Escribe los valores separados por espacios en la consola, con la hora; los objetos por su nombre</td></tr>
+    <tr><td><code>warn(a, b, …)</code></td><td>Igual, como aviso (en ámbar)</td></tr>
+    <tr><td><code>error(a, b, …)</code></td><td>Detiene la simulación con ese mensaje (<code>userError</code>)</td></tr>
+    <tr><td><code>now()</code></td><td>Tiempo de simulación, como cantidad de tiempo</td></tr>
+    <tr><td><code>wait(t)</code>, <code>wait_until(c, timeout=t)</code></td><td>Sección 12</td></tr>
+    <tr><td><code>len(x)</code></td><td>Elementos de una lista, tupla, diccionario o texto</td></tr>
+    <tr><td><code>range(fin)</code>, <code>range(inicio, fin[, paso])</code></td><td>Números enteros</td></tr>
+    <tr><td><code>abs(x)</code></td><td>Valor absoluto de un número o cantidad</td></tr>
+    <tr><td><code>min(…)</code>, <code>max(…)</code></td><td>Mínimo y máximo de varios valores o de una lista; admiten <code>key=</code></td></tr>
+    <tr><td><code>sum(lista[, inicio])</code></td><td>Suma; con cantidades conserva la unidad</td></tr>
+    <tr><td><code>round(x)</code>, <code>round(x, cifras)</code></td><td>Redondeo; la mitad va al par, como Python</td></tr>
+    <tr><td><code>int(x)</code>, <code>float(x)</code>, <code>str(x)</code>, <code>bool(x)</code>, <code>repr(x)</code></td><td>Conversiones</td></tr>
+    <tr><td><code>list(x)</code>, <code>tuple(x)</code>, <code>dict()</code>, <code>dict(pares)</code></td><td>Crean colecciones</td></tr>
+    <tr><td><code>sorted(x, key=f, reverse=False)</code>, <code>reversed(x)</code></td><td>Ordena; invierte</td></tr>
+    <tr><td><code>enumerate(x, start=0)</code>, <code>zip(a, b, …)</code></td><td>Pares (índice, elemento); elementos lado a lado</td></tr>
+    <tr><td><code>any(x)</code>, <code>all(x)</code></td><td>Algún elemento verdadero; todos verdaderos</td></tr>
+  </tbody>
+</table>
+<h3><code>math</code></h3>
+<p><code>math.sqrt</code>, <code>sin</code>, <code>cos</code>, <code>tan</code> (con ángulos o números), <code>atan2</code> (da un ángulo), <code>floor</code>, <code>ceil</code>, <code>hypot</code>, <code>isclose(a, b, rel_tol=…, abs_tol=…)</code>, <code>exp</code>, <code>log</code>, y las constantes <code>math.pi</code>, <code>math.e</code>, <code>math.inf</code>.</p>
+<h3><code>random</code></h3>
+<p>Cada bloque tiene su propia secuencia de números aleatorios, sacada de la semilla del proyecto y del id del bloque: con la misma semilla, la simulación sale igual; cambiar un bloque no altera los números de otro. Todas aceptan cantidades de una misma dimensión.</p>
+<table>
+  <thead><tr><th>Función</th><th>Da</th></tr></thead>
+  <tbody>
+    <tr><td><code>random.random()</code></td><td>Uniforme en [0, 1)</td></tr>
+    <tr><td><code>random.uniform(a, b)</code></td><td>Uniforme en [a, b)</td></tr>
+    <tr><td><code>random.normal(media, desviación)</code> (o <code>gauss</code>)</td><td>Normal</td></tr>
+    <tr><td><code>random.exponential(media)</code></td><td>Exponencial con esa <strong>media</strong></td></tr>
+    <tr><td><code>random.triangular(mínimo, máximo, moda)</code></td><td>Triangular, en el orden de Python</td></tr>
+    <tr><td><code>random.randint(a, b)</code></td><td>Entero de a a b, ambos incluidos</td></tr>
+    <tr><td><code>random.chance(p)</code></td><td><code>True</code> con probabilidad p</td></tr>
+    <tr><td><code>random.choice(lista)</code></td><td>Un elemento de la lista</td></tr>
+  </tbody>
+</table>
+<h3><code>simulation</code></h3>
+<p><code>simulation.mode</code> (<code>"2D"</code>), <code>simulation.seed</code>, y <code>simulation.stop(motivo)</code>, que termina la simulación al final de este instante diciendo por qué.</p>
+<h3>Métodos</h3>
+<table>
+  <thead><tr><th>De</th><th>Métodos</th></tr></thead>
+  <tbody>
+    <tr><td>texto</td><td><code>upper</code>, <code>lower</code>, <code>strip</code>, <code>lstrip</code>, <code>rstrip</code>, <code>startswith</code>, <code>endswith</code>, <code>split</code>, <code>join</code>, <code>replace</code>, <code>find</code>, <code>count</code>, <code>isdigit</code>, <code>zfill</code></td></tr>
+    <tr><td>lista</td><td><code>append</code>, <code>extend</code>, <code>insert</code>, <code>pop</code>, <code>remove</code>, <code>index</code>, <code>count</code>, <code>clear</code>, <code>sort(key=, reverse=)</code>, <code>reverse</code>, <code>copy</code></td></tr>
+    <tr><td>tupla</td><td><code>count</code>, <code>index</code></td></tr>
+    <tr><td>diccionario</td><td><code>get</code>, <code>keys</code>, <code>values</code>, <code>items</code>, <code>pop</code>, <code>setdefault</code>, <code>update</code>, <code>clear</code>, <code>copy</code></td></tr>
+  </tbody>
+</table>
+
+<h2 id="formatos">17. Formatos de texto</h2>
+<p>En un f-string, <code>{valor:formato}</code> con <code>[[relleno]alineación][0][ancho][.precisión][tipo]</code>; alineación <code>&lt;</code> <code>&gt;</code> <code>^</code>; tipo <code>d</code> (entero), <code>f</code> (decimales), <code>e</code> (científico), <code>g</code>, <code>%</code> (porcentaje) o <code>s</code> (texto).</p>
+<table>
+  <thead><tr><th>Escribes</th><th>Sale</th></tr></thead>
+  <tbody>
+    <tr><td><code>f"{1.23456:.2f}"</code></td><td><code>1.23</code></td></tr>
+    <tr><td><code>f"{7:03d}"</code></td><td><code>007</code></td></tr>
+    <tr><td><code>f"{'ab':&gt;4}"</code></td><td><code>  ab</code></td></tr>
+    <tr><td><code>f"{0.256:.1%}"</code></td><td><code>25.6%</code></td></tr>
+    <tr><td><code>f"{150 * mm:.1f}"</code></td><td><code>150.0 mm</code> (una cantidad conserva su unidad)</td></tr>
+  </tbody>
+</table>
+
+<h2 id="errores">18. Errores</h2>
+<p>Los mensajes del programa están en inglés; el código entre corchetes es estable y es el que aparece en estas tablas.</p>
+<h3>Antes de simular (comprobación)</h3>
+<table>
+  <thead><tr><th>Código</th><th>Gravedad</th><th>Causa y qué hacer</th></tr></thead>
+  <tbody>
+    <tr><td><code>syntax</code></td><td>error</td><td>Falta <code>:</code>, sangría incorrecta, <code>150mm</code> sin <code>*</code>, una función de Python que no existe aquí</td></tr>
+    <tr><td><code>unknownName</code></td><td>error</td><td>Nombre que no es variable, función, objeto ni incorporado; sugiere el más parecido</td></tr>
+    <tr><td><code>unknownMember</code></td><td>error</td><td>Miembro que el objeto o módulo no tiene; sugiere el más parecido</td></tr>
+    <tr><td><code>notWritable</code></td><td>error</td><td>Escribir un parámetro, una señal de salida o un dato propio del palet</td></tr>
+    <tr><td><code>unknownEvent</code></td><td>error</td><td>Evento que el objeto no admite (<code>@on_enter</code> en una fotocélula), señal que no tiene, decorador que no existe</td></tr>
+    <tr><td><code>handlerParameters</code></td><td>error</td><td>Un manejador con un parámetro que no es <code>pallet</code> ni <code>sender</code> y sin valor por defecto</td></tr>
+    <tr><td><code>wrongArguments</code></td><td>error</td><td>Decorador o <code>wait</code> con argumentos de más o de menos</td></tr>
+    <tr><td><code>waitInDecision</code></td><td>error</td><td>Esperar en <code>@choose_exit</code> o <code>@on_finish</code>, o en algo que llaman</td></tr>
+    <tr><td><code>waitOutsideHandler</code></td><td>error</td><td>Esperar arriba del bloque</td></tr>
+    <tr><td><code>topLevelCode</code></td><td>error</td><td>Llamadas o bucles arriba del bloque; van en <code>@on_start</code></td></tr>
+    <tr><td><code>importNotAllowed</code></td><td>error</td><td>Importar algo que no es <code>intrascript</code>, <code>math</code> o <code>random</code></td></tr>
+    <tr><td><code>duplicateName</code></td><td>error</td><td>Dos funciones con el mismo nombre</td></tr>
+    <tr><td><code>nestedFunction</code></td><td>error</td><td><code>def</code> dentro de una función</td></tr>
+    <tr><td><code>defaultNotConstant</code></td><td>error</td><td>Valor por defecto que no es fijo</td></tr>
+    <tr><td><code>breakOutsideLoop</code>, <code>returnOutsideFunction</code></td><td>error</td><td><code>break</code>/<code>continue</code> fuera de un bucle; <code>return</code> fuera de una función</td></tr>
+    <tr><td><code>tooLarge</code></td><td>error</td><td>Código de más de 200 000 caracteres</td></tr>
+    <tr><td><code>localShadowsGlobal</code></td><td>aviso</td><td>Asignar una variable del bloque dentro de una función sin <code>global</code></td></tr>
+    <tr><td><code>shadowedName</code></td><td>aviso</td><td>Una variable con el nombre de un objeto o de algo incorporado</td></tr>
+    <tr><td><code>unusedVariable</code></td><td>aviso</td><td>Una variable local que nunca se lee (los nombres con <code>_</code> delante no avisan)</td></tr>
+    <tr><td><code>unreachableCode</code></td><td>aviso</td><td>Líneas tras un <code>return</code>, <code>break</code> o <code>continue</code></td></tr>
+  </tbody>
+</table>
+<h3>Durante la simulación</h3>
+<p>Un error detiene la simulación y dice bloque, línea, hora y motivo:</p>
+<pre class="err"><code>Code, line 15: pallet 1 has no attribute `destination`; give it one first: pallet.destination = … [unknownAttribute] (at 0:00:12.980)</code></pre>
+<table>
+  <thead><tr><th>Código</th><th>Causa</th></tr></thead>
+  <tbody>
+    <tr><td><code>unitMismatch</code></td><td>Sumar, comparar o esperar con dimensiones equivocadas</td></tr>
+    <tr><td><code>typeMismatch</code></td><td>Operación con un tipo de valor equivocado (<code>"a" + 1</code>)</td></tr>
+    <tr><td><code>divisionByZero</code></td><td>Dividir entre cero</td></tr>
+    <tr><td><code>indexOutOfRange</code></td><td>Índice fuera de la lista</td></tr>
+    <tr><td><code>keyNotFound</code></td><td>Clave que no está en el diccionario (usa <code>get</code>)</td></tr>
+    <tr><td><code>unknownAttribute</code></td><td>Atributo que el palet no tiene, método que el valor no tiene</td></tr>
+    <tr><td><code>noneReference</code></td><td>Leer algo de <code>None</code>, o de un palet que ya salió</td></tr>
+    <tr><td><code>unboundLocal</code></td><td>Variable leída antes de tener valor; casi siempre falta <code>global</code></td></tr>
+    <tr><td><code>emptyList</code>, <code>notFound</code></td><td><code>pop()</code> de una lista vacía; <code>remove(x)</code> de algo que no está</td></tr>
+    <tr><td><code>wrongArguments</code></td><td>Argumentos de más, de menos o repetidos</td></tr>
+    <tr><td><code>negativeWait</code></td><td>Espera negativa</td></tr>
+    <tr><td><code>waitInDecision</code></td><td>Una espera donde no se puede esperar</td></tr>
+    <tr><td><code>notAnExit</code></td><td>Una decisión de salida devolvió algo que no es una salida</td></tr>
+    <tr><td><code>notANumber</code></td><td>Resultado que no es un número (<code>math.sqrt(-1)</code>)</td></tr>
+    <tr><td><code>notWritable</code></td><td>Escribir algo que no se puede escribir</td></tr>
+    <tr><td><code>assertionFailed</code>, <code>userError</code></td><td>Un <code>assert</code> falso; se llamó a <code>error(…)</code></td></tr>
+    <tr><td><code>stepLimit</code></td><td>Un millón de pasos sin esperar: un bucle que no termina</td></tr>
+    <tr><td><code>depthLimit</code></td><td>Más de 200 llamadas anidadas</td></tr>
+    <tr><td><code>cascadeLimit</code></td><td>Más de 1000 manejadores en un mismo instante: código y señales que se disparan entre sí</td></tr>
+    <tr><td><code>tooLarge</code></td><td>Lista, texto o diccionario de más de 100 000 elementos, entero enorme, más de 10 000 activaciones esperando</td></tr>
+  </tbody>
+</table>
+
+<h2 id="ejecucion">19. Cómo se ejecuta</h2>
+<h3>En el módulo Simulación discreta</h3>
+<ol>
+  <li>Ocurre un evento del motor: llega un palet, cambia un sensor, termina una estación, vence un temporizador del código.</li>
+  <li>La planta se asienta en ese instante: los palets avanzan y los objetos actualizan sus señales.</li>
+  <li>Se evalúan las reglas Si/Entonces.</li>
+  <li>Se ejecuta el código: primero los temporizadores vencidos (<code>wait</code>, <code>@every</code>, <code>@at</code>), luego los manejadores de lo que cambió (palets nuevos, entradas y salidas de objetos, señales), en el orden de la sección 11, y por último cada <code>wait_until</code> vuelve a mirar su condición.</li>
+  <li>Si las reglas o el código escribieron una señal, la planta se asienta de nuevo en el mismo instante y se repiten los pasos 3 a 5, hasta el límite de cascada.</li>
+</ol>
+<p><code>wait(2 * s)</code> reanuda exactamente 2 s después (al microsegundo). Las decisiones de salida se preguntan mientras la planta se asienta, cuando un palet queda centrado en la mesa.</p>
+<h3>En el módulo Simulación física</h3>
+<p>Todavía no: un layout con código ejecuta su física sin él. Está previsto ejecutar el mismo código en el ciclo del controlador (cada 10 ms).</p>
+<h3>Determinismo, límites y aislamiento</h3>
+<ul>
+  <li>Mismo layout, código y semilla dan siempre el mismo resultado, en cualquier ordenador. No hay reloj, archivos ni red.</li>
+  <li>Límites: un millón de pasos por activación sin esperar; 200 llamadas anidadas; 1000 manejadores por instante; 100 000 elementos por lista, diccionario o texto; 10 000 activaciones esperando; 200 000 caracteres por bloque; 1000 atributos por palet; 10 000 líneas de consola (las más antiguas se pierden).</li>
+  <li>El código solo alcanza el modelo a través de los miembros de este manual. El intérprete está escrito en Rust seguro, sin <code>eval</code>: un código hostil acaba en un error, nunca en un cierre del programa.</li>
+</ul>
+
+<h2 id="cli">20. Línea de comandos</h2>
+<p>Desde la carpeta <code>platform</code> del repositorio:</p>
+<pre class="shell"><code>cargo run -p intracraft-cli -- code check LAYOUT.intracraft.json [CODIGO.py]
+cargo run -p intracraft-cli -- code run   LAYOUT.intracraft.json [CODIGO.py] [--seconds N]
+cargo run -p intracraft-cli -- code names LAYOUT.intracraft.json
+cargo run -p intracraft-cli -- code names</code></pre>
+<table>
+  <thead><tr><th>Orden</th><th>Qué hace</th></tr></thead>
+  <tbody>
+    <tr><td><code>check</code></td><td>Lista los problemas del código de los bloques del layout (o del archivo, que se añade como un bloque llamado <code>Code</code>); sale con 1 si hay errores</td></tr>
+    <tr><td><code>run</code></td><td>Simula N segundos (3600 por defecto) y escribe la consola y las estadísticas de cada bloque; sale con 1 si un error detiene la simulación</td></tr>
+    <tr><td><code>names</code></td><td>Lista todos los nombres que el código puede usar con ese layout: objetos con su dirección, eventos y miembros; miembros de los palets; eventos; funciones; unidades</td></tr>
+    <tr><td><code>names</code> sin layout</td><td>Lo mismo con un objeto de cada tipo de la librería (de ahí salen las tablas de la sección 14)</td></tr>
+  </tbody>
+</table>
+
+<h2 id="python">21. Editores de Python</h2>
+<p>El archivo <code>platform/sim/script/python/intrascript.py</code> describe todos los nombres de IntraScript. Copiado junto al código (o en <code>PYTHONPATH</code>), con <code>from intrascript import *</code> cualquier editor de Python completa y explica los eventos, las funciones y las unidades, y la comprobación de sintaxis de Python acepta el código. No simula nada: el programa se ejecuta en IntraCraft.</p>
+
+<h2 id="estilo">22. Guía de estilo</h2>
+<ul>
+  <li>Sigue PEP 8: cuatro espacios, líneas de unos 100 caracteres, dos líneas en blanco entre funciones.</li>
+  <li>Nombres: variables, funciones y atributos en <code>snake_case</code>; valores fijos en <code>MAYUSCULAS</code>; los objetos con su nombre del layout. Los sí/no empiezan por <code>is_</code> o <code>has_</code>.</li>
+  <li>Las unidades van en el valor, no en el nombre: <code>gap = 150 * mm</code>, nunca <code>gap_mm = 150</code>.</li>
+  <li>Un manejador dice <em>cuándo</em>; una función dice <em>cómo</em>. Si un manejador pasa de unas 20 líneas, reparte la lógica.</li>
+  <li>Una línea de ayuda en cada función que se llame desde otro bloque. Los comentarios explican por qué, no qué.</li>
+  <li>Espera a condiciones (<code>wait_until</code>) en vez de sondear con bucles.</li>
+  <li>Manda sobre los equipos (<code>run</code>, <code>enable</code>, decisiones de salida) para que el resultado se compare con la instalación real.</li>
+  <li>Un bloque, una preocupación; usa secciones para ordenar la planta y direcciones para nombrar sin ambigüedad.</li>
+</ul>
+
+<h2 id="ejemplos">23. Ejemplos</h2>
+<p>Ejecutados con <code>demo-turntable-split</code> (nombres <code>Infeed</code>, <code>Infeed_roller</code>, <code>Turntable</code>, <code>Line_A</code>, <code>Line_B</code>, <code>Outfeed_A</code>, <code>Outfeed_B</code>); el último, con secciones <code>Entrada</code>, <code>LineaA</code> y <code>LineaB</code>.</p>
+<h3>Contar palets</h3>
+<pre class="prog"><code>"""Cuenta los palets que llegan a Outfeed_B y avisa cada 10."""
+from intrascript import *
+
+llegados = 0
+
+
+@on_enter(Outfeed_B)
+def llegada(pallet):
+    global llegados
+    llegados += 1
+    if llegados % 10 == 0:
+        print("Llevan", llegados, "palets en B")
+</code></pre>
+<h3>Encaminar por destino</h3>
+<pre class="prog"><code>"""El 30 % de los palets van a la línea B; el resto, a la A."""
+from intrascript import *
+
+
+@on_create(Infeed)
+def etiquetar(pallet):
+    pallet.destination = "B" if random.chance(0.3) else "A"
+
+
+@choose_exit(Turntable)
+def elegir_salida(pallet):
+    if pallet.destination == "B":
+        return Line_B
+    return Line_A
+</code></pre>
+<h3>Retener un transportador</h3>
+<pre class="prog"><code>"""Cada palet detiene la línea A durante 2 s al entrar."""
+from intrascript import *
+
+
+@on_enter(Line_A)
+def retener(pallet):
+    Line_A.run = False
+    wait(2 * s)
+    Line_A.run = True
+</code></pre>
+<h3>Informe cada hora</h3>
+<pre class="prog"><code>"""Cada hora simulada, cuántos palets han llegado a cada salida."""
+from intrascript import *
+
+
+@every(1 * h)
+def informe():
+    a = Outfeed_A.stats["pallets_received"]
+    b = Outfeed_B.stats["pallets_received"]
+    print(f"{a:.0f} en A, {b:.0f} en B")
+</code></pre>
+<pre class="out"><code>1:00:00.000  Code: 99 en A, 99 en B
+2:00:00.000  Code: 199 en A, 199 en B</code></pre>
+<h3>Vigilar con plazo</h3>
+<pre class="prog"><code>"""Avisa si en los primeros 10 minutos no llega ningún palet a B."""
+from intrascript import *
+
+
+@on_start
+def vigilar():
+    if not wait_until(Outfeed_B.count &gt; 0, timeout=10 * minute):
+        warn("Ningún palet ha llegado a B en 10 minutos")
+</code></pre>
+<h3>Limitar la entrada a una zona</h3>
+<pre class="prog"><code>"""No dejar entrar más de 4 palets en la zona de la línea A."""
+from intrascript import *
+
+MAXIMO = 4
+ZONA = [Infeed_roller, Line_A]
+
+
+def en_zona():
+    return sum([z.count for z in ZONA])
+
+
+@on_create(Infeed)
+def dejar_pasar(pallet):
+    if en_zona() &gt;= MAXIMO:
+        Infeed.enable = False
+        wait_until(en_zona() &lt; MAXIMO)
+        Infeed.enable = True
+</code></pre>
+<h3>Tiempo de proceso aleatorio</h3>
+<pre class="prog"><code>"""Cada palet tarda entre 20 y 40 s en la línea B."""
+from intrascript import *
+
+
+@on_enter(Line_B)
+def tiempo_de_proceso(pallet):
+    espera = random.uniform(20 * s, 40 * s)
+    wait(espera)
+    print("palet", pallet.id, "listo tras", f"{espera:.1f}")
+</code></pre>
+<h3>Funciones y reparto</h3>
+<pre class="prog"><code>"""Anota los envíos por destino y devuelve la salida correspondiente."""
+from intrascript import *
+
+enviados = {"A": 0, "B": 0}
+
+
+def siguiente(destino):
+    """Anota un palet para el destino y devuelve la salida."""
+    enviados[destino] += 1
+    return Line_B if destino == "B" else Line_A
+
+
+@on_create(Infeed)
+def etiquetar(pallet):
+    pallet.destination = "B" if random.chance(0.3) else "A"
+
+
+@choose_exit(Turntable)
+def elegir_salida(pallet):
+    return siguiente(pallet.destination)
+
+
+@on_finish
+def resumen():
+    print("Envíos:", enviados)
+</code></pre>
+<pre class="out"><code>2:00:00.000  Code: Envíos: {'A': 331, 'B': 131}</code></pre>
+<h3>Tiempo de tránsito de cada palet</h3>
+<pre class="prog"><code>"""Mide cuánto tarda cada palet en llegar a la salida B."""
+from intrascript import *
+
+tiempos = []
+
+
+@on_create(Infeed)
+def nacer(pallet):
+    pallet.creado = now()
+
+
+@on_enter(Outfeed_B)
+def llegar(pallet):
+    tiempos.append(now() - pallet.creado)
+
+
+@on_finish
+def resumen():
+    if tiempos:
+        media = sum(tiempos) / len(tiempos)
+        print(f"{len(tiempos)} palets, media {media:.1f}")
+</code></pre>
+<pre class="out"><code>2:00:00.000  Code: 199 palets, media 41.3 s</code></pre>
+<h3>Secciones y direcciones</h3>
+<pre class="prog"><code>"""Direcciones: cada objeto por su sección, y cada palet por el equipo donde está."""
+from intrascript import *
+
+
+@on_start
+def presentar():
+    print("La línea A mide", LineaA.Line_A.length)
+
+
+@on_enter(LineaB.Line_B)
+def en_linea_b(pallet):
+    print(pallet.name, "está en", pallet.address)
+    LineaB.Line_B.run = False
+    wait(1 * s)
+    LineaB.Line_B.run = True
+</code></pre>
+<pre class="out"><code>0:00:00.000  Code: La línea A mide 3000 mm
+0:00:25.230  Code: MU1 está en LineaB.Line_B.MU1
+0:01:01.290  Code: MU3 está en LineaB.Line_B.MU3</code></pre>
+
+<h2 id="limites">24. Lo que aún no existe</h2>
+<table>
+  <thead><tr><th>Qué</th><th>Situación</th></tr></thead>
+  <tbody>
+    <tr><td>Código en el módulo Simulación física</td><td>Previsto</td></tr>
+    <tr><td>Mover, crear o eliminar palets desde el código</td><td>Especificado (ADR-0018); por construir</td></tr>
+    <tr><td>Objetos variable, tabla y lista en el plano</td><td>Especificados (S18–S20); mientras, variables, listas y diccionarios del bloque</td></tr>
+    <tr><td>Secciones dentro de secciones</td><td>Un solo nivel por ahora</td></tr>
+    <tr><td>Escribir otras señales (<code>reverse</code>, <code>turnTo</code>) y decidir salidas de otras estaciones</td><td>Necesitan antes su comportamiento 2D</td></tr>
+    <tr><td>Puntos de parada y ejecución paso a paso</td><td>La lista de variables de la simulación es el primer paso</td></tr>
+    <tr><td>Clases, <code>lambda</code>, excepciones, generadores</td><td>Fuera a propósito</td></tr>
+  </tbody>
+</table>
+
+<h2 id="desarrollo">25. Para desarrolladores</h2>
+<p>El lenguaje es la crate <code>intracraft-script</code> (Rust seguro, sin dependencias, licencia MIT o Apache-2.0). No sabe nada de transportadores: un motor describe sus objetos (<code>host::ModelInfo</code>) y responde al programa (<code>host::Host</code>).</p>
+<table>
+  <thead><tr><th>Archivo</th><th>Qué hace</th></tr></thead>
+  <tbody>
+    <tr><td><code>sim/script/src/lexer.rs</code></td><td>Texto a piezas: sangría, textos, f-strings, números</td></tr>
+    <tr><td><code>parser.rs</code>, <code>ast.rs</code></td><td>Piezas a instrucciones y expresiones con la gramática de Python</td></tr>
+    <tr><td><code>compile.rs</code></td><td>Comprobación (sección 18) e instrucciones; eventos desde los decoradores; direcciones</td></tr>
+    <tr><td><code>complete.rs</code></td><td>Autocompletado: los nombres que encajan en el cursor</td></tr>
+    <tr><td><code>vm.rs</code></td><td>Ejecución: activaciones, esperas, temporizadores, decisiones, consola, límites</td></tr>
+    <tr><td><code>ops.rs</code>, <code>builtins.rs</code>, <code>units.rs</code>, <code>value.rs</code></td><td>Aritmética con unidades, funciones incorporadas, unidades, valores</td></tr>
+    <tr><td><code>host.rs</code>, <code>diag.rs</code></td><td>Lo que el código ve del modelo; los mensajes</td></tr>
+    <tr><td><code>sim/des/src/flow/sim/script.rs</code></td><td>El motor discreto como anfitrión: eventos, miembros, salidas</td></tr>
+    <tr><td><code>sim/model/src/sections.rs</code></td><td>Secciones y direcciones</td></tr>
+    <tr><td><code>apps/intracraft/src/code.rs</code>, <code>code/edit.rs</code></td><td>El editor y sus operaciones de texto; el panel de la simulación</td></tr>
+    <tr><td><code>apps/intracraft/src/sections.rs</code></td><td>Paneles de secciones y de palets</td></tr>
+    <tr><td><code>apps/intracraft-cli/src/code.rs</code></td><td><code>code check</code>, <code>run</code> y <code>names</code></td></tr>
+  </tbody>
+</table>
+<p>Pruebas: <code>cargo test -p intracraft-script</code> (el lenguaje, el autocompletado y que los ejemplos de A17, A20, S21, la guía y este manual sean válidos), <code>cargo test -p intracraft-des intrascript address</code> (escenarios IS-1 a IS-3 y direcciones) y <code>cargo test -p intracraft</code> (editor, paneles y operaciones de texto). Decisiones: ADR-0018, ADR-0027 y ADR-0029.</p>
+
+<h2 id="glosario">26. Glosario</h2>
+<table>
+  <thead><tr><th>Término</th><th>Significado</th></tr></thead>
+  <tbody>
+    <tr><td>Activación</td><td>Una ejecución de un manejador, desde que su evento ocurre hasta que termina; puede pausarse</td></tr>
+    <tr><td>Bloque de código</td><td>Objeto del plano con un programa</td></tr>
+    <tr><td>Cantidad</td><td>Número con dimensión física</td></tr>
+    <tr><td>Decorador</td><td>La línea <code>@…</code> que ata una función a un evento</td></tr>
+    <tr><td>Dirección</td><td>Ruta de un objeto o palet: <code>Seccion.Objeto.MU3</code></td></tr>
+    <tr><td>Manejador</td><td>Función que se ejecuta con un evento</td></tr>
+    <tr><td>Miembro</td><td>Lo que se lee o escribe de un objeto o palet tras el punto</td></tr>
+    <tr><td>MU</td><td>Unidad de carga: un palet, con o sin carga</td></tr>
+    <tr><td>Sección</td><td>Grupo de objetos, como una capa</td></tr>
+    <tr><td>Señal</td><td>Valor sí/no de un equipo: entradas que el código escribe, salidas que lee</td></tr>
+  </tbody>
+</table>
+
+<footer>Manual de IntraScript · versión del lenguaje 1 · Generado a partir de la librería y de ejemplos ejecutados. Guía para empezar: <a href="intrascript-tutorial.html">intrascript-tutorial.html</a>.</footer>
+
+</main>
+</div>
+</body>
+</html>

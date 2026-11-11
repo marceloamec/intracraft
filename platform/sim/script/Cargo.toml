@@ -1,0 +1,13 @@
+[package]
+name = "intracraft-script"
+description = "IntraScript, IntraCraft's own programming language for simulation: Python syntax, physical units, events and waits, run by its own sandboxed interpreter"
+version = "0.1.0"
+edition.workspace = true
+license.workspace = true
+rust-version.workspace = true
+publish = false
+
+[lints]
+workspace = true
+
+[dependencies]

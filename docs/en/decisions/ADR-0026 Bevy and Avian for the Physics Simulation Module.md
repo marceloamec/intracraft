@@ -175,6 +175,106 @@ With the two settings changed, the results are:
   is 79 ms late (ADR-0024). Avian runs it with `flow_tests!(AvianBench, p6)`; it stays ignored on Rapier.
 - **The S1 figures are unchanged** by the two settings, except the P3 rebound, which is now 0.85 mm (limit 10 mm).
 
+## What was built (2026-11-09)
+
+Each item below has its own tests. The owner can open the plant three ways:
+
+- the floor plan alone;
+- **2D + 3D** in the main window;
+- **View in 3D** in IntraCraft's 3D window.
+
+**The 3D scene, engine-free (`intracraft-scene`).**
+
+- Every object of the library is drawn with our own parts, after the families' forms:
+  - rollers on the physics run's pitch, steel side frames, chain strands on their tracks;
+  - legs on feet at most 2 m apart, with a cross beam;
+  - drives, turntable bases, transfer chains, elevator masts, the process gantry;
+  - gravity lines with their brake rollers, stands, photocell beams.
+- A turntable's platform turns about its pivot, and a lift deck or an elevator carriage rises, by the run's angles and
+  heights.
+- This departs from decision 1 above (BIMCraft's own triangles), because BIMCraft's mesh does not separate the moving
+  parts.
+- `intracraft_scene::pose` places a run's pallets for any 3D view: the discrete run from its snapshot, the physics run
+  from the bodies' axes. It turns the model a quarter for a pallet that travels short side first.
+
+**Pallet and load models (`intracraft-assets`).** All our own geometry, with no third-party models.
+
+- Each pallet type of the library is built **from its own occupancy bands**, so the picture and what a photocell sees
+  are one construction.
+  - EUR: 3 bottom boards, 9 blocks, 3 stringers, 5 top boards.
+  - A closed deck is split into boards for the picture only.
+- Four loads, built at the source's load height:
+  - cartons in layers;
+  - the same in stretch film;
+  - steel drums out to the pallet's corners;
+  - plastic crates.
+- The source's choice decides the load:
+  - `block` gives the wrapped cartons;
+  - an asset gives the load of its category;
+  - each pallet carries its source's id, so two sources of one pallet type can carry different loads.
+- A glTF 2.0 binary writer of our own writes 15 `.glb` files into `apps/intracraft-viewer/assets/pallets`. A test keeps
+  them up to date.
+
+**IntraCraft's 3D window (`apps/intracraft-viewer`, Bevy 0.20).**
+
+- What it draws:
+  - the discrete run or the physics run on Avian;
+  - the scene with physically based materials, cascaded shadows and 4× MSAA;
+  - the pallets from the glTF files, and their loads at their height;
+  - a plate in the state's colour under each object.
+- How it is used:
+  - an orbit camera; clicking an object picks it;
+  - a panel with Run/Pause, speed, clock, pallets in the plant, delivered and fallen, warnings, and the picked
+    object's statistics.
+- Options: `--module`, `--play`, `--speed`, and `--frames N --screenshot FILE` (a picture of its own window, then it
+  closes).
+
+**The 3D view in the main window (2D + 3D).**
+
+- A generic BIMCraft hook (`Extension::splits_view` and `split_view`, listed in `INTRACRAFT-CHANGES.md`) splits the view
+  area: the floor plan stays on the left, IntraCraft's 3D view is on the right, and the split is resizable.
+- The view is drawn on the graphics card the BIMCraft way:
+  - its own wgpu pipeline into its own targets, shown by egui as a texture;
+  - instancing and 4× MSAA;
+  - the same scene, poses and models as the 3D window, without shadows.
+- **View in 3D** opens the 3D window on the design as it is now. The window is started beside the program.
+- BIMCraft's own 3D view no longer has flat pallet boxes painted over it.
+- `--split` opens the main window with the split. `--screenshot FILE [--frames N]` saves a picture of the window.
+
+**BIMCraft's MEP tabs are hidden** (owner's decision): Plumbing, Electrical, Lightning Protection and Data.
+
+- This uses a generic hook (`Extension::hides_tab`).
+- BIMCraft's code is untouched, so its tests and upstream updates are unaffected.
+
+**Open end: stop or run off** (owner's decision, 2026-11-09). This changes specified behaviour, so it is recorded here
+and in [[S01 Roller Conveyor]] and [[S02 Chain Conveyor]].
+
+- Roller and chain conveyors have a new parameter, `openEnd`:
+  - `stop` is the default; it is the behaviour of the reference, whose tests are unchanged;
+  - `runOff` keeps the conveyor running, and pallets run off the end and fall.
+- The parameter lives in the Rust library only (`sim/library/definitions/open-end.json`); the TypeScript reference is
+  frozen.
+- In 2D, the pallet leaves the plant when its rear passes the end (T1: 12.25 s from rest on 3 m) and counts as fallen
+  (`fallen_pallets`).
+- In 3D, the pallet tips over the end and falls. Pallets that fall, by design or not, now lie where they come to rest,
+  as bodies (the last 12), instead of vanishing.
+  - At 0.6 m a loaded EUR pallet noses down and stands against the conveyor's end, and the next one runs into it.
+  - At 1.5 m pallets fall clear and tumble.
+- Tests on both engines; `examples/layouts/pallet-drop` shows both cases.
+
+**Seven example installations (`examples/layouts`):**
+
+1. a roller line with zone control at a photocell;
+2. rollers to chains through a transfer table;
+3. a turntable feeding three lines;
+4. a chain line with a chain turntable (GMA pallets of drums);
+5. an elevator to a 4 m mezzanine and a gravity buffer;
+6. a mixed plant of three lines;
+7. pallets running off open ends.
+
+A test runs all seven in both modules. Every sink receives pallets in 2D, and every one but the last carries pallets on
+Avian with no fall.
+
 ## Alternatives considered
 
 | Option                               | Why not                                                                                                                       |

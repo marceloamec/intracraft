@@ -3,16 +3,13 @@
 
 use std::collections::BTreeMap;
 
-use bevy::math::{DMat3, DQuat, DVec3};
 use intracraft_avian::AvianBench;
-use intracraft_des::flow::sim::PalletView;
 use intracraft_des::flow::{FlowSimulation, Statistics, simulate};
 use intracraft_des::time::{SimTime, from_seconds, to_seconds};
 use intracraft_library::Library;
-use intracraft_library::definition::Value;
-use intracraft_library::layout::{Instance, Layout};
-use intracraft_library::params::{Values, instance_values, num};
+use intracraft_library::layout::Layout;
 use intracraft_physics::flow::PhysicsFlow;
+use intracraft_scene::pose::{PalletShow, along_width, discrete_pallet, rotation_of, storage_show};
 
 /// The speeds each run plays at: simulated seconds per real second. Physics is real time at ×1.
 pub const DISCRETE_SPEEDS: [f64; 5] = [1.0, 10.0, 100.0, 1000.0, 10_000.0];
@@ -26,25 +23,14 @@ pub enum Module {
     Physics,
 }
 
-/// A pallet as the window draws it.
-#[derive(Clone, Debug, PartialEq)]
-pub struct Shown {
-    pub id: u64,
-    pub type_id: String,
-    /// The centre of its underside, and its turn: its own x along the pallet type's length.
-    pub centre: DVec3,
-    pub rotation: DQuat,
-    pub load_height: f64,
-    /// Its own height, where the load stands.
-    pub height: f64,
-}
-
 /// What a frame draws.
 #[derive(Clone, Debug, Default, PartialEq)]
 pub struct Picture {
-    pub pallets: Vec<Shown>,
+    pub pallets: Vec<PalletShow>,
     pub angles: BTreeMap<String, f64>,
     pub heights: BTreeMap<String, f64>,
+    /// How far each part of a stacker crane has moved from where the scene draws it, m.
+    pub shifts: BTreeMap<String, [f64; 3]>,
     pub status: BTreeMap<String, &'static str>,
 }
 
@@ -129,11 +115,11 @@ impl Run {
         issues.iter().map(|i| format!("{}: {}", i.instance_id, i.message)).collect()
     }
 
-    /// Pallets that fell off a deck (physics only).
-    pub fn fallen(&self) -> Option<u64> {
+    /// Pallets that fell: off a conveyor that runs off its open end, or (physics) off any deck.
+    pub fn fallen(&self) -> u64 {
         match &self.engine {
-            Engine::Discrete(_) => None,
-            Engine::Physics(f) => Some(f.fallen_pallets()),
+            Engine::Discrete(s) => s.fallen_pallets(),
+            Engine::Physics(f) => f.fallen_pallets(),
         }
     }
 
@@ -141,28 +127,31 @@ impl Run {
         match &mut self.engine {
             Engine::Discrete(s) => {
                 let snap = s.snapshot();
-                let pallets = snap.pallets.iter().filter_map(|p| discrete_pallet(&self.layout, &self.library, p, &snap.heights)).collect();
-                Picture { pallets, angles: snap.angles, heights: snap.heights, status: snap.status }
+                let mut pallets: Vec<PalletShow> =
+                    snap.pallets.iter().filter_map(|p| discrete_pallet(&self.layout, &self.library, p, &snap.heights)).collect();
+                let (stored, shifts) = storage_show(&self.layout, &self.library, &snap.storage);
+                pallets.extend(stored);
+                Picture { pallets, angles: snap.angles, heights: snap.heights, shifts, status: snap.status }
             }
             Engine::Physics(f) => {
                 let pallets = f
                     .pallets()
                     .into_iter()
-                    .map(|p| {
-                        let (x, z) = (DVec3::from_array(p.axes.0), DVec3::from_array(p.axes.1));
-                        let along_width =
-                            self.library.reference.pallet_type(&p.type_id).is_some_and(|t| (t.length - p.size[0]).abs() > 1e-3);
-                        Shown {
-                            id: p.id,
-                            type_id: p.type_id,
-                            centre: DVec3::from_array(p.centre),
-                            rotation: rotation_of(x, z, along_width),
-                            load_height: p.load_height,
-                            height: p.size[1],
-                        }
+                    .map(|p| PalletShow {
+                        rotation: rotation_of(p.axes.0, p.axes.1, along_width(&self.library, &p.type_id, p.size[0])),
+                        id: p.id,
+                        type_id: p.type_id,
+                        source: p.source,
+                        centre: p.centre,
+                        height: p.size[1],
+                        load_height: p.load_height,
+                        wrapped: p.wrapped,
                     })
                     .collect();
-                Picture { pallets, angles: f.angles(), heights: f.heights(), status: f.status() }
+                let mut pallets: Vec<PalletShow> = pallets;
+                let (stored, shifts) = storage_show(&self.layout, &self.library, &f.storage());
+                pallets.extend(stored);
+                Picture { pallets, angles: f.angles(), heights: f.heights(), shifts, status: f.status() }
             }
         }
     }
@@ -178,46 +167,6 @@ fn make(module: Module, layout: &Layout, seed: u64, library: &Library) -> Result
         Module::Discrete => Engine::Discrete(Box::new(simulate(layout, library, seed)?)),
         Module::Physics => Engine::Physics(Box::new(PhysicsFlow::on(Box::new(AvianBench::new()), layout, library, seed)?)),
     })
-}
-
-/// A pallet's turn from its own x and z axes in the world; a pallet that travels short side first is turned a quarter, so
-/// the model's x, its type's length, lies across its travel.
-pub fn rotation_of(x: DVec3, z: DVec3, along_width: bool) -> DQuat {
-    let (x, z) = (x.normalize_or(DVec3::X), z.normalize_or(DVec3::Z));
-    let y = z.cross(x).normalize_or(DVec3::Y);
-    let travel = DQuat::from_mat3(&DMat3::from_cols(x, y, x.cross(y)));
-    if along_width { travel * DQuat::from_rotation_y(std::f64::consts::FRAC_PI_2) } else { travel }
-}
-
-/// Where a pallet of the discrete run is: on its carrier's path, at the carrier's surface (a lift's deck height, a gravity
-/// line's slope).
-pub fn discrete_pallet(layout: &Layout, library: &Library, p: &PalletView, heights: &BTreeMap<String, f64>) -> Option<Shown> {
-    let carrier = layout.instance(&p.carrier)?;
-    let values = library.get(&carrier.definition_id).map(|d| instance_values(d, &carrier.params)).unwrap_or_default();
-    let along = p.front - p.length / 2.0;
-    let (c, s) = (p.heading.cos(), p.heading.sin());
-    let local = (p.path_x + along * c, p.path_z - along * s);
-    let surface = match heights.get(&p.carrier) {
-        Some(h) => *h,
-        None if p.slope != 0.0 => num(&values, "exitHeight", 0.1) + p.slope * (num(&values, "length", 0.0) - along),
-        None => surface_of(&values),
-    };
-    let centre = world(carrier, local, surface);
-    let travel = DQuat::from_rotation_y(carrier.yaw + p.heading) * DQuat::from_rotation_z(-p.slope.atan());
-    let along_width = library.reference.pallet_type(&p.type_id).is_some_and(|t| (t.length - p.length).abs() > 1e-3);
-    let rotation = if along_width { travel * DQuat::from_rotation_y(std::f64::consts::FRAC_PI_2) } else { travel };
-    Some(Shown { id: p.id, type_id: p.type_id.clone(), centre, rotation, load_height: p.load_height, height: p.height })
-}
-
-/// The conveying height of an object that has one, m above its base.
-fn surface_of(v: &Values) -> f64 {
-    ["surfaceHeight", "conveyorHeight", "entryHeight"].iter().find_map(|k| v.get(*k).and_then(Value::number)).unwrap_or(0.6)
-}
-
-/// A point `(x, z)` of an instance's own frame at `height` above its base, in the world.
-fn world(i: &Instance, (x, z): (f64, f64), height: f64) -> DVec3 {
-    let (s, c) = i.yaw.sin_cos();
-    DVec3::new(i.position.x + x * c + z * s, i.position.y + height, i.position.z - x * s + z * c)
 }
 
 #[cfg(test)]
@@ -242,9 +191,10 @@ mod tests {
             }
             let pic = run.picture();
             let pallet = pic.pallets.first().unwrap_or_else(|| panic!("{module:?}: no pallet"));
-            assert!((pallet.centre.y - 0.6).abs() < 0.01, "{module:?}: {}", pallet.centre.y);
-            assert!(pallet.centre.x > 0.5 && pallet.centre.x < 3.5, "{module:?}: {}", pallet.centre.x);
-            assert!((pallet.rotation * DVec3::X).x > 0.99, "{module:?}: the pallet runs long side first along +x");
+            assert!((pallet.centre[1] - 0.6).abs() < 0.01, "{module:?}: {}", pallet.centre[1]);
+            assert!(pallet.centre[0] > 0.5 && pallet.centre[0] < 3.5, "{module:?}: {}", pallet.centre[0]);
+            let along = intracraft_scene::pose::rotate(pallet.rotation, [1.0, 0.0, 0.0]);
+            assert!(along[0] > 0.99, "{module:?}: the pallet runs long side first along +x");
         }
     }
 
@@ -262,13 +212,5 @@ mod tests {
             out.push(run.statistics().get("sink1").and_then(|s| s.get("palletsReceived")).copied());
         }
         assert_eq!(out[0], out[1]);
-    }
-
-    #[test]
-    fn a_short_side_first_pallet_turns_its_model_a_quarter() {
-        let q = rotation_of(DVec3::X, DVec3::Z, true);
-        assert!((q * DVec3::X).z.abs() > 0.99);
-        let tilted = rotation_of(DVec3::new(1.0, -0.04, 0.0), DVec3::Z, false);
-        assert!((tilted * DVec3::X).y < -0.03);
     }
 }

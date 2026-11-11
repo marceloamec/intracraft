@@ -1,5 +1,6 @@
 //! The layout the two simulation modules run, read from the BIM model of the Design module: every component of an
-//! intralogistics family becomes an instance, with its id (the element's six-digit id), its place converted to the
+//! intralogistics family becomes an instance, with its id (the element's six-digit id), its name (the project parameter
+//! `Name`, else its family and id), its place converted to the
 //! simulation's frame and its values in SI, and the connections are the ones the geometry implies.
 //!
 //! Frames: the model keeps millimetres with x east, y north, z up and angles in degrees counter-clockwise; the
@@ -49,7 +50,7 @@ pub fn layout(model: &Model, library: &Library) -> (Layout, Vec<String>) {
             id: instance_id(id),
             definition_id: definition.id.clone(),
             definition_version: definition.version.clone(),
-            name: format!("{} {id}", c.family),
+            name: crate::name_of(model, id).unwrap_or_else(|| format!("{} {id}", c.family)),
             position: to_sim(c.at, level + c.offset),
             yaw: c.angle.to_radians(),
             params: attrs
@@ -57,12 +58,18 @@ pub fn layout(model: &Model, library: &Library) -> (Layout, Vec<String>) {
                 .filter(|a| a.source != crate::attributes::Source::Derived)
                 .filter_map(|a| a.value.map(|v| (a.key, v)))
                 .collect(),
-            attributes: Default::default(),
+            attributes: crate::sections::attributes_of(model, id),
         });
     }
     match derive_connections(&out, library) {
         Ok(c) => out.connections = c,
         Err(e) => problems.push(e),
+    }
+    // Two objects at one address are ambiguous in code and in the views: each is named in the list (ADR-0029).
+    let entries: Vec<(Option<String>, String)> =
+        out.instances.iter().map(|i| (i.attributes.get("section").and_then(|v| v.text()).map(str::to_string), i.name.clone())).collect();
+    for address in crate::sections::duplicate_names(&entries) {
+        problems.push(format!("two objects are at the address {address}; give one of them another name or section"));
     }
     (out, problems)
 }

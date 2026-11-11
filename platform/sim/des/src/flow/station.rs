@@ -10,7 +10,8 @@ use crate::flow::network::{
     ExitRule, LiftData, LiftPort, OperationMode, ProcessData, ProcessingMode, Side, TransferData, TransferDirection, TurntableData,
     TurntableExit,
 };
-use crate::flow::sim::{EPS, Line};
+use crate::flow::sim::{EPS, Line, Pallet};
+use crate::flow::wrap::{Programme, WrapData};
 use crate::kinematics::{MoveProfile, profile_position_at, profile_time};
 use crate::rng::Pcg32;
 use crate::time::{SimTime, US_PER_S, from_seconds};
@@ -108,6 +109,9 @@ pub struct Turntable {
     alternate: usize,
     rng: Pcg32,
     counters: Counters,
+    /// The exit code chose for the pallet now on the platform (an IntraScript `@choose_exit`), and whether it was asked.
+    chosen_exit: Option<String>,
+    asked: bool,
 }
 
 impl Turntable {
@@ -125,7 +129,29 @@ impl Turntable {
             alternate: 0,
             rng: Pcg32::new(seed, stream),
             counters: Counters::default(),
+            chosen_exit: None,
+            asked: false,
         }
+    }
+
+    /// A pallet centred on the platform whose exit nobody asked about yet: its id and the objects it may leave to.
+    pub fn exit_question(&self, lines: &[Line]) -> Option<(u64, Vec<String>)> {
+        if self.phase != Phase::Receiving || self.asked || !self.centred(lines) {
+            return None;
+        }
+        let pallet = lines[self.deck].pallets.first()?.id;
+        Some((pallet, self.exit_candidates().into_iter().map(|e| e.target).collect()))
+    }
+
+    /// The answer to [`Turntable::exit_question`]: the object chosen, or none to leave it to the exit rule.
+    pub fn answer_exit(&mut self, target: Option<String>) {
+        self.asked = true;
+        self.chosen_exit = target;
+    }
+
+    fn centred(&self, lines: &[Line]) -> bool {
+        let deck = &lines[self.deck];
+        deck.pallets.first().is_some_and(|p| deck.incoming.is_none() && deck.holding && p.front >= deck.end - EPS)
     }
 
     /// The station angle of a port the platform may stop at.
@@ -171,6 +197,8 @@ impl Turntable {
             self.heading = normalize(angle + PI);
         }
         self.phase = Phase::Receiving;
+        self.asked = false;
+        self.chosen_exit = None;
         self.entry_port = port.map(str::to_string);
         let deck = &mut lines[self.deck];
         deck.end = (self.data.platform_length + pallet_length) / 2.0;
@@ -180,8 +208,7 @@ impl Turntable {
     /// A centred pallet: choose the exit and turn to it. An emptied deck: free again.
     pub fn step(&mut self, now: SimTime, lines: &[Line]) -> StationStep {
         let deck = &lines[self.deck];
-        let centred = deck.pallets.first().is_some_and(|p| deck.incoming.is_none() && deck.holding && p.front >= deck.end - EPS);
-        if self.phase == Phase::Receiving && centred {
+        if self.phase == Phase::Receiving && self.centred(lines) {
             let Some(exit) = self.choose_exit() else { return StationStep::default() };
             let angle = exit.angle;
             self.exit = Some(exit);
@@ -281,18 +308,14 @@ impl Turntable {
         }
     }
 
-    /// The exits other than the entry, clockwise seen from above from the entry on.
+    /// The exit for the centred pallet: the one code chose, else the exit rule's.
     fn choose_exit(&mut self) -> Option<TurntableExit> {
-        let entry = self.station_angle(self.entry_port.as_deref()).unwrap_or(0.0);
-        let mut candidates: Vec<TurntableExit> = self
-            .data
-            .exits
-            .iter()
-            .filter(|e| Some(e.port_id.as_str()) != self.entry_port.as_deref() && self.station_angle(Some(&e.port_id)).is_some())
-            .cloned()
-            .collect();
-        // A stable sort, as the reference's.
-        candidates.sort_by(|a, b| clockwise_from(entry, a.angle).total_cmp(&clockwise_from(entry, b.angle)));
+        let mut candidates = self.exit_candidates();
+        if let Some(target) = self.chosen_exit.take()
+            && let Some(k) = candidates.iter().position(|e| e.target == target)
+        {
+            return Some(candidates.swap_remove(k));
+        }
         if candidates.is_empty() {
             return None;
         }
@@ -306,6 +329,21 @@ impl Turntable {
             }
         };
         Some(candidates.swap_remove(k))
+    }
+
+    /// The exits other than the entry, clockwise seen from above from the entry on.
+    fn exit_candidates(&self) -> Vec<TurntableExit> {
+        let entry = self.station_angle(self.entry_port.as_deref()).unwrap_or(0.0);
+        let mut candidates: Vec<TurntableExit> = self
+            .data
+            .exits
+            .iter()
+            .filter(|e| Some(e.port_id.as_str()) != self.entry_port.as_deref() && self.station_angle(Some(&e.port_id)).is_some())
+            .cloned()
+            .collect();
+        // A stable sort, as the reference's.
+        candidates.sort_by(|a, b| clockwise_from(entry, a.angle).total_cmp(&clockwise_from(entry, b.angle)));
+        candidates
     }
 }
 
@@ -569,7 +607,8 @@ pub enum ProcessPhase {
 
 /// The process station (S11): a short deck where one pallet at a time stops and is processed for a time.
 /// idle → receiving (the pallet stops centred) → processing (a timed step) → discharging (the deck runs it out through
-/// OUT; blocked while the next object is full) → idle.
+/// OUT; blocked while the next object is full) → idle. A stretch wrapper (S25) is one too: its time comes from the wrap
+/// programme, its round table turns with the pallet during the processing, and the pallet leaves wrapped.
 pub struct ProcessStation {
     pub id: String,
     pub data: ProcessData,
@@ -584,6 +623,18 @@ pub struct ProcessStation {
     total: f64,
     processed: u64,
     processing_sum: SimTime,
+    /// A wrapper's wrap in progress: when the processing started and its programme.
+    wrapping: Option<(SimTime, Programme)>,
+    wrap_stats: WrapStats,
+}
+
+/// What a stretch wrapper counts (S25 §5).
+#[derive(Clone, Copy, Debug, Default)]
+struct WrapStats {
+    wrapped: u64,
+    turns: u64,
+    film: f64,
+    too_tall: u64,
 }
 
 impl ProcessStation {
@@ -608,6 +659,8 @@ impl ProcessStation {
             total: 0.0,
             processed: 0,
             processing_sum: 0,
+            wrapping: None,
+            wrap_stats: WrapStats::default(),
         }
     }
 
@@ -630,7 +683,11 @@ impl ProcessStation {
     fn step(&mut self, now: SimTime, lines: &[Line]) -> StationStep {
         if self.phase == ProcessPhase::Receiving && is_centred(&lines[self.deck]) {
             self.phase = ProcessPhase::Processing;
-            return StationStep { changed: true, wait: Some(self.draw_processing_time()) };
+            let time = match self.data.wrap.clone() {
+                Some(wrap) => self.start_wrap(&wrap, lines[self.deck].pallets.first(), now),
+                None => self.draw_processing_time(),
+            };
+            return StationStep { changed: true, wait: Some(time) };
         }
         if self.phase == ProcessPhase::Discharging && lines[self.deck].pallets.is_empty() {
             self.phase = ProcessPhase::Idle;
@@ -642,6 +699,13 @@ impl ProcessStation {
 
     fn finish_timed_step(&mut self, lines: &mut [Line]) {
         self.processed += 1;
+        // The film is cut: the pallet leaves wrapped.
+        if let Some((_, programme)) = self.wrapping.take()
+            && programme.turns > 0
+            && let Some(p) = lines[self.deck].pallets.first_mut()
+        {
+            p.wrapped = true;
+        }
         // The processed pallet may now run out through OUT.
         let d = &mut lines[self.deck];
         d.end = self.data.length;
@@ -667,7 +731,7 @@ impl ProcessStation {
 
     fn statistics(&self) -> Vec<(&'static str, f64)> {
         let share = |s: f64| if self.total > 0.0 { s / self.total } else { 0.0 };
-        vec![
+        let mut out = vec![
             ("utilization", share(self.working)),
             ("blockedShare", share(self.blocked)),
             ("idleShare", share(self.total - self.working - self.blocked)),
@@ -677,7 +741,50 @@ impl ProcessStation {
                 if self.processed > 0 { self.processing_sum as f64 / self.processed as f64 / US_PER_S as f64 } else { 0.0 },
             ),
             ("meanCycleTime", self.counters.mean_cycle()),
-        ]
+        ];
+        if self.data.wrap.is_some() {
+            let w = &self.wrap_stats;
+            out.push(("meanTurns", if w.wrapped > 0 { w.turns as f64 / w.wrapped as f64 } else { 0.0 }));
+            out.push(("filmUsed", w.film));
+            out.push(("tooTallPallets", w.too_tall as f64));
+        }
+        out
+    }
+
+    /// The table's angle at `now` (rad, its own frame): it turns only while a wrapper wraps.
+    fn angle_at(&self, now: SimTime) -> f64 {
+        match (&self.data.wrap, &self.wrapping) {
+            (Some(wrap), Some((start, programme))) if self.phase == ProcessPhase::Processing => {
+                wrap.angle_at(programme, (now - start) as f64 / US_PER_S as f64)
+            }
+            _ => 0.0,
+        }
+    }
+
+    /// The deck's path, turned about the table's centre (x = length / 2) by its angle; the pallet stays centred on it.
+    fn path_at(&self, now: SimTime) -> DeckPath {
+        let heading = self.angle_at(now);
+        let half = self.data.length / 2.0;
+        // direction(h) = (cos h, −sin h): the entry edge is the centre less half a length that way.
+        DeckPath { x: half - half * heading.cos(), z: half * heading.sin(), heading }
+    }
+
+    /// The wrap programme for the centred pallet: its time, counted in the statistics.
+    fn start_wrap(&mut self, wrap: &WrapData, pallet: Option<&Pallet>, now: SimTime) -> SimTime {
+        let (load_height, perimeter) = pallet.map_or((0.0, 0.0), |p| (p.load_height, 2.0 * (p.length + p.width)));
+        let programme = wrap.programme(load_height);
+        if programme.turns > 0 {
+            self.wrap_stats.wrapped += 1;
+            self.wrap_stats.turns += u64::from(programme.turns);
+            self.wrap_stats.film += f64::from(programme.turns) * perimeter;
+        }
+        if programme.too_tall {
+            self.wrap_stats.too_tall += 1;
+        }
+        self.wrapping = Some((now, programme));
+        let time = from_seconds(programme.processing_time);
+        self.processing_sum += time;
+        time
     }
 
     fn draw_processing_time(&mut self) -> SimTime {
@@ -982,7 +1089,7 @@ impl Station {
         match self {
             Station::Turntable(t) => t.path_at(now),
             Station::Transfer(t) => t.path_of(_deck),
-            Station::Process(_) => DeckPath::default(),
+            Station::Process(t) => t.path_at(now),
             Station::Lift(t) => t.path_of(),
         }
     }
@@ -1000,7 +1107,8 @@ impl Station {
         match self {
             Station::Turntable(t) => Some(t.angle_at(now)),
             Station::Transfer(_) => None,
-            Station::Process(_) | Station::Lift(_) => None,
+            Station::Process(t) => t.data.wrap.as_ref().map(|_| t.angle_at(now)),
+            Station::Lift(_) => None,
         }
     }
 

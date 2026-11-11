@@ -89,6 +89,8 @@ pub struct Deck {
     pub speed: f64,
     pub rate: f64,
     pub holding: bool,
+    /// Without an exit, it runs its pallets off its end instead of stopping them there (`openEnd` = `runOff`).
+    pub run_off: bool,
     pub status: Status,
     /// The pallets it carries (their tail on it), in arrival order.
     pub pallets: Vec<u64>,
@@ -113,6 +115,7 @@ impl Deck {
             speed: 0.0,
             rate: 0.0,
             holding: false,
+            run_off: false,
             status: Status::Empty,
             pallets: Vec::new(),
             incoming: None,

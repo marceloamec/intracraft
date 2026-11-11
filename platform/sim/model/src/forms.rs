@@ -13,7 +13,7 @@ use intracraft_library::definition::Definition;
 use serde_json::{Value as Json, json};
 
 /// The forms' materials and their colours, made in the project with the families.
-pub const MATERIALS: [(&str, &str); 14] = [
+pub const MATERIALS: [(&str, &str); 15] = [
     (FRAME, "#2f6fb3"),
     (ROLLER, "#9aa3ad"),
     (CHAIN, "#3b3f45"),
@@ -28,8 +28,10 @@ pub const MATERIALS: [(&str, &str); 14] = [
     (BEAM, "#3ddc84"),
     (GANTRY, "#c9822b"),
     (SCENERY, "#8c7b6b"),
+    (CODE, "#7b4fb3"),
 ];
 const FRAME: &str = "IntraCraft frame";
+const CODE: &str = "IntraCraft code";
 const ROLLER: &str = "IntraCraft roller";
 const CHAIN: &str = "IntraCraft chain";
 const SUPPORT: &str = "IntraCraft support";
@@ -78,9 +80,12 @@ pub fn forms(d: &Definition) -> Json {
         "conveyor.elevator" => elevator(&mut f),
         "conveyor.gravity" => gravity_line(&mut f),
         "flow.process_station" => process_station(&mut f),
+        "flow.stretch_wrapper" => stretch_wrapper(&mut f),
         "flow.source" => flow_end(&mut f, SOURCE, true),
         "flow.sink" => flow_end(&mut f, SINK, false),
         "sensor.photoeye" => photoeye(&mut f),
+        "info.code" => code_block(&mut f),
+        "storage.aisle" => storage_aisle(&mut f),
         _ => {
             f.cuboid(SCENERY, ["-250", "250"], ["-250", "250"], ["0", "500"]);
         }
@@ -433,6 +438,62 @@ fn elevator(f: &mut Forms) {
     );
 }
 
+/// S26: two rack rows (uprights at every bay line, two beams under each position on every level), the stacker crane's
+/// floor rail and guide rail, and the crane at rest in front of the rack: its base, two masts and top beam, the lifting
+/// carriage and the forks at the first station height.
+fn storage_aisle(f: &mut Forms) {
+    let inner = "aisleWidth / 2";
+    let around = |c: &str, d: f64| [format!("({c}) - {}", d / 2.0), format!("({c}) + {}", d / 2.0)];
+    for side in ["", "-"] {
+        // The upright lines: at the aisle, at the back, and between the two positions of a double-deep row.
+        let lines = [
+            (format!("{side}({inner} + 50)"), None),
+            (format!("{side}({inner} + deep * positionDepth - 50)"), None),
+            (format!("{side}({inner} + positionDepth)"), Some("deep > 1")),
+        ];
+        for (y, when) in lines {
+            let ys = around(&y, 100.0);
+            let post = f.cuboid(FRAME, ["-50", "50"], [&ys[0], &ys[1]], ["0", "rackHeight"]).repeat("bays + 1", ["bayPitch", "0", "0"]);
+            if let Some(when) = when {
+                post.visible(when);
+            }
+        }
+        // Two beams under each position, 150 mm in from its edges, on every level.
+        let beams = [
+            (format!("{side}({inner} + 150)"), None),
+            (format!("{side}({inner} + positionDepth - 150)"), None),
+            (format!("{side}({inner} + positionDepth + 150)"), Some("deep > 1")),
+            (format!("{side}({inner} + 2 * positionDepth - 150)"), Some("deep > 1")),
+        ];
+        for (y, when) in beams {
+            let ys = around(&y, 50.0);
+            let beam = f
+                .cuboid(GUARD, ["0", "rackLength"], [&ys[0], &ys[1]], ["firstLevelHeight - 100", "firstLevelHeight"])
+                .repeat("levels", ["0", "0", "levelPitch"]);
+            if let Some(when) = when {
+                beam.visible(when);
+            }
+        }
+    }
+    // The crane's rails: on the floor, and above the rack.
+    f.cuboid(SUPPORT, ["-2200", "rackLength + 500"], ["-50", "50"], ["0", "50"]);
+    f.cuboid(SUPPORT, ["-2200", "rackLength + 500"], ["-50", "50"], ["rackHeight + 400", "rackHeight + 480"]);
+    // The crane, its forks at the first station: 400 mm in front of the rack.
+    f.cuboid(GANTRY, ["-1700", "900"], ["-250", "250"], ["50", "300"]);
+    for x in ["-1400", "600"] {
+        let xs = around(x, 250.0);
+        f.cuboid(SUPPORT, [&xs[0], &xs[1]], ["-150", "150"], ["300", "rackHeight + 200"]);
+    }
+    f.cuboid(GANTRY, ["-1525", "725"], ["-150", "150"], ["rackHeight + 200", "rackHeight + 400"]);
+    f.cuboid(DRIVE, ["-1900", "-1500"], ["-225", "225"], ["300", "700"]);
+    f.cuboid(GANTRY, ["-1250", "450"], [&format!("-({inner} - 100)"), &format!("{inner} - 100")], ["pdHeight1 - 200", "pdHeight1 - 80"]);
+    for x in ["-620", "-180"] {
+        let xs = around(x, 140.0);
+        let reach = "(positionDepth - 50) / 2";
+        f.cuboid(CHAIN, [&xs[0], &xs[1]], [&format!("-({reach})"), reach], ["pdHeight1 - 65", "pdHeight1 - 5"]);
+    }
+}
+
 /// S15: idle rollers on a slope from the entry height down to the exit height, a brake roller every `brakeEvery`
 /// rollers, the separator at the start of the pick-up position and the end stop, on side frames and feet that follow
 /// the slope.
@@ -510,6 +571,32 @@ fn process_station(f: &mut Forms) {
     f.cuboid(DRIVE, ["length / 2 - 120", "length / 2 + 120"], ["-120", "120"], [&format!("{gantry_top} - 250"), &gantry_top]);
 }
 
+/// S25: a round turning table on a column and a floor plate, a roller deck inside the circle, and beside it the mast
+/// with the film carriage and its roll, drawn at the bottom where a wrap starts.
+fn stretch_wrapper(f: &mut Forms) {
+    let (top, centre) = ("surfaceHeight", ["length / 2", "0"]);
+    let frame_top = format!("{top} - {FRAME_DROP}");
+    let plate = [format!("max({frame_top} - {}, 120)", FRAME_H + 40.0), format!("max({frame_top} - {FRAME_H}, 160)")];
+    let ring = format!("max({} - 50, 70)", plate[0]);
+    f.rod_z(BASE, centre, "length / 2 - 100", ["0", "50"]);
+    f.rod_z(SUPPORT, centre, "350", ["50", &ring]);
+    f.rod_z(DECK, centre, "length / 2", [&plate[0], &plate[1]]);
+    // The rollers lie inside the circle: over the middle 80 % of the diameter, as wide as the chord there allows.
+    let half = "min(usableWidth / 2, length * 0.3)";
+    rollers(f, "length * 0.1", "length * 0.8", half, top, "rollerPitch", "rollerDiameter");
+    side_frames(f, ["length * 0.1", "length * 0.9"], half, &frame_top);
+    // The mast beside the table, as high as the tallest load it wraps, with its foot and the drive at its head.
+    let mast_y = ["-(length / 2) - 350", "-(length / 2) - 150"];
+    let mast_top = format!("{top} + maxLoadHeight + 300");
+    f.cuboid(GUARD, ["length / 2 - 100", "length / 2 + 100"], mast_y, ["0", &mast_top]);
+    f.cuboid(BASE, ["length / 2 - 250", "length / 2 + 250"], ["-(length / 2) - 450", "-(length / 2) - 50"], ["0", "15"]);
+    drive(f, ["length / 2", "-(length / 2) - 250", &format!("{mast_top} + 110")], true);
+    // The film carriage at the bottom of its travel, its roll facing the load.
+    let carriage = [format!("{top} + 100"), format!("{top} + 100 + filmWidth")];
+    f.cuboid(FRAME, ["length / 2 - 250", "length / 2 + 250"], ["-(length / 2) - 150", "-(length / 2) - 60"], [&carriage[0], &carriage[1]]);
+    f.rod_z(ROLLER, ["length / 2", "-(length / 2) - 20"], "40", [&carriage[0], &carriage[1]]);
+}
+
 /// A source or a sink: a stand 400 mm long at the port height with an arrow on it, out of the model (a source) or into
 /// it (a sink).
 fn flow_end(f: &mut Forms, material: &str, out: bool) {
@@ -520,6 +607,17 @@ fn flow_end(f: &mut Forms, material: &str, out: bool) {
     let (tail, tip) = if out { (60, 340) } else { (340, 60) };
     let arrow = json!([[tail, -120], [tail, 120], [tip, 0]]);
     f.push(json!({"plane": "xy", "profile": arrow, "from": top, "to": format!("{top} + 20"), "material": material}));
+}
+
+/// S21: a code block is information, not equipment: a thin purple tablet on the floor with the braces `{ }` raised on it,
+/// so it is seen and picked on the plan beside the objects its code drives.
+fn code_block(f: &mut Forms) {
+    f.cuboid(CODE, ["-300", "300"], ["-300", "300"], ["0", "20"]);
+    // Each brace: a bar from its outer edge `out` to its inner edge `inn`, with a point at `tip` outside it.
+    for (out, inn, tip) in [(-210, -150, -250), (210, 150, 250)] {
+        let brace = json!([[out, -200], [inn, -200], [inn, 200], [out, 200], [out, 40], [tip, 0], [out, -40]]);
+        f.push(json!({"plane": "xy", "profile": brace, "from": "20", "to": "60", "material": GUARD}));
+    }
 }
 
 /// S06: the sensor and the reflector on their posts either side of the conveyor, and the beam between them. The family
@@ -581,6 +679,21 @@ mod tests {
                 assert!(built.as_ref().is_ok_and(|pieces| !pieces.is_empty()), "{} with {case:?}: {built:?}", d.id);
             }
         }
+    }
+
+    #[test]
+    fn a_storage_aisle_has_an_upright_at_every_bay_line_and_two_beams_under_each_position_of_each_level() {
+        let lib = Library::built_in().unwrap();
+        let f = family(lib.get("storage.aisle").unwrap());
+        let count = |deep: f64, material: &str| {
+            let own = BTreeMap::from([("bays".to_string(), json!(4)), ("levels".to_string(), json!(3)), ("deep".to_string(), json!(deep))]);
+            let v = f.values(DEFAULT_TYPE, &own).unwrap();
+            f.pieces(&v).unwrap().iter().filter(|p| p.material == material).count()
+        };
+        // 5 bay lines × 2 upright lines × 2 rows, and a third line when double deep.
+        assert_eq!((count(1.0, FRAME), count(2.0, FRAME)), (20, 30));
+        // 3 levels × 2 beams × 2 rows, and twice that when double deep.
+        assert_eq!((count(1.0, GUARD), count(2.0, GUARD)), (12, 24));
     }
 
     #[test]

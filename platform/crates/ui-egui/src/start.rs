@@ -21,7 +21,7 @@ use egui::{
 use crate::icons::{self, Icon};
 use crate::lang::{t, tf};
 use crate::style::{self, pal};
-use crate::{BimApp, Pending};
+use crate::{BimApp, Brand, Pending};
 
 /// Where the source code is.
 pub const SOURCE: &str = "https://github.com/IPedrax/BIMCraft";
@@ -284,12 +284,12 @@ impl BimApp {
     fn start_hero(&self, ui: &mut Ui) {
         ui.horizontal(|ui| {
             let (rect, _) = ui.allocate_exact_size(vec2(64.0, 64.0), Sense::hover());
-            logo(ui, rect);
+            (self.brand.logo)(ui.painter(), rect);
             ui.add_space(14.0);
             ui.vertical(|ui| {
                 ui.add_space(4.0);
-                ui.label(RichText::new("BIMCraft").font(FontId::proportional(34.0)).strong().color(pal().text));
-                ui.label(RichText::new(t("Building information modelling, open and free.")).size(15.0).color(pal().muted));
+                ui.label(RichText::new(self.brand.name).font(FontId::proportional(34.0)).strong().color(pal().text));
+                ui.label(RichText::new(t(self.brand.tagline)).size(15.0).color(pal().muted));
             });
         });
     }
@@ -307,7 +307,12 @@ impl BimApp {
         } else {
             msg!("A BIMCraft project or an IFC file.")
         };
-        if action(ui, Icon::Open, "Open…", what, &format!("{cmd}O")).clicked() {
+        let what = if self.brand.extension == Brand::BIMCRAFT.extension {
+            t(what).to_string()
+        } else {
+            format!("{} · {}", t(self.brand.project), t(what))
+        };
+        if action(ui, Icon::Open, "Open…", &what, &format!("{cmd}O")).clicked() {
             *click = Some(Click::Open);
         }
         if self.home.over {
@@ -427,8 +432,9 @@ impl BimApp {
         ui.horizontal(|ui| {
             let (rect, _) = ui.allocate_exact_size(vec2(18.0, 18.0), Sense::hover());
             icons::paint(ui.painter(), Icon::Code, rect, pal().muted);
-            if ui.link(t("Source code on GitHub")).on_hover_text(SOURCE).clicked() {
-                *click = Some(Click::Page(SOURCE.into()));
+            let source = self.brand.source;
+            if ui.link(t("Source code on GitHub")).on_hover_text(source).clicked() {
+                *click = Some(Click::Page(source.into()));
             }
             ui.label(RichText::new("·").color(pal().muted));
             ui.label(RichText::new(tf("Version {}", &[env!("CARGO_PKG_VERSION")])).color(pal().muted));
@@ -582,10 +588,9 @@ fn dashed(ui: &Ui, r: Rect) {
 }
 
 /// BIMCraft's logo (`assets/app-icon/bimcraft.svg`), drawn into `r`.
-fn logo(ui: &Ui, r: Rect) {
+pub(crate) fn logo(p: &egui::Painter, r: Rect) {
     let k = r.width() / 256.0;
     let at = |x: f32, y: f32| r.min + vec2(x, y) * k;
-    let p = ui.painter();
     let tile = Rect::from_min_max(at(8.0, 8.0), at(248.0, 248.0));
     p.rect_filled(tile, CornerRadius::same((52.0 * k).round() as u8), Color32::from_rgb(0x1F, 0x9D, 0x7F));
     let lines = p.with_clip_rect(tile.shrink(6.0 * k));

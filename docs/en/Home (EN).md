@@ -60,6 +60,8 @@ IntraCraft designs and simulates pallet conveyor systems with **one layout and t
 | A17 | [[A17 IntraScript Language]]          |
 | A18 | [[A18 BIMCraft Integration Analysis]] |
 | A19 | [[A19 Rust Implementation Plan]]      |
+| A20 | [[A20 IntraScript Tutorial]]          |
+| A22 | [[A22 High-Bay Warehouse Wizard]]     |
 
 ## Specifications (library objects)
 
@@ -87,6 +89,8 @@ IntraCraft designs and simulates pallet conveyor systems with **one layout and t
 | S20 | [[S20 List]]                     | `info.list`                  |
 | S21 | [[S21 Code Block]]               | `info.code`                  |
 | S22 | [[S22 Area]]                     | `info.area`                  |
+| S25 | [[S25 Stretch Wrapper]]          | `flow.stretch_wrapper`       |
+| S26 | [[S26 Storage Aisle]]            | `storage.aisle`              |
 
 ## Decisions
 
@@ -102,12 +106,15 @@ IntraCraft designs and simulates pallet conveyor systems with **one layout and t
 - [[ADR-0015 MTBH Rigid Body from Pallet and Load Models]]
 - [[ADR-0016 Physics World Built from the Layout]]
 - [[ADR-0017 Scenery Assets in the Layout and Live Spawn]]
-- [[ADR-0018 IntraScript Scripting Language]]
+- [[ADR-0018 IntraScript Scripting Language]] (syntax amended by ADR-0027)
 - [[ADR-0019 Bevy Engine Feasibility]] (superseded by ADR-0020 and ADR-0021)
 - [[ADR-0020 Rust Platform on BIMCraft with Three Modules]]
 - [[ADR-0021 Game Engine Choice for the Rust Platform]]
 - [[ADR-0022 Bevy Viewer for the Physics Simulation Module]]
 - [[ADR-0023 Rapier Passes the First Spike S1 Criteria]]
+- [[ADR-0027 IntraScript in Python Syntax with Its Own Interpreter]]
+- [[ADR-0032 Scope Extension Stretch Wrapper]]
+- [[ADR-0033 Scope Extension High-Bay Warehouse and Stacker Cranes]]
 
 ## Reference
 

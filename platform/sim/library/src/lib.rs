@@ -20,8 +20,8 @@ use std::collections::BTreeMap;
 use definition::{Definition, Text};
 use reference::{ASSET_CATEGORIES, Reference};
 
-/// The built-in definitions, in the reference's order.
-const BUILT_IN: [(&str, &str); 14] = [
+/// The built-in definitions, in the reference's order, then those only the Rust platform has.
+const BUILT_IN: [(&str, &str); 17] = [
     ("roller-conveyor", include_str!("../../../../packages/library/src/definitions/roller-conveyor.json")),
     ("chain-conveyor", include_str!("../../../../packages/library/src/definitions/chain-conveyor.json")),
     ("chain-turntable", include_str!("../../../../packages/library/src/definitions/chain-turntable.json")),
@@ -36,7 +36,17 @@ const BUILT_IN: [(&str, &str); 14] = [
     ("process-station", include_str!("../../../../packages/library/src/definitions/process-station.json")),
     ("photoeye", include_str!("../../../../packages/library/src/definitions/photoeye.json")),
     ("scenery-asset", include_str!("../../../../packages/library/src/definitions/scenery-asset.json")),
+    // Rust only (ADR-0027): the TypeScript reference is frozen and never had code blocks.
+    ("code-block", include_str!("../definitions/code-block.json")),
+    // Rust only (ADR-0033): the storage aisle of a high-bay warehouse.
+    ("storage-aisle", include_str!("../definitions/storage-aisle.json")),
+    // Rust only (ADR-0032): the turntable stretch wrapper.
+    ("stretch-wrapper", include_str!("../definitions/stretch-wrapper.json")),
 ];
+
+/// The conveyors' `openEnd` parameter (stop or run off), Rust only (ADR-0026), and the conveyors that have it.
+const OPEN_END: &str = include_str!("../definitions/open-end.json");
+const OPEN_END_ON: [&str; 2] = ["conveyor.roller", "conveyor.chain"];
 
 /// The definitions a project can place, and the reference data they use.
 #[derive(Clone, Debug, PartialEq)]
@@ -51,7 +61,11 @@ impl Library {
     pub fn built_in() -> Result<Library, String> {
         let mut library = Library { definitions: Vec::new(), reference: Reference::built_in()? };
         for (file, json) in BUILT_IN {
-            let definition: Definition = serde_json::from_str(json).map_err(|e| format!("{file}.json: {e}"))?;
+            let mut definition: Definition = serde_json::from_str(json).map_err(|e| format!("{file}.json: {e}"))?;
+            // Rust only (ADR-0026): what a conveyor does at an output that isn't connected.
+            if OPEN_END_ON.contains(&definition.id.as_str()) {
+                definition.parameters.push(serde_json::from_str(OPEN_END).map_err(|e| format!("open-end.json: {e}"))?);
+            }
             library.register(definition)?;
         }
         Ok(library)
@@ -129,7 +143,7 @@ mod tests {
     }
 
     #[test]
-    fn holds_the_fourteen_built_in_objects_in_the_reference_order() {
+    fn holds_the_reference_objects_in_their_order_then_those_only_rust_has() {
         let lib = library();
         let ids: Vec<&str> = lib.list().iter().map(|d| d.id.as_str()).collect();
         assert_eq!(
@@ -149,6 +163,9 @@ mod tests {
                 "flow.process_station",
                 "sensor.photoeye",
                 "scenery.asset",
+                "info.code",
+                "storage.aisle",
+                "flow.stretch_wrapper",
             ]
         );
     }

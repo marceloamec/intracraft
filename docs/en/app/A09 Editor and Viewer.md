@@ -75,6 +75,31 @@ Postponed: background drawing (image/DXF), video recording, reports, run compari
 - UI shows mm and degrees; everything stored is SI ([[A13 Conventions]]).
 - The viewer never decides simulation results; it only displays snapshots.
 
+## 4. Rust platform (2026-11-09)
+
+In the Rust platform the editor is BIMCraft's Design module ([[ADR-0028 Object Editing Snap Action Menu and Property Sheet]]).
+
+**Snapping:**
+
+- Dragging one intralogistics object in the floor plan (or with the Move tool) snaps it as described above, its port 20
+  mm from a free port it faces, within 300 mm, else onto the 100 mm grid.
+- Only an out port joins an in port. The ghost shows where it lands, and the status bar says what it joined.
+- A click on a library object in the ribbon while one object is selected puts the new one after it, joined to its free
+  exit.
+
+**3D view inside the window:** **2D + 3D** on the Intralogistics tab shows the design in 3D beside the plan.
+
+- A click picks an object (the same selection as the plan's).
+- A drag from an object moves it over the floor, with the same snapping; a drag from the floor orbits.
+
+**Menu and properties:**
+
+- A right click, in 2D or in 3D, opens the object's menu: Properties…, Turn 90° left or right, and Duplicate after its
+  exit. BIMCraft's own items follow.
+- A double click opens Properties: a window per object, or docked in the side panel. It has one section per parameter
+  group, and each value has the control its type asks for. It is read-only, with the object's state and statistics, in
+  the simulation modules.
+
 ## Related
 
-[[A02 Architecture]] · [[A05 Component Library]] · [[A13 Conventions]]
+[[A02 Architecture]] · [[A05 Component Library]] · [[A13 Conventions]] · [[ADR-0028 Object Editing Snap Action Menu and Property Sheet]]

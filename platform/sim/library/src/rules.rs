@@ -30,6 +30,10 @@ pub const MIN_DECK_MARGIN: f64 = 0.1;
 pub const PICKUP_MARGIN: f64 = 0.05;
 /// Lateral clearance between pallet and guides, per side, m. Indicative.
 pub const GUIDE_CLEARANCE: f64 = 0.025;
+/// Clearance of a stretch wrapper's round table beyond the pallet's diagonal, m (S25).
+pub const TABLE_MARGIN: f64 = 0.1;
+/// Standard gravity, m/s².
+pub const GRAVITY: f64 = 9.81;
 
 fn issue(rule: &'static str, severity: Severity, message: String) -> Vec<Issue> {
     vec![Issue { rule, severity, message }]
@@ -130,6 +134,42 @@ pub fn pickup_too_short(pickup_length: f64, pallet_along: f64) -> Vec<Issue> {
     )
 }
 
+/// Storage aisle: a station height in use above the top level, where the crane's forks don't go (S26 §6).
+pub fn station_above_rack(station_heights: &[f64], top_level: f64) -> Vec<Issue> {
+    let Some(high) = station_heights.iter().copied().find(|h| *h > top_level + 1e-9) else { return vec![] };
+    issue("stationAboveRack", Severity::Error, format!("Station height {high} m is above the top level at {top_level} m"))
+}
+
+/// Stretch wrapper: the round table must hold the pallet's corners with some clearance, or they sweep past it (S25 §6).
+pub fn table_too_small(diameter: f64, pallet_diagonal: f64) -> Vec<Issue> {
+    let needed = pallet_diagonal + TABLE_MARGIN;
+    if diameter >= needed - 1e-9 {
+        return vec![];
+    }
+    issue(
+        "tableTooSmall",
+        Severity::Error,
+        format!("Table diameter {diameter} m is smaller than the pallet's diagonal plus 100 mm ({needed:.3} m)"),
+    )
+}
+
+/// Stretch wrapper: the acceleration at the pallet's corner while the table turns (centripetal and tangential together)
+/// is more than friction inside the load can hold (S25 §6). Speeds in rad/s and rad/s².
+pub fn load_may_shift(turn_speed: f64, turn_accel: f64, corner_radius: f64, friction: f64) -> Vec<Issue> {
+    let at_corner = (turn_speed * turn_speed * corner_radius).hypot(turn_accel * corner_radius);
+    let held = friction * GRAVITY;
+    if at_corner <= held + 1e-9 {
+        return vec![];
+    }
+    issue(
+        "loadMayShift",
+        Severity::Warning,
+        format!(
+            "The pallet's corner accelerates at {at_corner:.2} m/s², more than friction {friction} holds ({held:.2} m/s²): a loose load may shift"
+        ),
+    )
+}
+
 /// The issues of an instance: the rules its definition lists, with its values over the defaults.
 pub fn validate_instance(definition: &Definition, own: &Values, reference: &Reference) -> Vec<Issue> {
     let Some(eur) = reference.pallet_type("eur") else { return vec![] };
@@ -155,6 +195,19 @@ pub fn validate_instance(definition: &Definition, own: &Values, reference: &Refe
             "slopeTooLow" => slope_too_low(num(&p, "slope", 0.0), num(&p, "rollingResistance", 0.0)),
             "brakeSpacingTooLong" => brake_spacing_too_long(num(&p, "brakeEvery", 1.0), num(&p, "rollerPitch", 0.0), along),
             "pickupTooShort" => pickup_too_short(num(&p, "pickupLength", 0.0), along),
+            "stationAboveRack" => {
+                let used = num(&p, "pdLevels", 1.0).clamp(1.0, 3.0) as usize;
+                let heights: Vec<f64> = (1..=used).map(|n| num(&p, &format!("pdHeight{n}"), 0.0)).collect();
+                let top = num(&p, "firstLevelHeight", 0.0) + (num(&p, "levels", 1.0) - 1.0) * num(&p, "levelPitch", 0.0);
+                station_above_rack(&heights, top)
+            }
+            "tableTooSmall" => table_too_small(num(&p, "length", 0.0), eur.length.hypot(eur.width)),
+            "loadMayShift" => load_may_shift(
+                num(&p, "turnSpeed", 0.0),
+                num(&p, "turnAccel", 0.0),
+                eur.length.hypot(eur.width) / 2.0,
+                num(&p, "loadFriction", 0.0),
+            ),
             _ => vec![],
         })
         .collect()
@@ -229,6 +282,36 @@ mod tests {
         assert_eq!(rules_of(&lib, "conveyor.gravity", &[("brakeEvery", n(6.0))]), ["brakeSpacingTooLong"]);
         assert!(rules_of(&lib, "conveyor.gravity", &[("brakeEvery", n(5.0))]).is_empty());
         assert_eq!(rules_of(&lib, "conveyor.gravity", &[("pickupLength", n(1.24))]), ["pickupTooShort"]);
+    }
+
+    #[test]
+    fn flags_a_storage_aisle_station_above_its_top_level() {
+        let lib = Library::built_in().unwrap();
+        // Top level at 0.6 + 7 × 1.8 = 13.2 m.
+        let two = [("pdLevels", n(2.0)), ("pdHeight2", n(14.0))];
+        assert_eq!(rules_of(&lib, "storage.aisle", &two), ["stationAboveRack"]);
+        assert!(rules_of(&lib, "storage.aisle", &[("pdLevels", n(2.0)), ("pdHeight2", n(13.2))]).is_empty());
+        // A height that is not in use is not checked.
+        assert!(rules_of(&lib, "storage.aisle", &[("pdHeight2", n(14.0))]).is_empty());
+    }
+
+    #[test]
+    fn flags_a_stretch_wrapper_table_smaller_than_the_pallet_s_diagonal_plus_100_mm() {
+        let lib = Library::built_in().unwrap();
+        // The EUR pallet's diagonal: √(1.2² + 0.8²) = 1.442 m.
+        assert_eq!(rules_of(&lib, "flow.stretch_wrapper", &[("length", n(1.5))]), ["tableTooSmall"]);
+        assert!(rules_of(&lib, "flow.stretch_wrapper", &[("length", n(1.55))]).is_empty());
+    }
+
+    #[test]
+    fn warns_that_a_load_may_shift_on_a_stretch_wrapper_at_20_rpm_and_not_at_12() {
+        let lib = Library::built_in().unwrap();
+        let rpm = |r: f64| n(r * 2.0 * std::f64::consts::PI / 60.0);
+        // W4 of S25: at the corner, 0.721 m out, 20 rpm gives 3.19 m/s² against 0.3 × 9.81 = 2.94 m/s²; 12 rpm, 1.23 m/s².
+        assert_eq!(rules_of(&lib, "flow.stretch_wrapper", &[("turnSpeed", rpm(20.0))]), ["loadMayShift"]);
+        assert!(rules_of(&lib, "flow.stretch_wrapper", &[("turnSpeed", rpm(12.0))]).is_empty());
+        // Cartons on cartons (0.4) hold at 20 rpm.
+        assert!(rules_of(&lib, "flow.stretch_wrapper", &[("turnSpeed", rpm(20.0)), ("loadFriction", n(0.4))]).is_empty());
     }
 
     #[test]

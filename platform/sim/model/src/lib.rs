@@ -10,27 +10,56 @@ pub mod attributes;
 pub mod family;
 pub mod forms;
 pub mod layout;
+pub mod sections;
+pub mod snap;
 pub mod tree;
 
 use bimcraft_core::engine::Session;
 use bimcraft_core::model::Id;
 use intracraft_library::Library;
 use intracraft_library::definition::Value;
-use intracraft_library::layout::Project;
+use intracraft_library::layout::{Instance, Project};
 use serde_json::{Value as Json, json};
 
 use crate::attributes::{attributes, check_value, definition_of};
 use crate::family::{DEFAULT_TYPE, family_name, family_params, to_bim};
 
+/// The project parameter that names an object (Revit's Manage > Project Parameters, a text of components): "Line A".
+/// The simulations call the object by it, and IntraScript code by its code name (`Line_A`, A17 §12.1).
+pub const NAME: &str = "Name";
+
 /// Loads every library definition into the project as a family, or brings the families up to date; their names.
 pub fn load_library(session: &mut Session, library: &Library) -> Result<Vec<String>, String> {
     materials(session)?;
+    name_parameter(session)?;
+    sections::section_parameter(session)?;
     let mut names = Vec::new();
     for d in library.list() {
         session.execute("family", &family_params(d)).map_err(|e| format!("{}: {e}", d.id))?;
         names.push(family_name(d));
     }
     Ok(names)
+}
+
+/// Makes the project parameter `Name` of components, when the project lacks it.
+fn name_parameter(session: &mut Session) -> Result<(), String> {
+    if !session.model.parameters.contains_key(NAME) {
+        session.execute("parameter", &json!({"name": NAME, "kind": "text", "categories": ["component"]}))?;
+    }
+    Ok(())
+}
+
+/// Gives object `id` a name (empty: none, it is then called by its family and id). One undo step.
+pub fn set_name(session: &mut Session, id: Id, name: &str) -> Result<(), String> {
+    name_parameter(session)?;
+    let value = if name.trim().is_empty() { Json::Null } else { json!(name.trim()) };
+    session.execute("modify", &json!({"id": id, "params": {NAME: value}})).map(|_| ())
+}
+
+/// The name object `id` was given, if any.
+pub fn name_of(model: &bimcraft_core::model::Model, id: Id) -> Option<String> {
+    let bimcraft_core::model::Element::Component(c) = model.elements.get(id)? else { return None };
+    c.params.get(NAME).and_then(Json::as_str).map(str::trim).filter(|n| !n.is_empty()).map(str::to_string)
 }
 
 /// Makes the materials the families' forms are made of, those the project lacks (a project may have recoloured them).
@@ -59,6 +88,7 @@ pub fn place(
     let family = family_name(d);
     if !session.model.families.contains_key(&family) {
         materials(session)?;
+        name_parameter(session)?;
         session.execute("family", &family_params(d)).map_err(|e| format!("{definition}: {e}"))?;
     }
     let r = session.execute(
@@ -104,9 +134,15 @@ pub fn detach(session: &mut Session, library: &Library, id: Id) -> Result<usize,
 /// Places every instance of a reference project (`.intracraft.json`) in the model, with its own values: the reference's
 /// layouts open in the Design module. The new elements' ids, in the file's order.
 pub fn import_project(session: &mut Session, library: &Library, project: &Project) -> Result<Vec<Id>, String> {
-    session.transaction("Import IntraCraft layout", |s| {
+    place_all(session, library, &project.layout.instances, "Import IntraCraft layout")
+}
+
+/// Places `instances` (positions and values in SI, as a layout holds them) in the model in one step called `label`: one
+/// Undo takes them all away. Each keeps its own values, its name and its section. The new elements' ids, in order.
+pub fn place_all(session: &mut Session, library: &Library, instances: &[Instance], label: &'static str) -> Result<Vec<Id>, String> {
+    session.transaction(label, |s| {
         let mut ids = Vec::new();
-        for i in &project.layout.instances {
+        for i in instances {
             let d = library.get(&i.definition_id).ok_or_else(|| format!("{}: the library has no {}", i.id, i.definition_id))?;
             let (at, height) = layout::to_model(i.position);
             let id = place(s, library, &d.id, None, [at.0, at.1], i.yaw.to_degrees(), height)?;
@@ -119,6 +155,12 @@ pub fn import_project(session: &mut Session, library: &Library, project: &Projec
             }
             if !params.is_empty() {
                 s.execute("modify", &json!({"id": id, "params": params}))?;
+            }
+            if !i.name.trim().is_empty() {
+                set_name(s, id, &i.name)?;
+            }
+            if let Some(section) = i.attributes.get("section").and_then(Value::text) {
+                sections::set_section(s, id, section)?;
             }
             ids.push(id);
         }
@@ -145,7 +187,7 @@ mod tests {
     fn loads_every_library_object_as_a_family() {
         let (mut s, lib) = session();
         let names = load_library(&mut s, &lib).unwrap();
-        assert_eq!(names.len(), 14);
+        assert_eq!(names.len(), 17);
         for n in &names {
             assert!(s.model.families.contains_key(n), "{n}");
         }
@@ -170,6 +212,50 @@ mod tests {
         // Undo brings the override back: every change is a command.
         s.execute("undo", &json!({})).unwrap();
         assert_eq!(attr(&s, &lib, id, "length").value, Some(Value::Number(5.0)));
+    }
+
+    #[test]
+    fn a_code_block_keeps_a_long_program_and_hands_it_to_the_run() {
+        let (mut s, lib) = session();
+        let id = place(&mut s, &lib, "info.code", None, [0.0, 0.0], 0.0, 0.0).unwrap();
+        let starter = attr(&s, &lib, id, "source");
+        assert!(starter.value.as_ref().and_then(Value::text).is_some_and(|t| t.contains("@on_start")));
+        let long: String = (0..400)
+            .map(|i| {
+                format!(
+                    "v{i} = {i}
+"
+                )
+            })
+            .collect();
+        assert!(long.len() > 3000);
+        set_attribute(&mut s, &lib, id, "source", &Value::Text(long.clone())).unwrap();
+        let (layout, problems) = layout::layout(&s.model, &lib);
+        assert!(problems.is_empty(), "{problems:?}");
+        let block = layout.instances.iter().find(|i| i.definition_id == "info.code").unwrap();
+        assert_eq!(block.params.get("source"), Some(&Value::Text(long)));
+        assert_eq!(simulation_tree(&s.model, &lib)[0].name, "Code blocks");
+        s.execute("undo", &json!({})).unwrap();
+        assert_eq!(attr(&s, &lib, id, "source").source, Source::Library);
+    }
+
+    #[test]
+    fn objects_keep_the_names_of_an_imported_layout_and_take_new_ones() {
+        let (mut s, lib) = session();
+        let project =
+            Project::read(include_str!("../../../../packages/scenarios/scenarios/layouts/demo-turntable-split.intracraft.json")).unwrap();
+        let ids = import_project(&mut s, &lib, &project).unwrap();
+        let (l, _) = layout::layout(&s.model, &lib);
+        let names: Vec<&str> = l.instances.iter().map(|i| i.name.as_str()).collect();
+        assert_eq!(names, ["Infeed", "Infeed roller", "Turntable", "Line A", "Outfeed A", "Line B", "Outfeed B"]);
+        set_name(&mut s, ids[3], "Main line").unwrap();
+        assert_eq!(name_of(&s.model, ids[3]).as_deref(), Some("Main line"));
+        s.execute("undo", &json!({})).unwrap();
+        assert_eq!(name_of(&s.model, ids[3]).as_deref(), Some("Line A"));
+        // No name: the family and the id.
+        set_name(&mut s, ids[3], "").unwrap();
+        let (l, _) = layout::layout(&s.model, &lib);
+        assert_eq!(l.instances[3].name, format!("Roller conveyor {}", ids[3]));
     }
 
     #[test]
@@ -237,6 +323,34 @@ mod tests {
         // One undo step takes the whole import back.
         s.execute("undo", &json!({})).unwrap();
         assert_eq!(layout::layout(&s.model, &lib).0.instances.len(), 0);
+    }
+
+    #[test]
+    fn a_planned_warehouse_is_placed_in_one_step_with_its_names_values_and_section() {
+        let (mut s, lib) = session();
+        let aisle = |id: &str, name: &str, z: f64| Instance {
+            id: id.into(),
+            definition_id: "storage.aisle".into(),
+            definition_version: String::new(),
+            name: name.into(),
+            position: intracraft_library::layout::Vec3::new(2.0, 0.0, z),
+            yaw: 0.0,
+            params: [("bays".to_string(), Value::Number(12.0)), ("deep".to_string(), Value::Number(2.0))].into(),
+            attributes: [("section".to_string(), Value::Text("HBW".into()))].into(),
+        };
+        let ids = place_all(&mut s, &lib, &[aisle("a", "Aisle 01", 0.0), aisle("b", "Aisle 02", 6.9)], "High-bay warehouse").unwrap();
+        assert_eq!(ids.len(), 2);
+        let (l, problems) = layout::layout(&s.model, &lib);
+        assert!(problems.is_empty(), "{problems:?}");
+        assert_eq!(l.instances.iter().map(|i| i.name.as_str()).collect::<Vec<_>>(), ["Aisle 01", "Aisle 02"]);
+        assert!(l.instances.iter().all(|i| i.attributes.get("section") == Some(&Value::Text("HBW".into()))));
+        assert_eq!(attr(&s, &lib, ids[1], "bays").value, Some(Value::Number(12.0)));
+        // Double deep, 12 bays and the default 8 levels: 384 positions, 6.7 m wide.
+        assert_eq!(attr(&s, &lib, ids[1], "positions").value, Some(Value::Number(384.0)));
+        assert!((l.instances[1].position.z - 6.9).abs() < 1e-9);
+        assert_eq!(simulation_tree(&s.model, &lib)[0].name, "Storage");
+        s.execute("undo", &json!({})).unwrap();
+        assert!(layout::layout(&s.model, &lib).0.instances.is_empty());
     }
 
     #[test]

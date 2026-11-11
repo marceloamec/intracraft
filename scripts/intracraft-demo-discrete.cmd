@@ -1,6 +1,9 @@
 @echo off
-rem Opens the reference layout in the Discrete simulation module, running, on the floor plan.
-rem The first time it compiles the optimised program (several minutes); afterwards it opens at once.
+rem Opens the mixed example plant in the Discrete simulation module, running: the floor plan and the 3D view side by side.
+rem The first time it compiles the optimised programs (several minutes); afterwards it opens at once.
 cd /d "%~dp0..\platform"
-cargo run --release --offline -p intracraft -- "%~dp0..\packages\scenarios\scenarios\layouts\reference-all-five.intracraft.json" --module discrete --play
-if errorlevel 1 pause
+cargo build --release --offline -p intracraft -p intracraft-viewer || goto failed
+start "" "target\release\intracraft.exe" "%~dp0..\examples\layouts\mixed-plant.intracraft.json" --module discrete --play --split
+exit /b 0
+:failed
+pause

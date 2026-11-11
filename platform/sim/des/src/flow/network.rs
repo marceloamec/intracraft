@@ -11,8 +11,13 @@ use intracraft_library::layout::{Layout, Rule, Vec3};
 use intracraft_library::params::{Values, instance_values, num};
 use intracraft_library::reference::{PalletType, Reference};
 
+use crate::flow::storage::{self, Retrieval, StorageData};
+use crate::flow::wrap::WrapData;
+
 /// `behaviors.des` of definitions the 2D run leaves out (scenery, S17).
 pub const NO_2D_BEHAVIOR: &str = "des.none";
+/// `behaviors.des` of a code block (S21): it carries no pallets; its code runs with the run (`sim::script`).
+pub const SCRIPT_BEHAVIOR: &str = "des.script";
 /// A catalogue pallet whose footprint differs more than this from its pallet type gets a warning, m.
 pub const MODEL_MISMATCH: f64 = 0.05;
 
@@ -55,6 +60,9 @@ pub struct LineData {
     pub decel: f64,
     pub min_gap: f64,
     pub pallet_side_along_travel: Side,
+    /// At an output that isn't connected, pallets run off the end and fall instead of stopping there (`openEnd` =
+    /// `runOff`, ADR-0026).
+    pub run_off: bool,
 }
 
 /// What a source creates (S09 §1.1): its footprint, long and short side, the pallet part's height and the load's.
@@ -209,6 +217,8 @@ pub struct ProcessData {
     /// The fixed time, or the distribution's mean, s.
     pub processing_time: f64,
     pub processing_std_dev: f64,
+    /// A stretch wrapper's programme (S25): the time follows the load and the table turns.
+    pub wrap: Option<WrapData>,
 }
 
 /// A port of a lift station: which deck end it is at and the deck's height there, m.
@@ -264,6 +274,8 @@ pub enum Kind {
     Transfer(Box<TransferData>),
     Process(Box<ProcessData>),
     Lift(Box<LiftData>),
+    /// A storage aisle of a high-bay warehouse (S26).
+    Storage(Box<StorageData>),
     Source(Box<SourceData>),
     Sink(SinkData),
     Sensor(SensorData),
@@ -306,7 +318,7 @@ pub fn build_flow_network(layout: &Layout, library: &Library) -> FlowNetwork {
     let mut nodes: Vec<FlowNode> = Vec::new();
     for instance in &layout.instances {
         let Some(definition) = library.get(&instance.definition_id) else { continue };
-        if definition.behaviors.des == NO_2D_BEHAVIOR {
+        if definition.behaviors.des == NO_2D_BEHAVIOR || definition.behaviors.des == SCRIPT_BEHAVIOR {
             continue;
         }
         let p = instance_values(definition, &instance.params);
@@ -326,6 +338,9 @@ pub fn build_flow_network(layout: &Layout, library: &Library) -> FlowNetwork {
     for c in &layout.connections {
         let Some(from) = nodes.iter().position(|n| n.base.id == c.from.instance_id) else { continue };
         let Some(to) = nodes.iter().position(|n| n.base.id == c.to.instance_id) else { continue };
+        if let Kind::Storage(s) = &mut nodes[to].kind {
+            s.feeders.insert(c.to.port_id.clone(), c.from.instance_id.clone());
+        }
         if matches!(nodes[from].kind, Kind::Turntable(_)) {
             let angle = STATION_PORTS.iter().find(|(p, _)| *p == c.from.port_id).map(|(_, a)| *a);
             if matches!(nodes[to].kind, Kind::Turntable(_)) {
@@ -346,6 +361,10 @@ pub fn build_flow_network(layout: &Layout, library: &Library) -> FlowNetwork {
                 l.exits.insert(c.from.port_id.clone(), exit);
                 continue;
             }
+            Kind::Storage(s) => {
+                s.exits.insert(c.from.port_id.clone(), exit);
+                continue;
+            }
             _ => {}
         }
         if nodes[from].output_port() != Some(c.from.port_id.as_str()) {
@@ -356,8 +375,17 @@ pub fn build_flow_network(layout: &Layout, library: &Library) -> FlowNetwork {
         b.downstream_port = Some(c.to.port_id.clone());
         b.downstream_gap = c.gap;
     }
+    let chains: Vec<&str> = layout
+        .instances
+        .iter()
+        .filter(|i| library.get(&i.definition_id).is_some_and(|d| d.behaviors.des == "des.chain_conveyor"))
+        .map(|i| i.id.as_str())
+        .collect();
     for n in &nodes {
         issues.extend(connection_issues(n, &nodes, &library.reference));
+        if let Kind::Storage(s) = &n.kind {
+            issues.extend(storage_issues(&n.base, s, &chains));
+        }
     }
     FlowNetwork { nodes, issues, rules: layout.rules.clone() }
 }
@@ -379,6 +407,7 @@ fn create_kind(d: &Definition, base: &Base, p: &Values, reference: &Reference, i
                 decel: num(p, "decel", 0.0),
                 min_gap: num(p, "minGap", 0.0),
                 pallet_side_along_travel: side(p, "palletSideAlongTravel"),
+                run_off: p.get("openEnd").and_then(Value::text) == Some("runOff"),
             })
         }
         "des.turntable" => {
@@ -436,6 +465,28 @@ fn create_kind(d: &Definition, base: &Base, p: &Values, reference: &Reference, i
             },
             processing_time: num(p, "processingTime", 0.0),
             processing_std_dev: num(p, "processingStdDev", 0.0).max(0.0),
+            wrap: None,
+        })),
+        "des.stretch_wrapper" => Kind::Process(Box::new(ProcessData {
+            length: num(p, "length", 0.0),
+            nominal_speed: num(p, "nominalSpeed", 0.0),
+            accel: num(p, "accel", 0.0),
+            pallet_side_along_travel: side(p, "palletSideAlongTravel"),
+            mode: ProcessingMode::Fixed,
+            processing_time: 0.0,
+            processing_std_dev: 0.0,
+            wrap: Some(WrapData {
+                turn_speed: num(p, "turnSpeed", 0.0),
+                turn_accel: num(p, "turnAccel", 0.0),
+                bottom_wraps: num(p, "bottomWraps", 0.0),
+                top_wraps: num(p, "topWraps", 0.0),
+                film_width: num(p, "filmWidth", 0.0),
+                overlap: num(p, "overlap", 0.0).clamp(0.0, 0.99),
+                up_and_down: text("passes").as_deref() != Some("up"),
+                attach_time: num(p, "attachTime", 0.0).max(0.0),
+                cut_time: num(p, "cutTime", 0.0).max(0.0),
+                max_load_height: num(p, "maxLoadHeight", 0.0),
+            }),
         })),
         "des.lift_station" => match lift(d, p) {
             Ok(l) => Kind::Lift(Box::new(l)),
@@ -444,6 +495,7 @@ fn create_kind(d: &Definition, base: &Base, p: &Values, reference: &Reference, i
                 Kind::Inert { behavior: "des.lift_station".into() }
             }
         },
+        storage::BEHAVIOR => Kind::Storage(Box::new(StorageData::read(p))),
         "des.gravity" => {
             let (length, slope, exit_height) = (num(p, "length", 0.0), num(p, "slope", 0.0), num(p, "exitHeight", 0.0));
             Kind::Gravity(Box::new(GravityData {
@@ -615,7 +667,9 @@ fn source(base: &Base, p: &Values, reference: &Reference, issues: &mut Vec<FlowI
 fn connection_issues(node: &FlowNode, nodes: &[FlowNode], reference: &Reference) -> Vec<FlowIssue> {
     let next = node.base.downstream.as_ref().and_then(|d| nodes.iter().find(|n| &n.base.id == d));
     match &node.kind {
-        Kind::Line(_) if next.is_none() => vec![issue(&node.base, "openEnd", "output is not connected; pallets stop at its end".into())],
+        Kind::Line(l) if next.is_none() && !l.run_off => {
+            vec![issue(&node.base, "openEnd", "output is not connected; pallets stop at its end".into())]
+        }
         Kind::Transfer(t) => transfer_issues(&node.base, t),
         Kind::Gravity(_) => match next.map(|n| &n.kind) {
             None => vec![issue(&node.base, "noExit", "OUT is not connected: place a sink for the operator there".into())],
@@ -693,6 +747,33 @@ fn lift_issues(node: &FlowNode, l: &LiftData, nodes: &[FlowNode]) -> Vec<FlowIss
             "twoExits",
             format!("{} are both connected; {} is used", names(&connected).join(" and "), connected[0].port_id),
         ));
+    }
+    out
+}
+
+/// The stations of a storage aisle (S26 §6): none connected, exits without retrieval or retrieval without exits, a
+/// station that isn't a chain conveyor, and a connected port of a height that isn't in use.
+fn storage_issues(base: &Base, s: &StorageData, chains: &[&str]) -> Vec<FlowIssue> {
+    let mut out = Vec::new();
+    if s.feeders.is_empty() && s.exits.is_empty() {
+        out.push(issue(base, "noStation", "no IN and no OUT is connected to a chain conveyor; its crane has nothing to do".into()));
+        return out;
+    }
+    if s.retrieval != Retrieval::None && s.exits.is_empty() {
+        out.push(issue(base, "retrievalWithoutExit", "no OUT is connected; pallets are stored and never leave".into()));
+    }
+    if s.retrieval == Retrieval::None && !s.exits.is_empty() {
+        out.push(issue(base, "exitWithoutRetrieval", "an OUT is connected, but retrieval is set to none; nothing leaves".into()));
+    }
+    let others = s.feeders.iter().chain(s.exits.iter().map(|(port, e)| (port, &e.target)));
+    for (port, other) in others {
+        if s.station_height(port).is_none() {
+            let text = format!("{port} is connected, but its station height is not in use; it is ignored");
+            out.push(issue(base, "stationLevelNotUsed", text));
+        } else if !chains.contains(&other.as_str()) {
+            let text = format!("{port} is not connected to a chain conveyor; the forks only work on chains");
+            out.push(issue(base, "stationNotOnChains", text));
+        }
     }
     out
 }

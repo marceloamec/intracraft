@@ -26,7 +26,7 @@ Every phase follows the IntraCraft workflow: spec first, failing test, implement
 | R7    | Remaining objects and rules editor      | Edit if/then rules in a table; use lifts, elevator, gravity line, stations (S11–S15) in both runs         | R4          |
 | R8    | Budgets and reports                     | Get a budget schedule with unit prices; export statistics and budget to XLSX                              | R1          |
 | R9    | Agents and packaging                    | Drive simulations through the MCP server; install the app on Windows/macOS/Linux                          | R6, R7      |
-| R10   | IntraScript                             | Write code blocks and information objects (S18–S22) that run in both simulation modules                   | R4, Q20     |
+| R10   | IntraScript                             | Write code blocks and information objects (S18–S22) that run in both simulation modules                   | R4, Q20 ✅  |
 
 R5 and R5b can run in parallel with R1–R4; R8 in parallel with R3–R7. By module: **Design** is R1, R2 and R8; **Discrete simulation** is R3, R4 and R7; **Physics simulation** is R5, R5b, R6 and R7; R10 serves both simulation modules ([[ADR-0020 Rust Platform on BIMCraft with Three Modules]] §7).
 
@@ -115,6 +115,19 @@ R5 and R5b can run in parallel with R1–R4; R8 in parallel with R3–R7. By mod
   4. the plant tests of `flow` on Avian;
   5. the viewer;
   6. the button in the main window, and the flat boxes over BIMCraft's 3D view removed.
+
+  **Done the same day.**
+
+  - Every step is done.
+  - Avian passes S1 and all the plant tests (P6 too).
+  - Own pallet and load models.
+  - The 3D window in Bevy.
+  - **2D + 3D** in the main window (the run in 3D beside the plan).
+  - The MEP tabs hidden.
+  - The `openEnd` parameter (stop or run off).
+  - Seven example installations in `examples/layouts`.
+
+  Details are in ADR-0026, "What was built".
 - Port `sim-physics/src/world` ([[ADR-0016 Physics World Built from the Layout]]): world from the model, decks, stations, gravity line, raycast sensors, MTBH bodies ([[ADR-0015 MTBH Rigid Body from Pallet and Load Models]]), scenery ([[ADR-0017 Scenery Assets in the Layout and Live Spawn]]).
 - Same plant logic as 2D, only the motion differs (ADR-0016 §1).
 - The viewer chosen in R5b (BIMCraft's GPU view or the Bevy viewer) draws pallet bodies from snapshots each frame; the static scene is cached.
@@ -140,10 +153,16 @@ R5 and R5b can run in parallel with R1–R4; R8 in parallel with R3–R7. By mod
 - Packages from BIMCraft's `packaging/` (Windows, macOS, Linux), with the new name and icon (`brand/`).
 - **Exit:** an agent builds a small line, runs it and reports throughput through MCP; installers built by CI.
 
-### R10 – IntraScript (after the owner answers Q20)
+### R10 – IntraScript
 
 - `intracraft-script` (`platform/sim/script`): the interpreter of [[A17 IntraScript Language]] in Rust (no `eval`, sandboxed, seeded random stream per block), and the information objects S18–S22 as families placed in the Design module.
 - **Exit:** the reference examples of A17 run with the same results in both simulation modules.
+- **Status (2026-11-09):** IntraScript 1.0 in Python's syntax ([[ADR-0027 IntraScript in Python Syntax with Its Own Interpreter]]): the crate, the code block (`info.code`) with its editor in the Design module, the code running in the Discrete simulation module (IS-1 to IS-3 pass) and `intracraft-cli code check|run`. Still to do: the code in the Physics simulation module, direct pallet moves, and the objects S18–S20 and S22.
+
+### R11 – High-bay warehouse
+
+- The storage aisle ([[S26 Storage Aisle]]): rack, stacker crane and its jobs in `intracraft-des` (`flow::storage`), the same logic in the Physics simulation module (`physics::flow::storage`), its family and its 3D parts; the warehouse wizard ([[A22 High-Bay Warehouse Wizard]]) in the Design module and `intracraft-cli warehouse`. Decision: [[ADR-0033 Scope Extension High-Bay Warehouse and Stacker Cranes]].
+- **Status (2026-11-11):** built in the three modules; T12 and T13 pass; the example `hbw-2-aisles-direct` runs in both simulation modules. Still to do: the realistic front-zone examples, stations at the rear end, and orders from IntraScript.
 
 ## 3. Extension points in BIMCraft's core
 
